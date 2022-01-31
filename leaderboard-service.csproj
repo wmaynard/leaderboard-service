@@ -2,19 +2,19 @@
 
 	<PropertyGroup>
 		<TargetFramework>net5.0</TargetFramework>
-		<RootNamespace>leaderboard_service</RootNamespace>
+		<RootNamespace>Rumble.Platform.LeaderboardService</RootNamespace>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="platform-csharp-common" Version="1.0.86" />
+		<PackageReference Include="platform-csharp-models" Version="1.0.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Controllers" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\platform-csharp-common\platform-csharp-common.csproj" />
+	  <Content Update="environment.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 
 </Project>

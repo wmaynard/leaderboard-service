@@ -14,7 +14,7 @@ using Microsoft.OpenApi.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
-namespace leaderboard_service
+namespace Rumble.Platform.LeaderboardService
 {
 	public class Startup : PlatformStartup
 	{
