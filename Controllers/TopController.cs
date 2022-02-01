@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Web;
@@ -18,7 +20,8 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			int score = Require<int>("score");
 			string type = Require<string>("type");
 			
-			Leaderboard leaderboard = _leaderboardService.SetScore(Token.AccountId, type, score);
+			Leaderboard leaderboard = _leaderboardService.AddScore(Token.AccountId, type, score);
+			leaderboard.SetNearbyScores(Token.AccountId);
 
 			if (leaderboard == null)
 				throw new UnknownLeaderboardException(type);
@@ -47,7 +50,33 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		{
 			return Ok();
 		}
+
+		[HttpGet, Route("test"), NoAuth]
+		public ActionResult Test()
+		{
+			Leaderboard output = null;
+			SortedList<string, long> list = new SortedList<string, long>();
+			for (int i = 0; i < 1_000; i++)
+			{
+				string accountId = "rando-" + Guid.NewGuid().ToString();
+				int score = new Random().Next(0, 500);
+				list.Add(accountId, score);
+				output = _leaderboardService.AddScore(accountId, "pvp_daily", score);
+			}
+			
+			// int ts = 
+			// list.Select(l => new Entry()
+			// {
+			// 	Rank = 
+			// })
+			
+			return Ok(new
+			{
+				Leaderboard = output
+			});
+		}
 		
+		[HttpGet, Route("health")]
 		public override ActionResult HealthCheck()
 		{
 			return Ok(_leaderboardService.HealthCheckResponseObject);

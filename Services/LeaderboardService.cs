@@ -31,9 +31,19 @@ namespace Rumble.Platform.LeaderboardService.Services
 			return result;
 		}
 
-		public void AddToScore(string accountId, string type, int score)
+		// TODO: Fix filter to work with sharding
+		public Leaderboard AddScore(string accountId, string type, int score)
 		{
-			
+			return _collection.FindOneAndUpdate<Leaderboard>(
+				filter: leaderboard => leaderboard.Type == type,
+				update: Builders<Leaderboard>.Update
+					.Inc(leaderboard => leaderboard.Scores[accountId], score),
+				options: new FindOneAndUpdateOptions<Leaderboard>()
+				{
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			);
 		}
 	}
 }
