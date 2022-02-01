@@ -21,10 +21,10 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			string type = Require<string>("type");
 			
 			Leaderboard leaderboard = _leaderboardService.AddScore(Token.AccountId, type, score);
-			leaderboard.SetNearbyScores(Token.AccountId);
+			// leaderboard.SetNearbyScores(Token.AccountId);
 
-			if (leaderboard == null)
-				throw new UnknownLeaderboardException(type);
+			// if (leaderboard == null)
+			// 	throw new UnknownLeaderboardException(type);
 
 			return Ok(leaderboard);
 		}
