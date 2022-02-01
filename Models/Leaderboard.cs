@@ -21,23 +21,24 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public int PlayersPerShard { get; set; }
 		public string ShardID { get; set; } // can be null
 		public Reward[] Rewards { get; set; }
-		public Dictionary<string, long> Scores { get; set; }
+		public List<Entry> Scores { get; set; }
 		public bool IsResetting { get; set; }
 
-		public IEnumerable<KeyValuePair<string, long>> TopScores => Scores.Take(PAGE_SIZE);
-		public IEnumerable<KeyValuePair<string, long>> NearbyScores { get; private set; }
+		public IEnumerable<Entry> TopScores => Scores.Take(PAGE_SIZE);
+		public IEnumerable<Entry> NearbyScores { get; private set; }
 
 		public OrderedDictionary Ordur { get; set; }
 		public void SetNearbyScores(string accountId)
 		{
-			int position = Scores.Keys.ToList().IndexOf(accountId);
-			int skip = Math.Max(0, position - PAGE_SIZE / 2);
-			NearbyScores = Scores.Skip(skip).Take(PAGE_SIZE);
+			// int position = Scores.IndexOf(accountId);
+			// int skip = Math.Max(0, position - PAGE_SIZE / 2);
+			// NearbyScores = Scores.Skip(skip).Take(PAGE_SIZE);
 		}
 
 		public Leaderboard()
 		{
-			Scores = new Dictionary<string, long>();
+			Scores = new List<Entry>();
+			// Scores = new Dictionary<string, long>();
 			// Ordur = new OrderedDictionary(comparer: Comparer)
 		}
 	}

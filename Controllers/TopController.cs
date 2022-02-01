@@ -76,7 +76,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			});
 		}
 		
-		[HttpGet, Route("health")]
+		[HttpGet, Route("health"), NoAuth]
 		public override ActionResult HealthCheck()
 		{
 			return Ok(_leaderboardService.HealthCheckResponseObject);
