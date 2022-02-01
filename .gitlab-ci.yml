@@ -21,6 +21,7 @@ variables:
   K8S_SECRET_MONGODB_NAME: "$MONGODB_NAME" DOCKER_DRIVER: overlay2
 
   ROLLOUT_RESOURCE_TYPE: deployment
+  DEPLOY_TYPE: "kubernetes"
 
   DOCKER_TLS_CERTDIR: ""  # https://gitlab.com/gitlab-org/gitlab-runner/issues/4501
 
