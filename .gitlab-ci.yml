@@ -18,7 +18,8 @@ variables:
   # from gitlab project ci variables - normally env specific
   K8S_SECRET_RUMBLE_KEY: "$RUMBLE_KEY"
   K8S_SECRET_MONGODB_URI: "$MONGODB_URI"
-  K8S_SECRET_MONGODB_NAME: "$MONGODB_NAME" DOCKER_DRIVER: overlay2
+  K8S_SECRET_MONGODB_NAME: "$MONGODB_NAME" 
+  DOCKER_DRIVER: overlay2
 
   ROLLOUT_RESOURCE_TYPE: deployment
   DEPLOY_TYPE: "kubernetes"
