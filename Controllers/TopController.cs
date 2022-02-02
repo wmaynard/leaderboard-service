@@ -6,13 +6,15 @@ using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Exceptions;
 using Rumble.Platform.LeaderboardService.Models;
+using Rumble.Platform.LeaderboardService.Services;
 
 namespace Rumble.Platform.LeaderboardService.Controllers
 {
 	[ApiController, Route("leaderboard"), RequireAuth, UseMongoTransaction]
 	public class TopController : PlatformController
 	{
-		public Services.LeaderboardService _leaderboardService;
+		private Services.LeaderboardService _leaderboardService;
+		private ResetService _resetService;
 
 		[HttpPatch, Route("score")]
 		public ActionResult AddScore()
@@ -21,12 +23,8 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			string type = Require<string>("type");
 			
 			Leaderboard leaderboard = _leaderboardService.AddScore(Token.AccountId, type, score);
-			// leaderboard.SetNearbyScores(Token.AccountId);
 
-			// if (leaderboard == null)
-			// 	throw new UnknownLeaderboardException(type);
-
-			return Ok(leaderboard);
+			return Ok();
 		}
 
 		// TODO: Move to admin controller
@@ -48,7 +46,15 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		[HttpGet, Route("rankings")]
 		public ActionResult GetRankings()
 		{
-			return Ok();
+			string type = Require<string>("type");
+			Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
+			
+			
+
+			return Ok( new
+			{
+				Response = board.GenerateScoreResponse(Token.AccountId)
+			});
 		}
 
 		[HttpGet, Route("test"), NoAuth]
@@ -79,7 +85,9 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		[HttpGet, Route("health"), NoAuth]
 		public override ActionResult HealthCheck()
 		{
-			return Ok(_leaderboardService.HealthCheckResponseObject);
+			return Ok(_leaderboardService.HealthCheckResponseObject,
+				_resetService.HealthCheckResponseObject
+			);
 		}
 	}
 }
