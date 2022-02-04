@@ -20,7 +20,6 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		private RegistryService _registryService;
 
 		private ResetService _resetService;
-		// private ResetService _resetService;
 
 		[HttpPatch, Route("score")]
 		public ActionResult AddScore()
@@ -77,7 +76,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		[HttpGet, Route("health"), NoAuth]
 		public override ActionResult HealthCheck()
 		{
-			return Ok(_leaderboardService.HealthCheckResponseObject);
+			return Ok(_leaderboardService.HealthCheckResponseObject, _resetService.HealthCheckResponseObject);
 		}
 		#endregion LOAD_BALANCER
 	}
