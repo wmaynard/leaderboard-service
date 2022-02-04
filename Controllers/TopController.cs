@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Exceptions;
 using Rumble.Platform.LeaderboardService.Models;
@@ -14,45 +17,39 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 	public class TopController : PlatformController
 	{
 		private Services.LeaderboardService _leaderboardService;
+		private RegistryService _registryService;
+
 		private ResetService _resetService;
+		// private ResetService _resetService;
 
 		[HttpPatch, Route("score")]
 		public ActionResult AddScore()
 		{
 			int score = Require<int>("score");
-			string type = Require<string>("type");
-			
-			Leaderboard leaderboard = _leaderboardService.AddScore(Token.AccountId, type, score);
+			string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 
+			Registration registration = _registryService.Find(Token.AccountId);
+			Leaderboard leaderboard = _leaderboardService.AddScore(Token.AccountId, type, score);
+			if (registration.TryEnroll(leaderboard))
+				_registryService.Update(registration);
+			
 			return Ok();
 		}
 
 		// TODO: Move to admin controller
-		[HttpPost, Route("create")]
-		public ActionResult Create()
-		{
-			Leaderboard leaderboard = Require<Leaderboard>("leaderboard");
-
-			if (_leaderboardService.Count(leaderboard.Type) > 0)
-				throw new Exception($"Leaderboard type '{leaderboard.Type}' already exists.");
-
-			_leaderboardService.Create(leaderboard);
-			return Ok(new
-			{
-				Leaderboard = leaderboard
-			});
-		}
+		
 		
 		[HttpGet, Route("rankings")]
 		public ActionResult GetRankings()
 		{
-			string type = Require<string>("type");
+			string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 			Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
 			
 			
 
 			return Ok( new
 			{
+				LeaderboardId = board.Id,
 				Response = board.GenerateScoreResponse(Token.AccountId)
 			});
 		}
@@ -70,24 +67,18 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 				output = _leaderboardService.AddScore(accountId, "pvp_daily", score);
 			}
 			
-			// int ts = 
-			// list.Select(l => new Entry()
-			// {
-			// 	Rank = 
-			// })
-			
 			return Ok(new
 			{
 				Leaderboard = output
 			});
 		}
 		
+		#region LOAD_BALANCER
 		[HttpGet, Route("health"), NoAuth]
 		public override ActionResult HealthCheck()
 		{
-			return Ok(_leaderboardService.HealthCheckResponseObject,
-				_resetService.HealthCheckResponseObject
-			);
+			return Ok(_leaderboardService.HealthCheckResponseObject, _resetService.HealthCheckResponseObject);
 		}
+		#endregion LOAD_BALANCER
 	}
 }

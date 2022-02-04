@@ -11,7 +11,9 @@ namespace Rumble.Platform.LeaderboardService.Services
 {
 	public class LeaderboardService : PlatformMongoService<Leaderboard>
 	{
-		public LeaderboardService() : base("leaderboards") { }
+		private readonly ArchiveService _archiveService;
+		// public LeaderboardService(ArchiveService service) : base("leaderboards") => _archiveService = service;
+		public LeaderboardService(ArchiveService service) : base("leaderboards") {}
 
 		internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);
 
@@ -80,6 +82,30 @@ namespace Rumble.Platform.LeaderboardService.Services
 						IsUpsert = false
 					}
 				);
+		}
+
+		public void Rollover(RolloverType type)
+		{
+			Leaderboard[] ending = Find(leaderboard => leaderboard.RolloverType == type).ToArray(); // TODO: FindOneAndUpdate.ReturnAfter to lock leaderboard
+			foreach (Leaderboard leaderboard in ending)
+				Rollover(leaderboard);
+		}
+
+		public void Rollover(string id)
+		{
+			Rollover(FindOne(leaderboard => leaderboard.Id == id));
+		}
+
+		private void Rollover(Leaderboard leaderboard)
+		{
+			// Recalculate ranks
+			// Issue rewards
+			_archiveService.Stash(leaderboard);
+			// Clear scores
+			// Despawn shards
+			// Update
+				
+			
 		}
 	}
 }

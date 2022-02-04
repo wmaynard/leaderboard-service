@@ -2,14 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.LeaderboardService.Models
 {
+	[BsonIgnoreExtraElements]
 	public class Leaderboard : PlatformCollectionDocument
 	{
+		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
+		
 		public const int PAGE_SIZE = 50;
+		[JsonPropertyName(FRIENDLY_KEY_TYPE)]
 		public string Type { get; set; }
 		public string Title { get; set; }
 		public string Description { get; set; }
