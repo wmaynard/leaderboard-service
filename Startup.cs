@@ -6,6 +6,6 @@ namespace Rumble.Platform.LeaderboardService
 {
 	public class Startup : PlatformStartup
 	{
-		public void ConfigureServices(IServiceCollection services) => base.ConfigureServices(services, Owner.Will, 100, 100, 100);
+		public void ConfigureServices(IServiceCollection services) => base.ConfigureServices(services, Owner.Will, 30_000, 60_000, 90_000);
 	}
 }

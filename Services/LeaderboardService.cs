@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.FileProviders.Physical;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -12,8 +14,14 @@ namespace Rumble.Platform.LeaderboardService.Services
 	public class LeaderboardService : PlatformMongoService<Leaderboard>
 	{
 		private readonly ArchiveService _archiveService;
+
+		private readonly RegistryService _registryService;
 		// public LeaderboardService(ArchiveService service) : base("leaderboards") => _archiveService = service;
-		public LeaderboardService(ArchiveService service) : base("leaderboards") {}
+		public LeaderboardService(ArchiveService archives, RegistryService registry) : base("leaderboards")
+		{
+			_archiveService = archives;
+			_registryService = registry;
+		}
 
 		internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);
 
@@ -86,26 +94,80 @@ namespace Rumble.Platform.LeaderboardService.Services
 
 		public void Rollover(RolloverType type)
 		{
+			string[] output = GetIDsToRollover(type);
+
+			Task<Leaderboard>[] tasks = output
+				.Select(Rollover)
+				.ToArray();
+			
+			Task.WaitAll(tasks);
+
 			Leaderboard[] ending = Find(leaderboard => leaderboard.RolloverType == type).ToArray(); // TODO: FindOneAndUpdate.ReturnAfter to lock leaderboard
 			foreach (Leaderboard leaderboard in ending)
 				Rollover(leaderboard);
 		}
+		
+		private string[] GetIDsToRollover(RolloverType type) => _collection
+			.Find<Leaderboard>(leaderboard => leaderboard.RolloverType == type)
+			.Project<string>(Builders<Leaderboard>.Projection.Include(leaderboard => leaderboard.Id))
+			.ToList()
+			.ToArray();
 
-		public void Rollover(string id)
-		{
-			Rollover(FindOne(leaderboard => leaderboard.Id == id));
-		}
+		// private async Task<Leaderboard> Close(RolloverType type) => await _collection.FindOneAndUpdateAsync<Leaderboard>(
+		// 		filter: leaderboard => leaderboard.RolloverType == type, 
+		// 		update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.IsResetting, true),
+		// 		options: new FindOneAndUpdateOptions<Leaderboard>()
+		// 		{
+		// 			ReturnDocument = ReturnDocument.After
+		// 		}
+		// 	);
 
-		private void Rollover(Leaderboard leaderboard)
+		private async Task<Leaderboard> Close(string id) => await _collection.FindOneAndUpdateAsync<Leaderboard>(
+			filter: leaderboard => leaderboard.Id == id,
+			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.IsResetting, true),
+			options: new FindOneAndUpdateOptions<Leaderboard>()
+			{
+				ReturnDocument = ReturnDocument.After
+			}
+		);
+
+		public async Task<Leaderboard> Rollover(string id) => await Rollover(await Close(id));
+
+		private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 		{
-			// Recalculate ranks
-			// Issue rewards
+			List<Ranking> ranks = leaderboard.CalculateRanks();
+			// TODO: Promotions
+			// TODO: Issue rewards
 			_archiveService.Stash(leaderboard);
-			// Clear scores
-			// Despawn shards
-			// Update
-				
+			leaderboard.Scores = new List<Entry>();
+
+			string[] activePlayers = ranks
+				.Where(ranking => ranking.Score != 0)
+				.SelectMany(ranking => ranking.Accounts)
+				.ToArray();
+			string[] inactivePlayers = ranks
+				.Where(ranking => ranking.Score == 0)
+				.SelectMany(ranking => ranking.Accounts)
+				.ToArray();
+			_registryService.FlagAsActive(activePlayers, leaderboard.Type);				// If players were flagged as active last week, clear that flag now.
+			_registryService.DemoteInactivePlayers(inactivePlayers, leaderboard.Type);	// Players that were previously inactive need to be demoted one rank, if applicable.
+			_registryService.FlagAsInactive(inactivePlayers, leaderboard.Type);			// Players that scored 0 this week are to be flagged as inactive now.
+			
+			if (!leaderboard.IsShard)	// This is a global leaderboard; we can leave the Scores field empty and just return.
+			{
+				Update(leaderboard);
+				return leaderboard;
+			}
+			Delete(leaderboard);		// Leaderboard shards are not permanent.  IDs are to be reassigned to new Shards, so they need to be recreated from scratch.
+			// TODO: Respawn and fill shards, as appropriate
+			return null;
+			
+			
+			
 			
 		}
 	}
 }
+// View leaderboard
+// Set score for leaderboard (Admin)
+// MS remaining?

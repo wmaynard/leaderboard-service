@@ -10,4 +10,5 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public int PromotionPercentage { get; set; }
 		public int DemotionPercentage { get; set; }
 	}
+	// season reset tier level
 }

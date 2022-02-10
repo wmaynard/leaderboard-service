@@ -31,22 +31,29 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public List<Entry> Scores { get; set; }
 		public bool IsResetting { get; set; }
 
-		public GenericData GenerateScoreResponse(string accountId)
+		internal bool IsShard => ShardID != null;
+		
+		internal List<Ranking> RecentRanks { get; private set; }
+
+		internal List<Ranking> CalculateRanks()
 		{
 			int rank = 1;
-
 			Ranking toRankings(IGrouping<long, Entry> group)
 			{
 				Ranking output = new Ranking(rank, group);
 				rank += output.NumberOfAccounts;
 				return output;
 			}
-
-			List<Ranking> sorted = Scores
+			return RecentRanks = Scores
 				.GroupBy(entry => entry.Score)
 				.OrderByDescending(grouping => grouping.Key)
 				.Select(toRankings)
 				.ToList();
+		}
+
+		public GenericData GenerateScoreResponse(string accountId)
+		{
+			List<Ranking> sorted = CalculateRanks();
 
 			List<Ranking> topScores = new List<Ranking>();
 			for (int results = 0, index = 0; index < sorted.Count && results < PAGE_SIZE && results < Scores.Count; index++)
