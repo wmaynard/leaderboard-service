@@ -14,13 +14,14 @@ namespace Rumble.Platform.LeaderboardService.Services
 	public class LeaderboardService : PlatformMongoService<Leaderboard>
 	{
 		private readonly ArchiveService _archiveService;
-
-		private readonly RegistryService _registryService;
+		private readonly EnrollmentService _enrollmentService;
+		// private readonly RegistryService _registryService;
 		// public LeaderboardService(ArchiveService service) : base("leaderboards") => _archiveService = service;
-		public LeaderboardService(ArchiveService archives, RegistryService registry) : base("leaderboards")
+		public LeaderboardService(ArchiveService archives, EnrollmentService enrollments, RegistryService registry) : base("leaderboards")
 		{
 			_archiveService = archives;
-			_registryService = registry;
+			_enrollmentService = enrollments;
+			// _registryService = registry;
 		}
 
 		internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);
@@ -58,38 +59,28 @@ namespace Rumble.Platform.LeaderboardService.Services
 		// TODO: Fix filter to work with sharding
 		public Leaderboard AddScore(string accountId, string type, int score)
 		{
-			Leaderboard output = null;
-
-			// We shouldn't really be seeing requests to add 0 to the score, but just in case, we'll assume it might happen.
-			// In such a case, just look for the account - don't try to issue any updates.
-			output = score == 0
-				? _collection
-					.Find<Leaderboard>(CreateFilter(accountId, type))
-					.FirstOrDefault()
-				: _collection.FindOneAndUpdate<Leaderboard>(
-					filter: CreateFilter(accountId, type),
-					update: Builders<Leaderboard>.Update.Inc("Scores.$.Score", score),
-					options: new FindOneAndUpdateOptions<Leaderboard>()
+			return _collection.FindOneAndUpdate<Leaderboard>(
+				filter: CreateFilter(accountId, type),
+				update: Builders<Leaderboard>.Update.Inc("Scores.$.Score", score),
+				options: new FindOneAndUpdateOptions<Leaderboard>()
+				{
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			) ?? _collection.FindOneAndUpdate<Leaderboard>(								// If output is null, it means nothing was found for the user, which also means this user 
+				filter: leaderboard => leaderboard.Type == type,						// doesn't yet have a record in the leaderboard.
+				update: Builders<Leaderboard>.Update
+					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
 					{
-						ReturnDocument = ReturnDocument.After,
-						IsUpsert = false
-					}
-				);
-			// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
-			return output ?? _collection.FindOneAndUpdate<Leaderboard>(
-					filter: leaderboard => leaderboard.Type == type,
-					update: Builders<Leaderboard>.Update
-						.AddToSet(leaderboard => leaderboard.Scores, new Entry()
-						{
-							AccountID = accountId,
-							Score = score
-						}),
-					options: new FindOneAndUpdateOptions<Leaderboard>()
-					{
-						ReturnDocument = ReturnDocument.After,
-						IsUpsert = false
-					}
-				);
+						AccountID = accountId,
+						Score = score
+					}),
+				options: new FindOneAndUpdateOptions<Leaderboard>()
+				{
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			);
 		}
 
 		public void Rollover(RolloverType type)
@@ -136,7 +127,19 @@ namespace Rumble.Platform.LeaderboardService.Services
 		private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 		{
 			List<Ranking> ranks = leaderboard.CalculateRanks();
-			// TODO: Promotions
+			string[] promotionPlayers = ranks
+				.Where(ranking => ranking.Rank <= leaderboard.TierRules.PromotionRank && ranking.Score > 0)
+				.SelectMany(ranking => ranking.Accounts)
+				.ToArray();
+			string[] inactivePlayers = ranks
+				.Where(ranking => ranking.Score == 0)
+				.SelectMany(ranking => ranking.Accounts)
+				.ToArray();
+			string[] demotionPlayers = ranks
+				.Where(ranking => ranking.Rank >= leaderboard.TierRules.DemotionRank)
+				.SelectMany(ranking => ranking.Accounts)
+				.Union(inactivePlayers)
+				.ToArray();
 			// TODO: Issue rewards
 			_archiveService.Stash(leaderboard);
 			leaderboard.Scores = new List<Entry>();
@@ -145,13 +148,12 @@ namespace Rumble.Platform.LeaderboardService.Services
 				.Where(ranking => ranking.Score != 0)
 				.SelectMany(ranking => ranking.Accounts)
 				.ToArray();
-			string[] inactivePlayers = ranks
-				.Where(ranking => ranking.Score == 0)
-				.SelectMany(ranking => ranking.Accounts)
-				.ToArray();
-			_registryService.FlagAsActive(activePlayers, leaderboard.Type);				// If players were flagged as active last week, clear that flag now.
-			_registryService.DemoteInactivePlayers(inactivePlayers, leaderboard.Type);	// Players that were previously inactive need to be demoted one rank, if applicable.
-			_registryService.FlagAsInactive(inactivePlayers, leaderboard.Type);			// Players that scored 0 this week are to be flagged as inactive now.
+			_enrollmentService.DemoteInactiveAccounts(leaderboard.Type);
+			_enrollmentService.FlagAsActive(activePlayers, leaderboard.Type);			// If players were flagged as active last week, clear that flag now.
+			_enrollmentService.PromotePlayers(promotionPlayers, leaderboard.Type);		// Players above the minimum tier promotion rank get moved up.
+			if (leaderboard.Tier > 1)													// People can't get demoted below 1.
+				_enrollmentService.DemotePlayers(demotionPlayers, leaderboard.Type);	// Players that were previously inactive need to be demoted one rank, if applicable.
+			_enrollmentService.FlagAsInactive(inactivePlayers, leaderboard.Type);		// Players that scored 0 this week are to be flagged as inactive now.  Must happen after the demotion.
 			
 			if (!leaderboard.IsShard)	// This is a global leaderboard; we can leave the Scores field empty and just return.
 			{
@@ -166,6 +168,18 @@ namespace Rumble.Platform.LeaderboardService.Services
 			
 			
 		}
+
+		// private void DemoteInactivePlayers(string leaderboardType)
+		// {
+		// 	_enrollmentService.GetInactiveAccounts(leaderboardType);
+		// 	// string[] stillInactive = _collection.Aggregate(PipelineDefinition<Leaderboard, string[]>.Create(ProjectionDefinition<Leaderboard>))
+		// 		
+		// 		
+		// 	_collection
+		// 		.Find(leaderboard => true)
+		// 		.Project<List<Entry>>(Builders<Leaderboard>.Projection.Include(leaderboard => leaderboard.Scores))
+		// 		.Project<string[]>(Builders<List<Entry>>.Projection.Include(entries => entries.SelectMany(entry => entry.AccountID).ToArray())
+		// }
 	}
 }
 // View leaderboard

@@ -12,7 +12,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public long LastScoreTimestamp { get; set; }
 		public bool Disqualified { get; set; }
 		
-		public List<LeaderboardEnrollment> Enrollments { get; set; }
+		// public List<Enrollment> Enrollments { get; set; }
 		public List<Reward> RewardsDue { get; set; }
 
 		public Registration(string accountId)
@@ -20,17 +20,17 @@ namespace Rumble.Platform.LeaderboardService.Models
 			AccountId = accountId;
 			LastScoreTimestamp = 0;
 			Disqualified = false;
-			Enrollments = new List<LeaderboardEnrollment>();
+			Enrollments = new List<Enrollment>();
 			RewardsDue = new List<Reward>();
 		}
 		
 		public bool TryEnroll(Leaderboard leaderboard)
 		{
-			LeaderboardEnrollment enrollment = Enrollments.FirstOrDefault(enrollment => enrollment.LeaderboardType == leaderboard.Type);
+			Enrollment enrollment = Enrollments.FirstOrDefault(enrollment => enrollment.LeaderboardType == leaderboard.Type);
 
 			if (enrollment == null)
 			{
-				Enrollments.Add(new LeaderboardEnrollment()
+				Enrollments.Add(new Enrollment()
 				{
 					LeaderboardType = leaderboard.Type,
 					Tier = leaderboard.Tier

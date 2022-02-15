@@ -18,10 +18,12 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 	[ApiController, Route("leaderboard"), RequireAuth, UseMongoTransaction]
 	public class TopController : PlatformController
 	{
+#pragma warning disable CS0649
 		private Services.LeaderboardService _leaderboardService;
 		private RegistryService _registryService;
-
+		private EnrollmentService _enrollmentService;
 		private ResetService _resetService;
+#pragma warning restore CS0649
 
 		[HttpPatch, Route("score")]
 		public ActionResult AddScore()
@@ -29,11 +31,18 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			int score = Require<int>("score");
 			string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 
-			Registration registration = _registryService.Find(Token.AccountId);
+			if (score == 0)
+				return Ok();
+
+			Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
 			Leaderboard leaderboard = _leaderboardService.AddScore(Token.AccountId, type, score);
-			if (registration.TryEnroll(leaderboard))
-				_registryService.Update(registration);
+			if (enrollment.CurrentLeaderboardID == leaderboard.Id)
+				return Ok();
 			
+			enrollment.CurrentLeaderboardID = leaderboard.Id;
+			enrollment.IsActive = true;
+			_enrollmentService.Update(enrollment);
+
 			return Ok();
 		}
 
