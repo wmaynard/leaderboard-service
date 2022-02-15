@@ -15,13 +15,11 @@ namespace Rumble.Platform.LeaderboardService.Services
 	{
 		private readonly ArchiveService _archiveService;
 		private readonly EnrollmentService _enrollmentService;
-		// private readonly RegistryService _registryService;
 		// public LeaderboardService(ArchiveService service) : base("leaderboards") => _archiveService = service;
-		public LeaderboardService(ArchiveService archives, EnrollmentService enrollments, RegistryService registry) : base("leaderboards")
+		public LeaderboardService(ArchiveService archives, EnrollmentService enrollments) : base("leaderboards")
 		{
 			_archiveService = archives;
 			_enrollmentService = enrollments;
-			// _registryService = registry;
 		}
 
 		internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);

@@ -20,7 +20,6 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 	{
 #pragma warning disable CS0649
 		private Services.LeaderboardService _leaderboardService;
-		private RegistryService _registryService;
 		private EnrollmentService _enrollmentService;
 		private ResetService _resetService;
 #pragma warning restore CS0649
