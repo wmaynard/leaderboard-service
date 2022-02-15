@@ -24,14 +24,15 @@ namespace Rumble.Platform.LeaderboardService.Services
 
 		internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);
 
-		public Leaderboard Find(string accountId, string type) => AddScore(accountId, type, 0);
+		public Leaderboard Find(string accountId, string type) => AddScore(_enrollmentService.FindOrCreate(accountId, type), 0);
 
-		private FilterDefinition<Leaderboard> CreateFilter(string accountId, string type)
+		private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment)
 		{
 			FilterDefinitionBuilder<Leaderboard> filter = Builders<Leaderboard>.Filter;
 			return filter.And(
-				filter.Eq(leaderboard => leaderboard.Type, type),
-				filter.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == accountId)
+				filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
+				filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
+				filter.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID)
 			); 
 		}
 		
@@ -55,10 +56,10 @@ namespace Rumble.Platform.LeaderboardService.Services
 		}
 		
 		// TODO: Fix filter to work with sharding
-		public Leaderboard AddScore(string accountId, string type, int score)
+		public Leaderboard AddScore(Enrollment enrollment, int score)
 		{
 			return _collection.FindOneAndUpdate<Leaderboard>(
-				filter: CreateFilter(accountId, type),
+				filter: CreateFilter(enrollment),
 				update: Builders<Leaderboard>.Update.Inc("Scores.$.Score", score),
 				options: new FindOneAndUpdateOptions<Leaderboard>()
 				{
@@ -66,11 +67,12 @@ namespace Rumble.Platform.LeaderboardService.Services
 					IsUpsert = false
 				}
 			) ?? _collection.FindOneAndUpdate<Leaderboard>(								// If output is null, it means nothing was found for the user, which also means this user 
-				filter: leaderboard => leaderboard.Type == type,						// doesn't yet have a record in the leaderboard.
+				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType	// doesn't yet have a record in the leaderboard.
+					&& leaderboard.Tier == enrollment.Tier,
 				update: Builders<Leaderboard>.Update
 					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
 					{
-						AccountID = accountId,
+						AccountID = enrollment.AccountID,
 						Score = score
 					}),
 				options: new FindOneAndUpdateOptions<Leaderboard>()
@@ -85,31 +87,28 @@ namespace Rumble.Platform.LeaderboardService.Services
 		{
 			string[] output = GetIDsToRollover(type);
 
-			Task<Leaderboard>[] tasks = output
-				.Select(Rollover)
-				.ToArray();
-			
-			Task.WaitAll(tasks);
+			if (output.Length == 0)
+				return;
 
-			Leaderboard[] ending = Find(leaderboard => leaderboard.RolloverType == type).ToArray(); // TODO: FindOneAndUpdate.ReturnAfter to lock leaderboard
-			foreach (Leaderboard leaderboard in ending)
-				Rollover(leaderboard);
+			foreach (string id in output)
+				Rollover(id).Wait();
+			
+			// Task<Leaderboard>[] tasks = output
+			// 	.Select(Rollover)
+			// 	.ToArray();
+			
+			// Task.WaitAll(tasks);
+
+			// Leaderboard[] ending = Find(leaderboard => leaderboard.RolloverType == type).ToArray(); // TODO: FindOneAndUpdate.ReturnAfter to lock leaderboard
+			// foreach (Leaderboard leaderboard in ending)
+			// 	Rollover(leaderboard);
 		}
-		
+
 		private string[] GetIDsToRollover(RolloverType type) => _collection
 			.Find<Leaderboard>(leaderboard => leaderboard.RolloverType == type)
-			.Project<string>(Builders<Leaderboard>.Projection.Include(leaderboard => leaderboard.Id))
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Id))
 			.ToList()
 			.ToArray();
-
-		// private async Task<Leaderboard> Close(RolloverType type) => await _collection.FindOneAndUpdateAsync<Leaderboard>(
-		// 		filter: leaderboard => leaderboard.RolloverType == type, 
-		// 		update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.IsResetting, true),
-		// 		options: new FindOneAndUpdateOptions<Leaderboard>()
-		// 		{
-		// 			ReturnDocument = ReturnDocument.After
-		// 		}
-		// 	);
 
 		private async Task<Leaderboard> Close(string id) => await _collection.FindOneAndUpdateAsync<Leaderboard>(
 			filter: leaderboard => leaderboard.Id == id,
@@ -126,7 +125,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 		{
 			List<Ranking> ranks = leaderboard.CalculateRanks();
 			string[] promotionPlayers = ranks
-				.Where(ranking => ranking.Rank <= leaderboard.TierRules.PromotionRank && ranking.Score > 0)
+				.Where(ranking => ranking.Rank <= leaderboard.CurrentTierRules.PromotionRank && ranking.Score > 0)
 				.SelectMany(ranking => ranking.Accounts)
 				.ToArray();
 			string[] inactivePlayers = ranks
@@ -134,7 +133,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 				.SelectMany(ranking => ranking.Accounts)
 				.ToArray();
 			string[] demotionPlayers = ranks
-				.Where(ranking => ranking.Rank >= leaderboard.TierRules.DemotionRank)
+				.Where(ranking => ranking.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1)
 				.SelectMany(ranking => ranking.Accounts)
 				.Union(inactivePlayers)
 				.ToArray();
@@ -148,7 +147,8 @@ namespace Rumble.Platform.LeaderboardService.Services
 				.ToArray();
 			_enrollmentService.DemoteInactiveAccounts(leaderboard.Type);
 			_enrollmentService.FlagAsActive(activePlayers, leaderboard.Type);			// If players were flagged as active last week, clear that flag now.
-			_enrollmentService.PromotePlayers(promotionPlayers, leaderboard.Type);		// Players above the minimum tier promotion rank get moved up.
+			if (leaderboard.Tier < leaderboard.MaxTier)
+				_enrollmentService.PromotePlayers(promotionPlayers, leaderboard.Type);	// Players above the minimum tier promotion rank get moved up.
 			if (leaderboard.Tier > 1)													// People can't get demoted below 1.
 				_enrollmentService.DemotePlayers(demotionPlayers, leaderboard.Type);	// Players that were previously inactive need to be demoted one rank, if applicable.
 			_enrollmentService.FlagAsInactive(inactivePlayers, leaderboard.Type);		// Players that scored 0 this week are to be flagged as inactive now.  Must happen after the demotion.
@@ -161,23 +161,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 			Delete(leaderboard);		// Leaderboard shards are not permanent.  IDs are to be reassigned to new Shards, so they need to be recreated from scratch.
 			// TODO: Respawn and fill shards, as appropriate
 			return null;
-			
-			
-			
-			
 		}
-
-		// private void DemoteInactivePlayers(string leaderboardType)
-		// {
-		// 	_enrollmentService.GetInactiveAccounts(leaderboardType);
-		// 	// string[] stillInactive = _collection.Aggregate(PipelineDefinition<Leaderboard, string[]>.Create(ProjectionDefinition<Leaderboard>))
-		// 		
-		// 		
-		// 	_collection
-		// 		.Find(leaderboard => true)
-		// 		.Project<List<Entry>>(Builders<Leaderboard>.Projection.Include(leaderboard => leaderboard.Scores))
-		// 		.Project<string[]>(Builders<List<Entry>>.Projection.Include(entries => entries.SelectMany(entry => entry.AccountID).ToArray())
-		// }
 	}
 }
 // View leaderboard

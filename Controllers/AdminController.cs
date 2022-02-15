@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Utilities;
@@ -22,13 +23,23 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		{
 			Leaderboard leaderboard = Require<Leaderboard>("leaderboard");
 
+			// TODO: /leaderboard/admin/update
 			if (_leaderboardService.Count(leaderboard.Type) > 0)
 				throw new Exception($"Leaderboard type '{leaderboard.Type}' already exists.");
 
-			_leaderboardService.Create(leaderboard);
+			List<string> ids = new List<string>();
+			int currentTier = 1;
+			do
+			{
+				leaderboard.Tier = currentTier;
+				_leaderboardService.Create(leaderboard);
+				ids.Add(leaderboard.Id);
+				leaderboard.ResetID();
+			} while (currentTier++ < leaderboard.MaxTier);
 			return Ok(new
 			{
-				Leaderboard = leaderboard
+				Leaderboard = leaderboard,
+				TierIDs = ids
 			});
 		}
 		

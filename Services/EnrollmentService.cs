@@ -45,7 +45,8 @@ namespace Rumble.Platform.LeaderboardService.Services
 			.Project<string>(Builders<Enrollment>.Projection.Include(enrollment => enrollment.AccountID))
 			.ToList()
 			.ToArray();
-		
+
+		public void FlagAsActive(string accountId, string leaderboardType) => SetActiveFlag(new[] { accountId }, leaderboardType);
 		public Enrollment[] FlagAsActive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType);
 		public Enrollment[] FlagAsInactive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType, active: false);
 		private Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true)

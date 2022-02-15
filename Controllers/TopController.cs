@@ -34,15 +34,15 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 				return Ok();
 
 			Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
-			Leaderboard leaderboard = _leaderboardService.AddScore(Token.AccountId, type, score);
+			Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score);
 			if (enrollment.CurrentLeaderboardID == leaderboard.Id)
-				return Ok();
+				return Ok(new { Leaderboard = leaderboard });
 			
 			enrollment.CurrentLeaderboardID = leaderboard.Id;
 			enrollment.IsActive = true;
 			_enrollmentService.Update(enrollment);
 
-			return Ok();
+			return Ok(new { Leaderboard = leaderboard });
 		}
 
 		// TODO: Move to admin controller
@@ -63,23 +63,30 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			});
 		}
 
-		[HttpGet, Route("test"), NoAuth]
-		public ActionResult Test()
+		// [HttpGet, Route("test"), NoAuth]
+		// public ActionResult Test()
+		// {
+		// 	Leaderboard output = null;
+		// 	SortedList<string, long> list = new SortedList<string, long>();
+		// 	for (int i = 0; i < 1_000; i++)
+		// 	{
+		// 		string accountId = "rando-" + Guid.NewGuid().ToString();
+		// 		int score = new Random().Next(0, 500);
+		// 		list.Add(accountId, score);
+		// 		output = _leaderboardService.AddScore(accountId, "pvp_daily", score);
+		// 	}
+		// 	
+		// 	return Ok(new
+		// 	{
+		// 		Leaderboard = output
+		// 	});
+		// }
+
+		[HttpGet, Route("triggerDailyRollover"), NoAuth]
+		public ActionResult Test2()
 		{
-			Leaderboard output = null;
-			SortedList<string, long> list = new SortedList<string, long>();
-			for (int i = 0; i < 1_000; i++)
-			{
-				string accountId = "rando-" + Guid.NewGuid().ToString();
-				int score = new Random().Next(0, 500);
-				list.Add(accountId, score);
-				output = _leaderboardService.AddScore(accountId, "pvp_daily", score);
-			}
-			
-			return Ok(new
-			{
-				Leaderboard = output
-			});
+			_leaderboardService.Rollover(RolloverType.Daily);
+			return Ok();
 		}
 		
 		#region LOAD_BALANCER

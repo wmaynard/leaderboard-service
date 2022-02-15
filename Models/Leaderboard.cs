@@ -24,7 +24,9 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public long LastReset { get; set; }
 		public int Tier { get; set; }
 		public int MaxTier { get; set; }
-		public TierRules TierRules { get; set; }
+		public TierRules[] TierRules { get; set; }
+		public TierRules CurrentTierRules => TierRules.FirstOrDefault(rules => rules.Tier == Tier)
+			?? throw new Exception("Leaderboard tier rules not defined.");
 		public int PlayersPerShard { get; set; }
 		public string ShardID { get; set; } // can be null
 		public Reward[] Rewards { get; set; }
@@ -106,7 +108,14 @@ namespace Rumble.Platform.LeaderboardService.Models
 			};
 		}
 
-		public Leaderboard() => Scores = new List<Entry>();
+		public Leaderboard()
+		{
+			Tier = 1;
+			Scores = new List<Entry>();
+		}
+
+		internal void ResetID() => Id = null;
+
 	}
 	public enum RolloverType { Hourly, Daily, Weekly, Monthly, Annually, None }
 
