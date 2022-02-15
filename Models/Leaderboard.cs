@@ -27,9 +27,11 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public TierRules[] TierRules { get; set; }
 		public TierRules CurrentTierRules => TierRules.FirstOrDefault(rules => rules.Tier == Tier)
 			?? throw new Exception("Leaderboard tier rules not defined.");
+
+		public Reward[] CurrentTierRewards => CurrentTierRules.Rewards
+			?? throw new Exception("Leaderboard tier rewards not defined.");
 		public int PlayersPerShard { get; set; }
 		public string ShardID { get; set; } // can be null
-		public Reward[] Rewards { get; set; }
 		public List<Entry> Scores { get; set; }
 		public bool IsResetting { get; set; }
 

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.FileProviders.Physical;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Models;
@@ -15,11 +16,13 @@ namespace Rumble.Platform.LeaderboardService.Services
 	{
 		private readonly ArchiveService _archiveService;
 		private readonly EnrollmentService _enrollmentService;
+		private readonly RewardsService _rewardService;
 		// public LeaderboardService(ArchiveService service) : base("leaderboards") => _archiveService = service;
-		public LeaderboardService(ArchiveService archives, EnrollmentService enrollments) : base("leaderboards")
+		public LeaderboardService(ArchiveService archives, EnrollmentService enrollments, RewardsService reward) : base("leaderboards")
 		{
 			_archiveService = archives;
 			_enrollmentService = enrollments;
+			_rewardService = reward;
 		}
 
 		internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);
@@ -93,6 +96,8 @@ namespace Rumble.Platform.LeaderboardService.Services
 			foreach (string id in output)
 				Rollover(id).Wait();
 			
+			// TODO: Send rewards
+			
 			// Task<Leaderboard>[] tasks = output
 			// 	.Select(Rollover)
 			// 	.ToArray();
@@ -137,9 +142,36 @@ namespace Rumble.Platform.LeaderboardService.Services
 				.SelectMany(ranking => ranking.Accounts)
 				.Union(inactivePlayers)
 				.ToArray();
-			// TODO: Issue rewards
+			
+			Reward[] rewards = leaderboard.CurrentTierRewards
+				.OrderByDescending(reward => reward.MinimumPercentile)
+				.ThenByDescending(reward => reward.MinimumRank)
+				.ToArray();
+			
+			// This grants all rewards to players that qualify for them.  If a 1st place reward instead is supposed to override previous
+			// rewards, we'll need to fix the logic here.  TODO.
+			foreach (Reward reward in rewards)
+				_rewardService
+					.Grant(reward, ranks
+						.Where(ranking => ranking.Rank <= reward.MinimumRank)
+						.SelectMany(ranking => ranking.Accounts)
+						.ToArray()
+					);
+
+			GenericData data = new GenericData()
+			{
+				{ "ranks", ranks },
+				{ "rewards", rewards }
+			};
+			// await SlackDiagnostics.Log($"Leaderboard Rollover for {leaderboard.Id}", "Rewards calculated!")
+			// 	.Tag(Owner.Will)
+			// 	.Attach("data.txt", data.JSON)
+			// 	.Send();
+
 			_archiveService.Stash(leaderboard);
 			leaderboard.Scores = new List<Entry>();
+
+			
 
 			string[] activePlayers = ranks
 				.Where(ranking => ranking.Score != 0)
