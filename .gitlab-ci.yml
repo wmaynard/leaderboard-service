@@ -5,20 +5,16 @@ variables:
   KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
   HELM_SCALE_EXTRA_ARGS: --set postgresql.enabled="false"
 
-  K8S_SECRET_GRAPHITE: "$GRAPHITE"
+  # from gitlab project ci variables - normally env specific
   K8S_SECRET_LOGGLY_URL: "$LOGGLY_URL"
   K8S_SECRET_RUMBLE_COMPONENT: "$RUMBLE_COMPONENT"
   K8S_SECRET_RUMBLE_DEPLOYMENT: "$RUMBLE_DEPLOYMENT"
-
-  # from gitlab project ci variables - normally env specific
-  K8S_SECRET_RUMBLE_KEY: "$RUMBLE_KEY"
   K8S_SECRET_MONGODB_URI: "$MONGODB_URI"
-  K8S_SECRET_MONGODB_NAME: "$MONGODB_NAME" 
-  K8S_SECRET_GAME_GUKEY: "$GAME_GUKEY"
   
   # Common Platform CI variables - contains information for several environments,
   # parsed by PlatformEnvironment.
   K8S_SECRET_PLATFORM_COMMON: "$PLATFORM_COMMON"
+  
   DOCKER_DRIVER: overlay2
 
   ROLLOUT_RESOURCE_TYPE: deployment
