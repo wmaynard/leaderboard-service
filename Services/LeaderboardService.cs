@@ -29,6 +29,21 @@ namespace Rumble.Platform.LeaderboardService.Services
 
 		public Leaderboard Find(string accountId, string type) => AddScore(_enrollmentService.FindOrCreate(accountId, type), 0);
 
+		public long UpdateLeaderboardType(Leaderboard template)
+		{
+			long output = _collection.UpdateMany(
+				filter: leaderboard => leaderboard.Type == template.Type,
+				update: Builders<Leaderboard>.Update
+					.Set(leaderboard => leaderboard.Description, template.Description)
+					.Set(leaderboard => leaderboard.Title, template.Title)
+					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
+					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
+					.Set(leaderboard => leaderboard.PlayersPerShard, template.PlayersPerShard)
+					.Set(leaderboard => leaderboard.MaxTier, template.MaxTier)
+			).ModifiedCount;
+			return output;
+		}
+
 		private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment)
 		{
 			FilterDefinitionBuilder<Leaderboard> filter = Builders<Leaderboard>.Filter;

@@ -18,14 +18,22 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 #pragma warning restore CS0649
 		
 		
-		[HttpPost, Route("create")]
-		public ActionResult Create()
+		[HttpPost, Route("update")]
+		public ActionResult CreateOrUpdate()
 		{
 			Leaderboard leaderboard = Require<Leaderboard>("leaderboard");
 
-			// TODO: /leaderboard/admin/update
+			
 			if (_leaderboardService.Count(leaderboard.Type) > 0)
-				throw new Exception($"Leaderboard type '{leaderboard.Type}' already exists.");
+			{
+				// TODO: If the Max
+				long affected = _leaderboardService.UpdateLeaderboardType(leaderboard);
+				return Ok(new
+				{
+					AffectedBoards = affected,
+					Leaderboard = leaderboard
+				});
+			}
 
 			List<string> ids = new List<string>();
 			int currentTier = 1;

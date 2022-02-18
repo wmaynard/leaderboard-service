@@ -12,7 +12,9 @@ namespace Rumble.Platform.LeaderboardService.Models
 	[BsonIgnoreExtraElements]
 	public class Leaderboard : PlatformCollectionDocument
 	{
+		internal const string DB_KEY_TIER = "Tier";
 		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
+		public const string FRIENDLY_KEY_TIER = "Tier";
 		
 		public const int PAGE_SIZE = 50;
 		[JsonPropertyName(FRIENDLY_KEY_TYPE)]
@@ -22,6 +24,9 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public long Rollover { get; set; }
 		public RolloverType RolloverType { get; set; }
 		public long LastReset { get; set; }
+		
+		[BsonElement(DB_KEY_TIER)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER)]
 		public int Tier { get; set; }
 		public int MaxTier { get; set; }
 		public TierRules[] TierRules { get; set; }
