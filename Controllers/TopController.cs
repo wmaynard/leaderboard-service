@@ -93,6 +93,16 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		[HttpGet, Route("health"), NoAuth]
 		public override ActionResult HealthCheck()
 		{
+			return Ok(new
+			{
+				Graphite = PlatformEnvironment.Graphite,
+				ConfigServiceUrl = PlatformEnvironment.ConfigServiceUrl,
+				MongoName = PlatformEnvironment.MongoDatabaseName,
+				RumbleKey = PlatformEnvironment.RumbleSecret != null,
+				SwarmMode = PlatformEnvironment.SwarmMode,
+				TokenValidation = PlatformEnvironment.TokenValidation
+			});
+			
 			return Ok(_leaderboardService.HealthCheckResponseObject, _resetService.HealthCheckResponseObject);
 		}
 		#endregion LOAD_BALANCER
