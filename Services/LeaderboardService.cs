@@ -31,6 +31,15 @@ namespace Rumble.Platform.LeaderboardService.Services
 
 		public long UpdateLeaderboardType(Leaderboard template)
 		{
+			// string[] foo = _enrollmentService.FindActiveAccounts(template.Type);
+			var maxTier = _collection
+				.Find(filter: leaderboard => leaderboard.Type == template.Type)
+				.Project<GenericData>(Builders<Leaderboard>.Projection.Include(leaderboard => leaderboard.Tier))
+				.ToList()
+				.Max(data => data.Require<int>(Leaderboard.DB_KEY_TIER));
+				// .Max();
+			
+			
 			long output = _collection.UpdateMany(
 				filter: leaderboard => leaderboard.Type == template.Type,
 				update: Builders<Leaderboard>.Update
@@ -76,7 +85,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 		// TODO: Fix filter to work with sharding
 		public Leaderboard AddScore(Enrollment enrollment, int score)
 		{
-			return _collection.FindOneAndUpdate<Leaderboard>(
+			Leaderboard output = _collection.FindOneAndUpdate<Leaderboard>(
 				filter: CreateFilter(enrollment),
 				update: Builders<Leaderboard>.Update.Inc("Scores.$.Score", score),
 				options: new FindOneAndUpdateOptions<Leaderboard>()
@@ -84,8 +93,11 @@ namespace Rumble.Platform.LeaderboardService.Services
 					ReturnDocument = ReturnDocument.After,
 					IsUpsert = false
 				}
-			) ?? _collection.FindOneAndUpdate<Leaderboard>(								// If output is null, it means nothing was found for the user, which also means this user 
-				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType	// doesn't yet have a record in the leaderboard.
+			);
+			var foo = _collection.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType).ToList();
+			// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
+			output ??= _collection.FindOneAndUpdate<Leaderboard>(
+				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
 					&& leaderboard.Tier == enrollment.Tier,
 				update: Builders<Leaderboard>.Update
 					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
@@ -99,6 +111,8 @@ namespace Rumble.Platform.LeaderboardService.Services
 					IsUpsert = false
 				}
 			);
+
+			return output;
 		}
 
 		public void Rollover(RolloverType type)
@@ -195,9 +209,9 @@ namespace Rumble.Platform.LeaderboardService.Services
 			_enrollmentService.DemoteInactiveAccounts(leaderboard.Type);
 			_enrollmentService.FlagAsActive(activePlayers, leaderboard.Type);			// If players were flagged as active last week, clear that flag now.
 			if (leaderboard.Tier < leaderboard.MaxTier)
-				_enrollmentService.PromotePlayers(promotionPlayers, leaderboard.Type);	// Players above the minimum tier promotion rank get moved up.
+				_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
 			if (leaderboard.Tier > 1)													// People can't get demoted below 1.
-				_enrollmentService.DemotePlayers(demotionPlayers, leaderboard.Type);	// Players that were previously inactive need to be demoted one rank, if applicable.
+				_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);		// Players that were previously inactive need to be demoted one rank, if applicable.
 			_enrollmentService.FlagAsInactive(inactivePlayers, leaderboard.Type);		// Players that scored 0 this week are to be flagged as inactive now.  Must happen after the demotion.
 			
 			if (!leaderboard.IsShard)	// This is a global leaderboard; we can leave the Scores field empty and just return.

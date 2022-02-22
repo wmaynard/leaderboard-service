@@ -52,7 +52,11 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		public ActionResult GetRankings()
 		{
 			string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
-			Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
+			
+			// _enrollmentService.DemotePlayers(new string[] { Token.AccountId }, new Leaderboard(){MaxTier = 6, Type = type });
+			Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
+			Leaderboard board = _leaderboardService.AddScore(enrollment, 0);
+			// Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
 			
 			return Ok( new
 			{

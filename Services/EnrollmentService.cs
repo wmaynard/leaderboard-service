@@ -62,7 +62,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 				.ToArray();
 		}
 
-		private long AlterTier(string[] accountIds, string type, int delta = 0)
+		private long AlterTier(string[] accountIds, string type, int maxTier, int delta = 0)
 		{
 			if (delta == 0)
 				return 0; // throw exception?
@@ -75,11 +75,14 @@ namespace Rumble.Platform.LeaderboardService.Services
 					IsUpsert = false
 				}
 			);
+			// TODO: This is a kluge to fix negative enrollment tiers; still need to find the root cause
+			_collection.UpdateMany(filter: enrollment => true, Builders<Enrollment>.Update.Max(enrollment => enrollment.Tier, 1));
+			_collection.UpdateMany(filter: enrollment => true, Builders<Enrollment>.Update.Min(enrollment => enrollment.Tier, maxTier));
 
 			return result.ModifiedCount;
 		}
 
-		public long PromotePlayers(string[] accountIds, string leaderboardType) => AlterTier(accountIds, leaderboardType, delta: 1);
-		public long DemotePlayers(string[] accountIds, string leaderboardType, int levels = 1) => AlterTier(accountIds, leaderboardType, levels * -1);
+		public long PromotePlayers(string[] accountIds, Leaderboard caller) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: 1);
+		public long DemotePlayers(string[] accountIds, Leaderboard caller, int levels = 1) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: levels * -1);
 	}
 }
