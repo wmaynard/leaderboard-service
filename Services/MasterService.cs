@@ -16,7 +16,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 	public abstract class MasterService : PlatformTimerService
 	{
 		private const int MS_INTERVAL = 5_000;					// The interval to check in; recent check-ins indicate service is still active.
-		private const int MS_TAKEOVER = MS_INTERVAL * 10;		// The threshold at which the previous MasterService should be replaced by the current one.
+		private const int MS_TAKEOVER = MS_INTERVAL;// * 10;		// The threshold at which the previous MasterService should be replaced by the current one.
 		public static int MaximumRetryTime => MS_TAKEOVER + MS_INTERVAL;
 #pragma warning disable CS0649
 		private readonly ConfigService _config;
@@ -33,6 +33,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 		private string Name => GetType().Name;
 		private string LastActiveKey => $"{Name}_lastActive";
 		private bool IsPrimary => _config.Value<string>(Name) == ID;
+		private bool IsWorking { get; set; }
 		private long LastActivity => _config.Value<long>(LastActiveKey);
 		
 		/// <summary>
@@ -81,7 +82,16 @@ namespace Rumble.Platform.LeaderboardService.Services
 			if (IsPrimary)
 			{
 				_config.Update(LastActiveKey, UnixTimeMS);
+				
+				// We want the config to be updated regardless of whether or not our worker threads are processing.
+				// If we don't update it and our service takes too long to work, another container will try to take over and
+				// duplicate the work.
+				if (IsWorking)
+					return;
+				
+				IsWorking = true;
 				Work();
+				IsWorking = false;
 			}
 			else if (UnixTimeMS - LastActivity > MS_TAKEOVER)
 				Confiscate();

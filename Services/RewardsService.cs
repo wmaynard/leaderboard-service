@@ -12,7 +12,9 @@ namespace Rumble.Platform.LeaderboardService.Services
 	{
 		public RewardsService() : base("rewards") { }
 
-		public long Grant(Reward reward, params string[] accountIds) => _collection.UpdateMany(
+		public long Grant(Reward reward, params string[] accountIds) => accountIds.Length == 0
+			? 0
+			: _collection.UpdateMany(
 				filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds),
 				update: Builders<RewardHistory>.Update.AddToSet(history => history.Rewards, reward),
 				options: new UpdateOptions()

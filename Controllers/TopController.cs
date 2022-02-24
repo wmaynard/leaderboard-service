@@ -35,6 +35,10 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 
 			Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
 			Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score);
+
+			if (leaderboard == null)
+				throw new UnknownLeaderboardException(type);
+			
 			if (enrollment.CurrentLeaderboardID == leaderboard.Id)
 				return Ok(new { Leaderboard = leaderboard });
 			
@@ -55,34 +59,38 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			
 			// _enrollmentService.DemotePlayers(new string[] { Token.AccountId }, new Leaderboard(){MaxTier = 6, Type = type });
 			Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
-			Leaderboard board = _leaderboardService.AddScore(enrollment, 0);
+			Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, 0);
 			// Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
+			if (leaderboard == null)
+				throw new UnknownLeaderboardException(type);
 			
 			return Ok( new
 			{
-				LeaderboardId = board.Id,
-				Response = board.GenerateScoreResponse(Token.AccountId)
+				LeaderboardId = leaderboard.Id,
+				Response = leaderboard.GenerateScoreResponse(Token.AccountId)
 			});
 		}
 
-		// [HttpGet, Route("test"), NoAuth]
-		// public ActionResult Test()
-		// {
-		// 	Leaderboard output = null;
-		// 	SortedList<string, long> list = new SortedList<string, long>();
-		// 	for (int i = 0; i < 1_000; i++)
-		// 	{
-		// 		string accountId = "rando-" + Guid.NewGuid().ToString();
-		// 		int score = new Random().Next(0, 500);
-		// 		list.Add(accountId, score);
-		// 		output = _leaderboardService.AddScore(accountId, "pvp_daily", score);
-		// 	}
-		// 	
-		// 	return Ok(new
-		// 	{
-		// 		Leaderboard = output
-		// 	});
-		// }
+		[HttpGet, Route("test"), NoAuth]
+		public ActionResult Test()
+		{
+			Leaderboard output = null;
+			SortedList<string, long> list = new SortedList<string, long>();
+			for (int i = 0; i < 1_00; i++)
+			{
+				string accountId = "rando-" + i;//+ Guid.NewGuid().ToString();
+				int score = new Random().Next(0, 500);
+				list.Add(accountId, score);
+				string type = "pvp_daily";
+				Enrollment enrollment = _enrollmentService.FindOrCreate(accountId, type);
+				output = _leaderboardService.AddScore(enrollment, score);
+			}
+			
+			return Ok(new
+			{
+				Leaderboard = output
+			});
+		}
 
 		[HttpGet, Route("triggerDailyRollover"), NoAuth]
 		public ActionResult Test2()

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.LeaderboardService.Models
@@ -24,6 +25,10 @@ namespace Rumble.Platform.LeaderboardService.Models
 
 		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public bool IsRequestingPlayer { get; set; }
+		
+		[JsonIgnore]
+		[BsonIgnore]
+		public Reward Prize { get; set; }
 
 		public override string ToString() => $"{Rank} | {Score} points | {string.Join(", ", Accounts)}{(IsRequestingPlayer ? " (YOU)" : "")}";
 	}

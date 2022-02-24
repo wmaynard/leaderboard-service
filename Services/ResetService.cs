@@ -74,6 +74,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 			bool workPerformed = false;
 			DateTime now = DateTime.UtcNow;
 			
+			// if (true)
 			// Check daily leaderboards
 			if (LastDailyRollover.Day != now.Day && PastResetTime(now))
 				workPerformed = await Do(() =>
@@ -82,6 +83,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 					_leaderboardService.Rollover(RolloverType.Daily);
 					LastDailyRollover = now;
 				});
+			// Pause();
 			
 			// Check weekly leaderboards
 			if (now.Subtract(LastWeeklyRollover).TotalDays > 7 && PastResetTime(now))

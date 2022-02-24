@@ -12,11 +12,16 @@ namespace Rumble.Platform.LeaderboardService.Models
 	[BsonIgnoreExtraElements]
 	public class Leaderboard : PlatformCollectionDocument
 	{
+		internal const string DB_KEY_ID = "_id";
 		internal const string DB_KEY_TIER = "Tier";
+		internal const string DB_KEY_TYPE = "Type";
+		
 		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
 		public const string FRIENDLY_KEY_TIER = "Tier";
 		
 		public const int PAGE_SIZE = 50;
+		
+		[BsonElement(DB_KEY_TYPE), BsonRequired]
 		[JsonPropertyName(FRIENDLY_KEY_TYPE)]
 		public string Type { get; set; }
 		public string Title { get; set; }
@@ -67,7 +72,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 			List<Ranking> topScores = new List<Ranking>();
 			for (int results = 0, index = 0; index < sorted.Count && results < PAGE_SIZE && results < Scores.Count; index++)
 			{
-				topScores.Add(sorted[index++]);
+				topScores.Add(sorted[index]);
 				results += topScores.Last().NumberOfAccounts;
 			}
 
