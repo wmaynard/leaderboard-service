@@ -67,7 +67,9 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			return Ok( new
 			{
 				LeaderboardId = leaderboard.Id,
-				Response = leaderboard.GenerateScoreResponse(Token.AccountId)
+				Tier = leaderboard.Tier,
+				SeasonalMaxTier = enrollment.SeasonalMaxTier,
+				Response = leaderboard.GenerateScoreResponse(Token.AccountId),
 			});
 		}
 

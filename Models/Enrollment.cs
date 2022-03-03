@@ -14,6 +14,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public string CurrentLeaderboardID { get; set; }
 		public string LeaderboardType { get; set; }
 		public int Tier { get; set; }
+		public int SeasonalMaxTier { get; set; }
 		public bool IsActive { get; set; }
 		public List<string> PastLeaderboardIDs { get; set; }
 

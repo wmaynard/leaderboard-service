@@ -36,7 +36,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			}
 
 			List<string> ids = new List<string>();
-			int currentTier = 1;
+			int currentTier = 0;
 			do
 			{
 				leaderboard.Tier = currentTier;

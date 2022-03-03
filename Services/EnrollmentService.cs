@@ -89,6 +89,33 @@ namespace Rumble.Platform.LeaderboardService.Services
 			_collection.UpdateMany(filter: enrollment => true, Builders<Enrollment>.Update.Max(enrollment => enrollment.Tier, 1));
 			_collection.UpdateMany(filter: enrollment => true, Builders<Enrollment>.Update.Min(enrollment => enrollment.Tier, maxTier ?? int.MaxValue));
 
+			// TODO: Update the SeasonalMaxTier
+			// This seems impossible to do with regular update definitions since Mongo requires a primitive value to be used.  An SO user achieved this with db.RunCommand().
+			
+			// From: https://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field
+			// 		var command = new BsonDocument
+			// 		{
+			// 			{ "update", "CollectionToUpdate" },
+			// 			{ "updates", new BsonArray 
+			// 				{ 
+			// 					new BsonDocument
+			// 					{
+			// 						// Any filter; here the check is if Prop1 does not exist
+			// 						{ "q", new BsonDocument{ ["Prop1"] = new BsonDocument("$exists", false) }}, 
+			// 						// set it to the value of Prop2
+			// 						{ "u", new BsonArray { new BsonDocument { ["$set"] = new BsonDocument("Prop1", "$Prop2") }}},
+			// 						{ "multi", true }
+			// 					}
+			// 				}
+			// 			}
+			// 		};
+			//
+			// 	database.RunCommand<BsonDocument>(command);
+						// _collection.UpdateMany(
+						// 	filter: Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
+						// 	update: Builders<Enrollment>.Update.Max(enrollment => enrollment.SeasonalMaxTier, )
+						// );
+
 			return result.ModifiedCount;
 		}
 
