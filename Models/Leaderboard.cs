@@ -108,7 +108,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 					LeaderboardId = Id,
 					LeaderboardType = Type,
 					AccountId = accountId
-				});
+				}, exception: e);
 				throw;
 			}
 

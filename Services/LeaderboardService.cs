@@ -115,6 +115,16 @@ namespace Rumble.Platform.LeaderboardService.Services
 			return output;
 		}
 
+		public string[] ListLeaderboardTypes()
+		{
+			return _collection
+				.Find(leaderboard => true)
+				.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Type))
+				.ToList()
+				.Distinct()
+				.ToArray();
+		}
+
 		public void Rollover(RolloverType type)
 		{
 			// This gives us a collection of GenericData objects of just the ID and the Type of the leaderboards.

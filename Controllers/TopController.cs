@@ -46,7 +46,8 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			enrollment.IsActive = true;
 			_enrollmentService.Update(enrollment);
 
-			return Ok(new { Leaderboard = leaderboard });
+			return Ok();
+			// return Ok(new { Leaderboard = leaderboard });
 		}
 
 		// TODO: Move to admin controller
@@ -66,7 +67,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			
 			return Ok( new
 			{
-				LeaderboardId = leaderboard.Id,
+				LeaderboardId = leaderboard.Type,
 				Tier = leaderboard.Tier,
 				SeasonalMaxTier = enrollment.SeasonalMaxTier,
 				Response = leaderboard.GenerateScoreResponse(Token.AccountId),

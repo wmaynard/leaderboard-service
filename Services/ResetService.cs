@@ -55,7 +55,9 @@ namespace Rumble.Platform.LeaderboardService.Services
 		
 		public ResetService(ConfigService configService) : base(configService)
 		{
+#pragma warning disable CS4014
 			Do(UpdateConfig);
+#pragma warning restore CS4014
 		}
 
 		private void UpdateConfig()

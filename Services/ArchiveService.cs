@@ -7,13 +7,11 @@ namespace Rumble.Platform.LeaderboardService.Services
 	public class ArchiveService : PlatformMongoService<Leaderboard>
 	{
 		private const int FALLBACK_DAYS_TO_KEEP = 30;
-#pragma warning disable CS0169
-		private DynamicConfigService _dynamicConfig;
-#pragma warning restore CS0169
+		private readonly DynamicConfigService _dynamicConfig;
 
 		public int DaysToKeep => _dynamicConfig.GameConfig.Optional<int?>("leaderboard_ArchiveDaysToKeep") ?? FALLBACK_DAYS_TO_KEEP;
-		
-		public ArchiveService() : base("archives") { }
+
+		public ArchiveService(DynamicConfigService configService) : base("archives") => _dynamicConfig = configService;
 
 		public void Stash(Leaderboard leaderboard)
 		{

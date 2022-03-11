@@ -50,13 +50,23 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 				TierIDs = ids
 			});
 		}
+
+		[HttpGet, Route("list")]
+		public ActionResult ListLeaderboards()
+		{
+			string[] types = _leaderboardService.ListLeaderboardTypes();
+			return Ok(new
+			{
+				LeaderboardIds = types
+			});
+		}
 		
 		[HttpPost, Route("rollover"), IgnorePerformance]
 		public ActionResult ManualRollover()
 		{
 			string id = Require<string>("leaderboardId");
 			
-			_leaderboardService.Rollover(id);
+			_leaderboardService.Rollover(id).Wait();
 
 			return Ok();
 		}
