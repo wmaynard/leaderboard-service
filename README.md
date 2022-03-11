@@ -231,11 +231,7 @@ Response:
 
 <hr />
 
-Due to its size, please see the dedicated [LEADERBOARD MANAGEMENT](LEADERBOARD_MANAGEMENT.md) README for a full example of how to format the message for `POST /admin/update`. 
-
-Response:
-
-**No Content**
+Due to its size, please see the dedicated [LEADERBOARD MANAGEMENT](LEADERBOARD_MANAGEMENT.md) README for a full example of how to format the message for `POST /admin/update`.
 
 <hr />
 
@@ -245,16 +241,5 @@ Response:
 
 ## Future Updates, Optimizations, and Nice-to-Haves
 
-Items have proven to be a huge bottleneck for this service.  From an initial investigation, it seems that it's impossible to pass data between consumers of services and MongoDB without de/serializing the JSON.  For small documents, this is a negligible cost.  However, particularly for the **autoplay** data, this causes the service to become compute-bound, taking upwards of 5 seconds even when the deployed service has unlimited CPU allocation.  This was not an issue with the Java driver for Mongo DB - Groovy was able to pass data along without knowing what it was; no Model as a contract and weak typing made for a painless transfer.  The problem isn't the size of the data - which in worst cases is currently 1.3 MB - but rather the number of properties that need to be converted.
-
-The best solution is to pass any large datasets into a flatbuffer and subsequently encoded as a base64 string.  This allows player-service to accept a compressed string for a data object rather than iterating over the data's various and deeply-nested properties.
 
 ## Troubleshooting
-
-_/player/launch is failing!_
-
-This is an environment variable or dynamic config issue.  The service requires the dynamic config value `playerServiceToken` in order to generate new tokens for users.  This cannot be copied from another environment; tokens must be generated explicitly for their environments by design.  Double check that this value is present, and verify that it's valid by making a request to `/token/validate` using the token.
-
-If launch is still failing, verify that token-service is running and environment variables are all set correctly for both services.
-
-It's also possible that a particular account has been banned by token-service - this is new functionality that previously was unavailable.  Bans apply to account ids and cause token generation to fail when requested.
