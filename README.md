@@ -138,9 +138,7 @@ To run locally, all platform-services require an `environment.json` file in the 
 
 ## Endpoints
 
-All endpoints live off of the base `{platform url}/leaderboard`.  
-
-[Sample Requests](SAMPLE_REQUESTS.md)
+All endpoints live off of the base `{platform url}/leaderboard`.
 
 ### Top level
 
