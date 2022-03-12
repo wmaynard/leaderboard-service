@@ -59,8 +59,8 @@ ingress:
   paths: 
     - "/leaderboard"
   tls:
-    enabled: true
-    acme: true
+    enabled: false
+    acme: false
     secretName: "leaderboard-service-dev"
     useDefaultSecret: false
   annotations:
