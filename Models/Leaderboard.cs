@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.LeaderboardService.Exceptions;
 
 namespace Rumble.Platform.LeaderboardService.Models
 {
@@ -18,28 +19,37 @@ namespace Rumble.Platform.LeaderboardService.Models
 		
 		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
 		public const string FRIENDLY_KEY_TIER = "Tier";
+		public const string FRIENDLY_KEY_TITLE = "title";
+		public const string FRIENDLY_KEY_DESCRIPTION = "description";
+		public const string FRIENDLY_KEY_MAX_TIER = "maxTier";
+		public const string FRIENDLY_KEY_TIER_RULES = "tierRules";
 		
 		public const int PAGE_SIZE = 50;
 		
 		[BsonElement(DB_KEY_TYPE), BsonRequired]
 		[JsonPropertyName(FRIENDLY_KEY_TYPE)]
 		public string Type { get; set; }
+		
+		[JsonPropertyName(FRIENDLY_KEY_TITLE)]
 		public string Title { get; set; }
 		public string Description { get; set; }
 		public long Rollover { get; set; }
 		public RolloverType RolloverType { get; set; }
+		public string RolloverTypeString => RolloverType.ToString();
 		public long LastReset { get; set; }
 		
 		[BsonElement(DB_KEY_TIER)]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER)]
 		public int Tier { get; set; }
+		[JsonPropertyName(FRIENDLY_KEY_MAX_TIER)]
 		public int MaxTier { get; set; }
+		[JsonPropertyName(FRIENDLY_KEY_TIER_RULES)]
 		public TierRules[] TierRules { get; set; }
 		public TierRules CurrentTierRules => TierRules.FirstOrDefault(rules => rules.Tier == Tier)
-			?? throw new Exception("Leaderboard tier rules not defined.");
+			?? throw new InvalidLeaderboardException(this, $"Leaderboard tier rules not defined for leaderboard {Type}-{Id}.");
 
 		public Reward[] CurrentTierRewards => CurrentTierRules.Rewards
-			?? throw new Exception("Leaderboard tier rewards not defined.");
+			?? throw new InvalidLeaderboardException(this, $"Leaderboard tier rewards not defined for leaderboard {Type}-{Id}.");
 		public int PlayersPerShard { get; set; }
 		public string ShardID { get; set; } // can be null
 		public List<Entry> Scores { get; set; }
@@ -89,11 +99,9 @@ namespace Rumble.Platform.LeaderboardService.Models
 					int before = playerIndex - offset;
 					int after = playerIndex + offset;
 
+					// Not enough entries to generate nearby scores properly.  Nearby scores contains all scores.
 					if (before < 0 && after > sorted.Count)
-					{
-						Log.Warn(Owner.Default, "Not enough entries to generate nearby scores properly.  Nearby scores contains all scores.");
 						break;
-					}
 					
 					if (before >= 0)
 						nearbyScores.Insert(0, sorted[before]);
@@ -126,9 +134,38 @@ namespace Rumble.Platform.LeaderboardService.Models
 			Scores = new List<Entry>();
 		}
 
+		public bool Validate(out string[] errors)
+		{
+			List<string> messages = new List<string>();
+			bool output = true;
+
+			bool Test(bool condition, string error)
+			{
+				if (!condition)
+					messages.Add(error);
+				return condition;
+			}
+
+			output &= Test(condition: !string.IsNullOrWhiteSpace(Type), error: $"{FRIENDLY_KEY_TYPE} not provided.");
+			output &= Test(condition: !string.IsNullOrWhiteSpace(Title), error: $"{FRIENDLY_KEY_TITLE} not provided.");
+			output &= Test(condition: !string.IsNullOrWhiteSpace(Description), error: $"{FRIENDLY_KEY_DESCRIPTION} not provided.");
+			output &= Test(condition: MaxTier >= 0, error: $"{FRIENDLY_KEY_MAX_TIER} must be greater than or equal to 0.");
+			output &= Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined.");
+
+			for (int tier = 0; tier <= MaxTier; tier++)
+				output &= Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, $"{FRIENDLY_KEY_TIER_RULES} invalid for tier {tier}.");
+
+			if (!output)
+				Log.Error(Owner.Will, $"Leaderboard {Type} failed validation.", data: new
+				{
+					Messages = messages
+				});
+			errors = messages.ToArray();
+			return output;
+		}
+
 		internal void ResetID() => Id = null;
 
 	}
-	public enum RolloverType { Hourly, Daily, Weekly, Monthly, Annually, None }
 
 }

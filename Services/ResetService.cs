@@ -4,6 +4,7 @@ using System.Linq;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.LeaderboardService.Exceptions;
 using Rumble.Platform.LeaderboardService.Models;
 
 namespace Rumble.Platform.LeaderboardService.Services
@@ -81,28 +82,74 @@ namespace Rumble.Platform.LeaderboardService.Services
 			if (LastDailyRollover.Day != now.Day && PastResetTime(now))
 				workPerformed = await Do(() =>
 				{
-					Log.Local(Owner.Will, "Roll over daily leaderboards!");
-					_leaderboardService.Rollover(RolloverType.Daily);
-					LastDailyRollover = now;
+					try
+					{
+						Log.Local(Owner.Will, "Roll over daily leaderboards!");
+						_leaderboardService.Rollover(RolloverType.Daily);
+						LastDailyRollover = now;
+					}
+					catch (InvalidLeaderboardException e)
+					{
+						Log.Error(Owner.Will, "Unable to roll over daily leaderboards.", exception: e);
+						Log.Local(Owner.Will, e.Detail);
+					}
+					catch (AggregateException e)
+					{
+						Log.Error(Owner.Will, "Unable to roll over daily leaderboards.", exception: e);
+						if (e.InnerException is InvalidLeaderboardException invalid)
+							Log.Local(Owner.Will, invalid.Detail);
+					}
 				});
-			// Pause();
+			// TODO: Add leaderboards starting in future
+			// TODO: ArchiveController
+			// TODO: Archive ID list
+			// TODO: Deletion
+			// TODO: Bulk Update delete
 			
 			// Check weekly leaderboards
 			if (now.Subtract(LastWeeklyRollover).TotalDays > 7 && PastResetTime(now))
 				workPerformed = await Do(() =>
 				{
-					Log.Local(Owner.Will, "Roll over weekly leaderboards!");
-					_leaderboardService.Rollover(RolloverType.Weekly);
-					LastWeeklyRollover = now;
+					try
+					{
+						Log.Local(Owner.Will, "Roll over weekly leaderboards!");
+						_leaderboardService.Rollover(RolloverType.Weekly);
+						LastDailyRollover = now;
+					}
+					catch (InvalidLeaderboardException e)
+					{
+						Log.Error(Owner.Will, "Unable to roll over weekly leaderboards.", exception: e);
+						Log.Local(Owner.Will, e.Detail);
+					}
+					catch (AggregateException e)
+					{
+						Log.Error(Owner.Will, "Unable to roll over weekly leaderboards.", exception: e);
+						if (e.InnerException is InvalidLeaderboardException invalid)
+							Log.Local(Owner.Will, invalid.Detail);
+					}
 				});
 			
 			// Check monthly leaderboards
 			if (LastMonthlyRollover.Month != now.Month && LastMonthlyRollover.Day < now.Day && PastResetTime(now))
 				workPerformed = await Do(() =>
 				{
-					Log.Local(Owner.Will, "Roll over monthly leaderboards!");
-					_leaderboardService.Rollover(RolloverType.Monthly);
-					LastMonthlyRollover = now;
+					try
+					{
+						Log.Local(Owner.Will, "Roll over monthly leaderboards!");
+						_leaderboardService.Rollover(RolloverType.Monthly);
+						LastDailyRollover = now;
+					}
+					catch (InvalidLeaderboardException e)
+					{
+						Log.Error(Owner.Will, "Unable to roll over monthly leaderboards.", exception: e);
+						Log.Local(Owner.Will, e.Detail);
+					}
+					catch (AggregateException e)
+					{
+						Log.Error(Owner.Will, "Unable to roll over monthly leaderboards.", exception: e);
+						if (e.InnerException is InvalidLeaderboardException invalid)
+							Log.Local(Owner.Will, invalid.Detail);
+					}
 				});
 		}
 

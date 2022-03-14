@@ -22,6 +22,11 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		public ActionResult CreateOrUpdate()
 		{
 			Leaderboard leaderboard = Require<Leaderboard>("leaderboard");
+			if (!leaderboard.Validate(out string[] errors))
+				return Problem(new
+				{
+					Errors = errors
+				});
 
 			
 			if (_leaderboardService.Count(leaderboard.Type) > 0)
