@@ -37,7 +37,7 @@ hpa:
     enabled: true
     requestsPerSecond: "100"
     serverAddress: http://prometheus-prometheus-server.gitlab-managed-apps.svc:80
-    filter: "service"
+    filter: "eng"
 gitlab:
   app:
   env:
@@ -59,8 +59,8 @@ ingress:
   paths: 
     - "/leaderboard"
   tls:
-    enabled: true
-    acme: true
+    enabled: false
+    acme: false
     secretName: "leaderboard-service-dev"
     useDefaultSecret: false
   annotations:
