@@ -94,7 +94,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 					IsUpsert = false
 				}
 			);
-			var foo = _collection.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType).ToList();
+			
 			// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
 			output ??= _collection.FindOneAndUpdate<Leaderboard>(
 				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
@@ -103,7 +103,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
 					{
 						AccountID = enrollment.AccountID,
-						Score = score
+						Score = Math.Max(score, 0) // Ensure the user's score is at least 0.
 					}),
 				options: new FindOneAndUpdateOptions<Leaderboard>()
 				{
@@ -111,6 +111,31 @@ namespace Rumble.Platform.LeaderboardService.Services
 					IsUpsert = false
 				}
 			);
+
+			// If the score is negative, there's a chance the user was pushed below 0.  This *should* be handled first in the client / server, which shouldn't send us values that
+			// push someone below 0.
+			// Negative values in the first place should be exceedingly rare, bordering on disallowed.  The one exception is the ability to use the leaderboards-service to track
+			// trophy count for PvP, which does require fluctuating values.  All other scoring criteria should be additive only.
+			// Still, we need to account for a scenario in which someone has been pushed below 0.  No one should be allowed to do that, so if that's the case, this update
+			// will set all negative scores to 0.
+			if (score < 0 && output.Scores.Any(entry => entry.Score < 0))
+			{
+				Log.Warn(Owner.Will, "Scores were found to be below zero.  Updating all scores to a minimum of 0.", data: new
+				{
+					LeaderboardId = output.Id,
+					Type = output.Type,
+					Enrollment = enrollment
+				});
+				output = _collection.FindOneAndUpdate<Leaderboard>(
+					filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, output.Id),
+					update: Builders<Leaderboard>.Update.Max("Scores.$[].Score", 0), // Updates all scores to be minimum of 0.
+					options: new FindOneAndUpdateOptions<Leaderboard>()
+					{
+						ReturnDocument = ReturnDocument.After,
+						IsUpsert = false
+					}
+				);
+			}
 
 			return output;
 		}

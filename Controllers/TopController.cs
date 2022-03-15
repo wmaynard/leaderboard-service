@@ -38,9 +38,10 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 
 			if (leaderboard == null)
 				throw new UnknownLeaderboardException(type);
-			
+
 			if (enrollment.CurrentLeaderboardID == leaderboard.Id)
-				return Ok(new { Leaderboard = leaderboard });
+				return Ok();
+				// return Ok(new { Leaderboard = leaderboard });
 			
 			enrollment.CurrentLeaderboardID = leaderboard.Id;
 			enrollment.IsActive = true;
