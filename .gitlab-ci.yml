@@ -66,6 +66,7 @@ build_app:
     - dotnet build --no-restore --configuration Release
     - CURRENTVERSION="$(dotnet ./bin/Release/net5.0/leaderboard-service.dll -version | cut -d':' -f2)"
     - git tag $CURRENTVERSION; git push https://eric.sheris:${NUGET_PAT}@gitlab.cdrentertainment.com/platform-services/$CI_PROJECT_NAME.git --tags
+    - echo "$CURRENTVERSION"
   artifacts:
     paths:
       - bin/Release/net5.0/*
