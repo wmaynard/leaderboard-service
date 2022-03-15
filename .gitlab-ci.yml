@@ -79,7 +79,7 @@ build_image:
   stage: build
   allow_failure: false
   cache:
-    key: $CI_PROJECT_NAME-scan
+    key: $CI_PROJECT_NAME-scan2
     paths:
       - ./.trivycache
   image:
