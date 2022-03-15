@@ -256,7 +256,9 @@ namespace Rumble.Platform.LeaderboardService.Services
 			// 	.Attach("data.txt", data.JSON)
 			// 	.Send();
 
-			_archiveService.Stash(leaderboard);
+			_archiveService.Stash(leaderboard, out string archiveId);
+			_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archiveId);
+			
 			leaderboard.Scores = new List<Entry>();
 
 			string[] activePlayers = ranks

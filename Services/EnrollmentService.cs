@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using MongoDB.Driver;
@@ -10,16 +11,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 {
 	public class EnrollmentService : PlatformMongoService<Enrollment>
 	{
-		public EnrollmentService() : base("enrollments")
-		{
-			
-		}
-
-		// public string[] InactiveAccounts(string leaderboardType) => _collection
-		// 	.Find(filter: enrollment => enrollment.LeaderboardType == leaderboardType && !enrollment.IsActive)
-		// 	.Project<string>(Builders<Enrollment>.Projection.Include(enrollment => enrollment.AccountID))
-		// 	.ToList()
-		// 	.ToArray();
+		public EnrollmentService() : base("enrollments") { }
 
 		private string[] GetInactiveAccounts(string leaderboardType)
 		{
@@ -40,8 +32,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 				return Array.Empty<string>();
 			}
 		}
-
-
+		
 		public Enrollment FindOrCreate(string accountId, string leaderboardType) => _collection
 			.Find(filter: enrollment => enrollment.AccountID == accountId && enrollment.LeaderboardType == leaderboardType)
 			.FirstOrDefault()
@@ -51,6 +42,14 @@ namespace Rumble.Platform.LeaderboardService.Services
 				LeaderboardType = leaderboardType,
 				Tier = 1
 			});
+
+		public void LinkArchive(IEnumerable<string> accountIds, string leaderboardType, string archiveId) => _collection.UpdateMany(
+			filter: Builders<Enrollment>.Filter.And(
+				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, leaderboardType),
+				Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds)
+			),
+			update: Builders<Enrollment>.Update.AddToSet(enrollment => enrollment.PastLeaderboardIDs, archiveId)
+		);
 
 		public void FlagAsActive(string accountId, string leaderboardType) => SetActiveFlag(new[] { accountId }, leaderboardType);
 		public Enrollment[] FlagAsActive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType);
