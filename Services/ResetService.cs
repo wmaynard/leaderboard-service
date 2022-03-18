@@ -84,7 +84,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 				{
 					try
 					{
-						Log.Local(Owner.Will, "Roll over daily leaderboards!");
+						Log.Info(Owner.Will, "Daily rollover triggered.");
 						_leaderboardService.Rollover(RolloverType.Daily);
 						LastDailyRollover = now;
 					}
@@ -112,7 +112,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 				{
 					try
 					{
-						Log.Local(Owner.Will, "Roll over weekly leaderboards!");
+						Log.Info(Owner.Will, "Weekly rollover triggered.");
 						_leaderboardService.Rollover(RolloverType.Weekly);
 						LastDailyRollover = now;
 					}
@@ -135,7 +135,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 				{
 					try
 					{
-						Log.Local(Owner.Will, "Roll over monthly leaderboards!");
+						Log.Info(Owner.Will, "Monthly rollover triggered.");
 						_leaderboardService.Rollover(RolloverType.Monthly);
 						LastDailyRollover = now;
 					}
