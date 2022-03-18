@@ -153,7 +153,26 @@ namespace Rumble.Platform.LeaderboardService.Models
 			output &= Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined.");
 
 			for (int tier = 0; tier <= MaxTier; tier++)
-				output &= Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, $"{FRIENDLY_KEY_TIER_RULES} invalid for tier {tier}.");
+				output &= Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, error: $"{FRIENDLY_KEY_TIER_RULES} invalid for tier {tier}.");
+
+			foreach (Reward reward in TierRules.SelectMany(rules => rules.Rewards))
+			{
+				output &= Test(condition: !string.IsNullOrWhiteSpace(reward.Subject), error: $"Reward value '{Reward.FRIENDLY_KEY_SUBJECT}' not provided.");
+				output &= Test(condition: !string.IsNullOrWhiteSpace(reward.Message), error: $"Reward value '{Reward.FRIENDLY_KEY_BODY}' not provided.");
+				output &= Test(condition: reward.Contents != null && reward.Contents.Any(), error: $"Reward value '{Reward.FRIENDLY_KEY_ATTACHMENTS}' not provided.");
+				output &= Test(condition: reward.Tier >= 0, error: $"Reward value '{Reward.FRIENDLY_KEY_TIER}' must be greater than or equal to 0.");
+				output &= Test(condition: reward.MinimumRank >= 1 || (reward.MinimumPercentile >= 0 && reward.MinimumPercentile <= 100), error: "Reward criteria invalid.");
+
+				if (reward.Contents == null)
+					continue;
+				
+				foreach (Attachment item in reward.Contents)
+				{
+					output &= Test(condition: item.Quantity > 0, error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_QUANTITY}' must be greater than 0.");
+					output &= Test(condition: !string.IsNullOrWhiteSpace(item.Type), error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_TYPE}' not provided.");
+					output &= Test(condition: !string.IsNullOrWhiteSpace(item.ResourceID), error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_RESOURCE_ID}' not provided.");
+				}
+			}
 
 			if (!output)
 				Log.Error(Owner.Will, $"Leaderboard {Type} failed validation.", data: new
