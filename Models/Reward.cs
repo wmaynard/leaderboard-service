@@ -69,7 +69,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public long TimeAwarded { get; set; }
 		public string LeaderboardId { get; set; }
 		
-		[BsonElement(DB_KEY_STATUS), BsonIgnoreIfDefault]
+		[BsonElement(DB_KEY_STATUS)]
 		internal Status SentStatus { get; set; }
 			
 		internal enum Status { NotSent, IsSending, Sent }

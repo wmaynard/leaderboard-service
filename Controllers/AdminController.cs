@@ -14,6 +14,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 	{
 #pragma warning disable CS0649
 		private readonly Services.LeaderboardService _leaderboardService;
+		private readonly RewardsService _rewardsService;
 		// private readonly ResetService _resetService;
 #pragma warning restore CS0649
 		
@@ -64,6 +65,14 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			{
 				LeaderboardIds = types
 			});
+		}
+
+		[HttpPost, Route("sendRewards")]
+		public ActionResult SendRewards()
+		{
+			_rewardsService.SendRewards();
+
+			return Ok();
 		}
 		
 		[HttpPost, Route("rollover"), IgnorePerformance]

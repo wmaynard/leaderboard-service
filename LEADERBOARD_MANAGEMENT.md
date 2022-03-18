@@ -28,7 +28,6 @@ Sample request so far:
         "title": "Daily PvP Leaderboards",
         "description": "Use your PvP tickets and climb the ranks!",
         "rolloverType": 1,
-        "playersPerShard": 50,
         "maxTier": 6,
         ...
       }
@@ -52,11 +51,12 @@ Continuing our request:
        ...
         "tierRules": [
             {
-                "tier": 1,
+                "tier": 0,
                 "promotionRank": 5,
                 "demotionRank": -1,
                 "promotionPercentage": null,
                 "demotionPercentage": null,
+                "playersPerShard": 50, // This is just a placeholder for now
                 "rewards": [...]                 // Coming up next
             },
             {
@@ -102,19 +102,22 @@ In addition to the rank and percentages, each reward must contain the following 
 "rewards": [
     {
         "subject": "first_place_subject",
-        "message": "first_place_body",
-        "bannerImage": "abc.png",
+        "body": "first_place_body",
+        "banner": "abc.png",
         "icon": "icon.png",
+        "internalNote": "ldr_pvp_weekly_v1 reward",
         "minimumRank": 1,
         "minimumPercentile": -1,
-        "contents": [
+        "attachments": [
             {
-                "quantity": 1234,
-                "resourceId": "hard_currency"
+                "Type": "currency",
+                "Quantity": 1000,
+                "RewardId": "hard_currency"
             },
             {
-                "quantity": 10000,
-                "resourceId": "soft_currency"
+                "Type": "currency",
+                "Quantity": 10000,
+                "RewardId": "soft_currency"
             }
         ]
     },
@@ -145,673 +148,278 @@ Authorization: `Bearer {leaderboard_AdminToken}`
 {
     "leaderboard": {
         "leaderboardId": "ldr_pvp_weekly_v1",
-        "title": "Daily PvP Leaderboards",
+        "title": "Weekly PvP Leaderboards",
         "description": "Use your PvP tickets and climb the ranks!",
-        "rolloverType": 1,
-        "playersPerShard": 50,
-        "maxTier": 6,
+        "rolloverType": 2,
+        "maxTier": 1,
         "tierRules": [
             {
-                "tier": 1,
+                "tier": 0,
                 "promotionRank": 5,
                 "demotionRank": -1,
                 "promotionPercentage": null,
                 "demotionPercentage": null,
+                "playersPerShard": 50, // This is just a placeholder for now
                 "rewards": [
                     {
                         "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 1,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 1234,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 1000,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 10000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 10000,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "second_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 2,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 500,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 500,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 5000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 5000,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "third_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 3,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 250,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 250,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 2500,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 2500,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
+                        "body": "top_30_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 30,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 50,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 100,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 500,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "contents": [
-                            {
-                                "quantity": 100,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 1000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 1000,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
+                        "body": "top_half_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": -1,
                         "minimumPercentile": 50,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 100,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 75,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 1000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 750,
+                                "RewardId": "soft_currency"
+                            }
+                        ]
+                    },
+                    {
+                        "subject": "first_place_subject",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
+                        "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
+                        "minimumRank": -1,
+                        "minimumPercentile": 0,
+                        "attachments": [
+                            {
+                                "Type": "currency",
+                                "Quantity": 25,
+                                "RewardId": "hard_currency"
+                            },
+                            {
+                                "Type": "currency",
+                                "Quantity": 250,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     }
                 ]
             },
             {
-                "tier": 2,
+                "tier": 1,
                 "promotionRank": 5,
-                "demotionRank": 26,
+                "demotionRank": 40,
                 "promotionPercentage": null,
                 "demotionPercentage": null,
+                "playersPerShard": 50,
                 "rewards": [
                     {
                         "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 1,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 2000,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 2000,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 20000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 20000,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "second_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 2,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 1000,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 1000,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 10000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 10000,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "third_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 3,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 500,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 500,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 5000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 5000,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
+                        "body": "top_30_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 30,
                         "minimumPercentile": -1,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 100,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 200,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 1000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "contents": [
-                            {
-                                "quantity": 200,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 2000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 2000,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
                     {
                         "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
+                        "body": "top_half_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": -1,
                         "minimumPercentile": 50,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 200,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 150,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 2000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "tier": 3,
-                "promotionRank": 5,
-                "demotionRank": 26,
-                "promotionPercentage": null,
-                "demotionPercentage": null,
-                "rewards": [
-                    {
-                       "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 3000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 30000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 1500,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 1500,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 15000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 750,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 7500,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 150,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 1500,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "tier": 4,
-                "promotionRank": 5,
-                "demotionRank": 26,
-                "promotionPercentage": null,
-                "demotionPercentage": null,
-                "rewards": [
                     {
                         "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 4000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 40000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 2000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 20000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 1000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 10000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 200,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 2000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": -1,
                         "minimumPercentile": 0,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 300,
-                                "resourceId": "hard_currency"
+                                "Type": "currency",
+                                "Quantity": 50,
+                                "RewardId": "hard_currency"
                             },
                             {
-                                "quantity": 3000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "contents": [
-                            {
-                                "quantity": 300,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 3000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "tier": 5,
-                "promotionRank": 5,
-                "demotionRank": 26,
-                "promotionPercentage": null,
-                "demotionPercentage": null,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 5000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 50000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 2500,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 25000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 1250,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 12500,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 250,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 2500,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "contents": [
-                            {
-                                "quantity": 400,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 4000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "contents": [
-                            {
-                                "quantity": 400,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 4000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "tier": 6,
-                "promotionRank": -1,
-                "demotionRank": 26,
-                "promotionPercentage": null,
-                "demotionPercentage": null,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 6000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 60000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 3000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 30000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 1500,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 15000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "contents": [
-                            {
-                                "quantity": 300,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 3000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "contents": [
-                            {
-                                "quantity": 600,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 6000,
-                                "resourceId": "soft_currency"
-                            }
-                        ]
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "contents": [
-                            {
-                                "quantity": 600,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 6000,
-                                "resourceId": "soft_currency"
+                                "Type": "currency",
+                                "Quantity": 500,
+                                "RewardId": "soft_currency"
                             }
                         ]
                     }
@@ -830,1061 +438,312 @@ This will likely be removed or simplified in the future, but for now it's useful
 {
     "success": true,
     "leaderboard": {
-        "leaderboardId": "ldr_pvp_weekly_v2",
-        "title": "Daily PvP Leaderboards",
+        "leaderboardId": "ldr_pvp_weekly_v1",
+        "title": "Weekly PvP Leaderboards",
         "description": "Use your PvP tickets and climb the ranks!",
-        "rollover": 0,
-        "rolloverType": 1,
-        "lastReset": 0,
-        "Tier": 6,
-        "maxTier": 6,
+        "rolloverType": 2,
+        "rolloverTypeVerbose": "Weekly",
+        "tier": 1,
+        "maxTier": 1,
         "tierRules": [
+            {
+                "tier": 0,
+                "promotionRank": 5,
+                "demotionRank": -1,
+                "playersPerShard": 50,
+                "rewards": [
+                    {
+                        "subject": "first_place_subject",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
+                        "icon": "icon.png",
+                        "tier": 0,
+                        "attachments": [
+                            {
+                                "Quantity": 1000,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
+                            },
+                            {
+                                "Quantity": 10000,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
+                            }
+                        ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
+                        "minimumRank": 1,
+                        "minimumPercentile": -1,
+                        "timeAwarded": 0
+                    },
+                    {
+                        "subject": "second_place_subject",
+                        "body": "second_place_body",
+                        "banner": "abc.png",
+                        "icon": "icon.png",
+                        "tier": 0,
+                        "attachments": [
+                            {
+                                "Quantity": 500,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
+                            },
+                            {
+                                "Quantity": 5000,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
+                            }
+                        ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
+                        "minimumRank": 2,
+                        "minimumPercentile": -1,
+                        "timeAwarded": 0
+                    },
+                    {
+                        "subject": "third_place_subject",
+                        "body": "third_place_body",
+                        "banner": "abc.png",
+                        "icon": "icon.png",
+                        "tier": 0,
+                        "attachments": [
+                            {
+                                "Quantity": 250,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
+                            },
+                            {
+                                "Quantity": 2500,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
+                            }
+                        ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
+                        "minimumRank": 3,
+                        "minimumPercentile": -1,
+                        "timeAwarded": 0
+                    },
+                    {
+                        "subject": "top_30_subject",
+                        "body": "top_30_body",
+                        "banner": "abc.png",
+                        "icon": "icon.png",
+                        "tier": 0,
+                        "attachments": [
+                            {
+                                "Quantity": 100,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
+                            },
+                            {
+                                "Quantity": 1000,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
+                            }
+                        ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
+                        "minimumRank": 30,
+                        "minimumPercentile": -1,
+                        "timeAwarded": 0
+                    },
+                    {
+                        "subject": "top_half_subject",
+                        "body": "top_half_body",
+                        "banner": "abc.png",
+                        "icon": "icon.png",
+                        "tier": 0,
+                        "attachments": [
+                            {
+                                "Quantity": 75,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
+                            },
+                            {
+                                "Quantity": 750,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
+                            }
+                        ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
+                        "minimumRank": -1,
+                        "minimumPercentile": 50,
+                        "timeAwarded": 0
+                    },
+                    {
+                        "subject": "first_place_subject",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
+                        "icon": "icon.png",
+                        "tier": 0,
+                        "attachments": [
+                            {
+                                "Quantity": 25,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
+                            },
+                            {
+                                "Quantity": 250,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
+                            }
+                        ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
+                        "minimumRank": -1,
+                        "minimumPercentile": 0,
+                        "timeAwarded": 0
+                    }
+                ]
+            },
             {
                 "tier": 1,
                 "promotionRank": 5,
-                "demotionRank": -1,
-                "promotionPercentage": 0,
-                "demotionPercentage": 0,
+                "demotionRank": 40,
+                "playersPerShard": 50,
                 "rewards": [
                     {
                         "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
                         "tier": 0,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 1234,
-                                "resourceId": "hard_currency"
+                                "Quantity": 2000,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
                             },
                             {
-                                "quantity": 10000,
-                                "resourceId": "soft_currency"
+                                "Quantity": 20000,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
                             }
                         ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 1,
                         "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
+                        "timeAwarded": 0
                     },
                     {
                         "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "second_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
                         "tier": 0,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 500,
-                                "resourceId": "hard_currency"
+                                "Quantity": 1000,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
                             },
                             {
-                                "quantity": 5000,
-                                "resourceId": "soft_currency"
+                                "Quantity": 10000,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
                             }
                         ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 2,
                         "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
+                        "timeAwarded": 0
                     },
                     {
                         "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "third_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
                         "tier": 0,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 250,
-                                "resourceId": "hard_currency"
+                                "Quantity": 500,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
                             },
                             {
-                                "quantity": 2500,
-                                "resourceId": "soft_currency"
+                                "Quantity": 5000,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
                             }
                         ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 3,
                         "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
+                        "timeAwarded": 0
                     },
                     {
                         "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
+                        "body": "top_30_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
                         "tier": 0,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 50,
-                                "resourceId": "hard_currency"
+                                "Quantity": 200,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
                             },
                             {
-                                "quantity": 500,
-                                "resourceId": "soft_currency"
+                                "Quantity": 2000,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
                             }
                         ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": 30,
                         "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 100,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 1000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
+                        "timeAwarded": 0
                     },
                     {
                         "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
+                        "body": "top_half_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
                         "tier": 0,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 100,
-                                "resourceId": "hard_currency"
+                                "Quantity": 150,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
                             },
                             {
-                                "quantity": 1000,
-                                "resourceId": "soft_currency"
+                                "Quantity": 1500,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
                             }
                         ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": -1,
                         "minimumPercentile": 50,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    }
-                ]
-            },
-            {
-                "tier": 2,
-                "promotionRank": 5,
-                "demotionRank": 26,
-                "promotionPercentage": 0,
-                "demotionPercentage": 0,
-                "rewards": [
+                        "timeAwarded": 0
+                    },
                     {
                         "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
+                        "body": "first_place_body",
+                        "banner": "abc.png",
                         "icon": "icon.png",
                         "tier": 0,
-                        "contents": [
+                        "attachments": [
                             {
-                                "quantity": 2000,
-                                "resourceId": "hard_currency"
+                                "Quantity": 50,
+                                "RewardId": "hard_currency",
+                                "Type": "currency"
                             },
                             {
-                                "quantity": 20000,
-                                "resourceId": "soft_currency"
+                                "Quantity": 500,
+                                "RewardId": "soft_currency",
+                                "Type": "currency"
                             }
                         ],
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 1000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 10000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 500,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 5000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 100,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 1000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 200,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 2000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
+                        "internalNote": "ldr_pvp_weekly_v1 reward",
                         "minimumRank": -1,
                         "minimumPercentile": 0,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 200,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 2000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    }
-                ]
-            },
-            {
-                "tier": 3,
-                "promotionRank": 5,
-                "demotionRank": 26,
-                "promotionPercentage": 0,
-                "demotionPercentage": 0,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 3000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 30000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 1500,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 15000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 750,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 7500,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 150,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 1500,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    }
-                ]
-            },
-            {
-                "tier": 4,
-                "promotionRank": 5,
-                "demotionRank": 26,
-                "promotionPercentage": 0,
-                "demotionPercentage": 0,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 4000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 40000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 2000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 20000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 1000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 10000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 200,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 2000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 300,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 3000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 300,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 3000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    }
-                ]
-            },
-            {
-                "tier": 5,
-                "promotionRank": 5,
-                "demotionRank": 26,
-                "promotionPercentage": 0,
-                "demotionPercentage": 0,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 5000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 50000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 2500,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 25000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 1250,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 12500,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 250,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 2500,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 400,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 4000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 400,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 4000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    }
-                ]
-            },
-            {
-                "tier": 6,
-                "promotionRank": -1,
-                "demotionRank": 26,
-                "promotionPercentage": 0,
-                "demotionPercentage": 0,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "message": "first_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 6000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 60000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "message": "second_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 3000,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 30000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "message": "third_place_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 1500,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 15000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "message": "top_30_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 300,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 3000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "participation_subject",
-                        "message": "participation_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 600,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 6000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "message": "top_half_body",
-                        "bannerImage": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "contents": [
-                            {
-                                "quantity": 600,
-                                "resourceId": "hard_currency"
-                            },
-                            {
-                                "quantity": 6000,
-                                "resourceId": "soft_currency"
-                            }
-                        ],
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "timeAwarded": 0,
-                        "leaderboardId": null
+                        "timeAwarded": 0
                     }
                 ]
             }
         ],
-        "currentTierRules": {
-            "tier": 6,
-            "promotionRank": -1,
-            "demotionRank": 26,
-            "promotionPercentage": 0,
-            "demotionPercentage": 0,
-            "rewards": [
-                {
-                    "subject": "first_place_subject",
-                    "message": "first_place_body",
-                    "bannerImage": "abc.png",
-                    "icon": "icon.png",
-                    "tier": 0,
-                    "contents": [
-                        {
-                            "quantity": 6000,
-                            "resourceId": "hard_currency"
-                        },
-                        {
-                            "quantity": 60000,
-                            "resourceId": "soft_currency"
-                        }
-                    ],
-                    "minimumRank": 1,
-                    "minimumPercentile": -1,
-                    "timeAwarded": 0,
-                    "leaderboardId": null
-                },
-                {
-                    "subject": "second_place_subject",
-                    "message": "second_place_body",
-                    "bannerImage": "abc.png",
-                    "icon": "icon.png",
-                    "tier": 0,
-                    "contents": [
-                        {
-                            "quantity": 3000,
-                            "resourceId": "hard_currency"
-                        },
-                        {
-                            "quantity": 30000,
-                            "resourceId": "soft_currency"
-                        }
-                    ],
-                    "minimumRank": 2,
-                    "minimumPercentile": -1,
-                    "timeAwarded": 0,
-                    "leaderboardId": null
-                },
-                {
-                    "subject": "third_place_subject",
-                    "message": "third_place_body",
-                    "bannerImage": "abc.png",
-                    "icon": "icon.png",
-                    "tier": 0,
-                    "contents": [
-                        {
-                            "quantity": 1500,
-                            "resourceId": "hard_currency"
-                        },
-                        {
-                            "quantity": 15000,
-                            "resourceId": "soft_currency"
-                        }
-                    ],
-                    "minimumRank": 3,
-                    "minimumPercentile": -1,
-                    "timeAwarded": 0,
-                    "leaderboardId": null
-                },
-                {
-                    "subject": "top_30_subject",
-                    "message": "top_30_body",
-                    "bannerImage": "abc.png",
-                    "icon": "icon.png",
-                    "tier": 0,
-                    "contents": [
-                        {
-                            "quantity": 300,
-                            "resourceId": "hard_currency"
-                        },
-                        {
-                            "quantity": 3000,
-                            "resourceId": "soft_currency"
-                        }
-                    ],
-                    "minimumRank": 30,
-                    "minimumPercentile": -1,
-                    "timeAwarded": 0,
-                    "leaderboardId": null
-                },
-                {
-                    "subject": "participation_subject",
-                    "message": "participation_body",
-                    "bannerImage": "abc.png",
-                    "icon": "icon.png",
-                    "tier": 0,
-                    "contents": [
-                        {
-                            "quantity": 600,
-                            "resourceId": "hard_currency"
-                        },
-                        {
-                            "quantity": 6000,
-                            "resourceId": "soft_currency"
-                        }
-                    ],
-                    "minimumRank": -1,
-                    "minimumPercentile": 0,
-                    "timeAwarded": 0,
-                    "leaderboardId": null
-                },
-                {
-                    "subject": "top_half_subject",
-                    "message": "top_half_body",
-                    "bannerImage": "abc.png",
-                    "icon": "icon.png",
-                    "tier": 0,
-                    "contents": [
-                        {
-                            "quantity": 600,
-                            "resourceId": "hard_currency"
-                        },
-                        {
-                            "quantity": 6000,
-                            "resourceId": "soft_currency"
-                        }
-                    ],
-                    "minimumRank": -1,
-                    "minimumPercentile": 50,
-                    "timeAwarded": 0,
-                    "leaderboardId": null
-                }
-            ]
-        },
-        "currentTierRewards": [
-            {
-                "subject": "first_place_subject",
-                "message": "first_place_body",
-                "bannerImage": "abc.png",
-                "icon": "icon.png",
-                "tier": 0,
-                "contents": [
-                    {
-                        "quantity": 6000,
-                        "resourceId": "hard_currency"
-                    },
-                    {
-                        "quantity": 60000,
-                        "resourceId": "soft_currency"
-                    }
-                ],
-                "minimumRank": 1,
-                "minimumPercentile": -1,
-                "timeAwarded": 0,
-                "leaderboardId": null
-            },
-            {
-                "subject": "second_place_subject",
-                "message": "second_place_body",
-                "bannerImage": "abc.png",
-                "icon": "icon.png",
-                "tier": 0,
-                "contents": [
-                    {
-                        "quantity": 3000,
-                        "resourceId": "hard_currency"
-                    },
-                    {
-                        "quantity": 30000,
-                        "resourceId": "soft_currency"
-                    }
-                ],
-                "minimumRank": 2,
-                "minimumPercentile": -1,
-                "timeAwarded": 0,
-                "leaderboardId": null
-            },
-            {
-                "subject": "third_place_subject",
-                "message": "third_place_body",
-                "bannerImage": "abc.png",
-                "icon": "icon.png",
-                "tier": 0,
-                "contents": [
-                    {
-                        "quantity": 1500,
-                        "resourceId": "hard_currency"
-                    },
-                    {
-                        "quantity": 15000,
-                        "resourceId": "soft_currency"
-                    }
-                ],
-                "minimumRank": 3,
-                "minimumPercentile": -1,
-                "timeAwarded": 0,
-                "leaderboardId": null
-            },
-            {
-                "subject": "top_30_subject",
-                "message": "top_30_body",
-                "bannerImage": "abc.png",
-                "icon": "icon.png",
-                "tier": 0,
-                "contents": [
-                    {
-                        "quantity": 300,
-                        "resourceId": "hard_currency"
-                    },
-                    {
-                        "quantity": 3000,
-                        "resourceId": "soft_currency"
-                    }
-                ],
-                "minimumRank": 30,
-                "minimumPercentile": -1,
-                "timeAwarded": 0,
-                "leaderboardId": null
-            },
-            {
-                "subject": "participation_subject",
-                "message": "participation_body",
-                "bannerImage": "abc.png",
-                "icon": "icon.png",
-                "tier": 0,
-                "contents": [
-                    {
-                        "quantity": 600,
-                        "resourceId": "hard_currency"
-                    },
-                    {
-                        "quantity": 6000,
-                        "resourceId": "soft_currency"
-                    }
-                ],
-                "minimumRank": -1,
-                "minimumPercentile": 0,
-                "timeAwarded": 0,
-                "leaderboardId": null
-            },
-            {
-                "subject": "top_half_subject",
-                "message": "top_half_body",
-                "bannerImage": "abc.png",
-                "icon": "icon.png",
-                "tier": 0,
-                "contents": [
-                    {
-                        "quantity": 600,
-                        "resourceId": "hard_currency"
-                    },
-                    {
-                        "quantity": 6000,
-                        "resourceId": "soft_currency"
-                    }
-                ],
-                "minimumRank": -1,
-                "minimumPercentile": 50,
-                "timeAwarded": 0,
-                "leaderboardId": null
-            }
-        ],
-        "playersPerShard": 50,
-        "shardID": null,
-        "scores": [],
-        "isResetting": false,
-        "id": null
+        "scores": []
     },
     "tierIDs": [
-        "622bbb68b10b46362ff09e01",
-        "622bbb69b10b46362ff09e02",
-        "622bbb69b10b46362ff09e03",
-        "622bbb69b10b46362ff09e04",
-        "622bbb69b10b46362ff09e05",
-        "622bbb69b10b46362ff09e06",
-        "622bbb69b10b46362ff09e07"
+        "623517d10f0c01c01b14075d",
+        "623517d10f0c01c01b14075e"
     ]
 }
 ```

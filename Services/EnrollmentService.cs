@@ -40,7 +40,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 			{
 				AccountID = accountId,
 				LeaderboardType = leaderboardType,
-				Tier = 1
+				Tier = 0
 			});
 
 		public void LinkArchive(IEnumerable<string> accountIds, string leaderboardType, string archiveId) => _collection.UpdateMany(

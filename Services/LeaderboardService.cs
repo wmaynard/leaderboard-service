@@ -32,7 +32,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 		public long UpdateLeaderboardType(Leaderboard template)
 		{
 			// string[] foo = _enrollmentService.FindActiveAccounts(template.Type);
-			var maxTier = _collection
+			int maxTier = _collection
 				.Find(filter: leaderboard => leaderboard.Type == template.Type)
 				.Project<GenericData>(Builders<Leaderboard>.Projection.Include(leaderboard => leaderboard.Tier))
 				.ToList()
@@ -47,7 +47,7 @@ namespace Rumble.Platform.LeaderboardService.Services
 					.Set(leaderboard => leaderboard.Title, template.Title)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
-					.Set(leaderboard => leaderboard.PlayersPerShard, template.PlayersPerShard)
+					// .Set(leaderboard => leaderboard.PlayersPerShard, template.PlayersPerShard)
 					.Set(leaderboard => leaderboard.MaxTier, template.MaxTier)
 			).ModifiedCount;
 			return output;
@@ -197,15 +197,8 @@ namespace Rumble.Platform.LeaderboardService.Services
 				.ToArray();
 			Task.WaitAll(tasks);
 			
-			
-			// TODO: Send rewards
+			_rewardService.SendRewards();
 		}
-		//
-		// private string[] GetIDsToRollover(RolloverType type) => _collection
-		// 	.Find<Leaderboard>(leaderboard => leaderboard.RolloverType == type)
-		// 	.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Id))
-		// 	.ToList()
-		// 	.ToArray();
 
 		private async Task<Leaderboard> Close(string id) => await SetRolloverFlag(id, isResetting: true);
 		private async Task<Leaderboard> Reopen(string id) => await SetRolloverFlag(id, isResetting: false);
