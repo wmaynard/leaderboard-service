@@ -61,8 +61,7 @@ public class AdminController : PlatformController
 
 		return Ok(new
 		{
-			LeaderboardsDeleted = deleted,
-			IDs = leaderboards.Select(leaderboard => leaderboard.Id)
+			deleted = deleted
 		});
 	}
 

@@ -15,9 +15,11 @@ public class Reward : PlatformDataModel
 	internal const string DB_KEY_INTERNAL_NOTE = "note";
 	internal const string DB_KEY_VISIBLE_FROM = "time";
 	internal const string DB_KEY_EXPIRATION = "exp";
-	internal const string DB_KEY_ATTACHMENTS = "attachments";
+	internal const string DB_KEY_ATTACHMENTS = "items";
 	internal const string DB_KEY_STATUS = "status";
 	internal const string DB_KEY_TIER = "tier";
+	internal const string DB_KEY_MINIMUM_RANK = "min";
+	internal const string DB_KEY_MINIMUM_RANK_PERCENT = "min%";
 
 	public const string FRIENDLY_KEY_SUBJECT = "subject";
 	public const string FRIENDLY_KEY_BODY = "body";
@@ -64,15 +66,18 @@ public class Reward : PlatformDataModel
 	[BsonElement(DB_KEY_EXPIRATION), BsonIgnoreIfDefault]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_EXPIRATION), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	public long Expiration { get; set; }
+	
+	[BsonElement(DB_KEY_MINIMUM_RANK)]
 	public int MinimumRank { get; set; }
+	[BsonElement(DB_KEY_MINIMUM_RANK_PERCENT)]
 	public int MinimumPercentile { get; set; }
-	public long TimeAwarded { get; set; }
-	public string LeaderboardId { get; set; }
+	// public long TimeAwarded { get; set; }
+	// public string LeaderboardId { get; set; }
 	
 	[BsonElement(DB_KEY_STATUS)]
 	internal Status SentStatus { get; set; }
 		
-	internal enum Status { NotSent, IsSending, Sent }
+	internal enum Status { NotSent, Sent }
 	
 	[BsonIgnore]
 	[JsonIgnore]

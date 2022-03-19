@@ -4,6 +4,25 @@ Leaderboards and their rules are managed through the `POST /admin/update` endpoi
 
 ## Basic Information
 
+The update endpoint is a bulk update; it requires an array of Leaderboards, but also handles deletion as well.  This is done to be able to rollback any database transactions that happen if any leaderboard fails validation.  If any part of the update fails, there are no changes to the database.
+
+## Deleting Leaderboards
+
+Deletion happens first.  If you pass in a leaderboardId of `ldr_pvp_weekly_v1` into the deletion array and also specify the same ID to create the leaderboard, this effectively resets the leaderboard **without rollover.**.  While useful for debugging, be _very_ careful when doing this, because you may cost players progress if this happens in prod!
+
+We start off the request with:
+
+```
+{
+    "idsToDelete": [
+        "ldr_pvp_weekly_v1",
+        "ldr_pvp_weekly_v2"
+    ],
+    ...
+```
+
+## Defining Leaderboards
+
 Every leaderboard shares some simple descriptors.  Since leaderboards will be localized eventually, some fields are intended for internal use only, but could be used to hold the string key for localization instead should that make more sense.
 
 * The **leaderboardId** is a unique identifier for a set of rules.  Examples could be `pvp_weekly` or `energy_spend_monthly`.
@@ -17,21 +36,27 @@ Every leaderboard shares some simple descriptors.  Since leaderboards will be lo
   * 4: Annually (untested)
   * 5: None (untested)
 * The **playersPerShard** controls how many players can be assigned to a particular leaderboard before a new shard of it is created.  This is currently a placeholder for future functionality.
-* The **maxTier** determines how many leaderboards will actually be created.  When leaderboards hit rollover, players can be promoted or demoted to different tiers.
+* The **maxTier** determines how many leaderboards will actually be created.  When leaderboards hit rollover, players can be promoted or demoted to different tiers.  This is zero-indexed, so a value of 1 will create two tiers.
 
-Sample request so far:
+Leaderboards are passed as an array of objects.  Here's our sample request so far:
 
 ```
-{
-    "leaderboard": {
+...
+"idsToDelete": [
+    "ldr_pvp_weekly_v1",
+    "ldr_pvp_weekly_v2"
+],
+"leaderboards": [
+    {
         "leaderboardId": "ldr_pvp_weekly_v1",
         "title": "Daily PvP Leaderboards",
         "description": "Use your PvP tickets and climb the ranks!",
         "rolloverType": 1,
-        "maxTier": 6,
+        "maxTier": 1,
         ...
-      }
-}
+    },
+    ...
+]
 ```
 
 ## Introduction to Tier Rules
@@ -437,313 +462,6 @@ This will likely be removed or simplified in the future, but for now it's useful
 ```
 {
     "success": true,
-    "leaderboard": {
-        "leaderboardId": "ldr_pvp_weekly_v1",
-        "title": "Weekly PvP Leaderboards",
-        "description": "Use your PvP tickets and climb the ranks!",
-        "rolloverType": 2,
-        "rolloverTypeVerbose": "Weekly",
-        "tier": 1,
-        "maxTier": 1,
-        "tierRules": [
-            {
-                "tier": 0,
-                "promotionRank": 5,
-                "demotionRank": -1,
-                "playersPerShard": 50,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "body": "first_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 1000,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 10000,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "body": "second_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 500,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 5000,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "body": "third_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 250,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 2500,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "body": "top_30_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 100,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 1000,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "body": "top_half_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 75,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 750,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "first_place_subject",
-                        "body": "first_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 25,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 250,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "timeAwarded": 0
-                    }
-                ]
-            },
-            {
-                "tier": 1,
-                "promotionRank": 5,
-                "demotionRank": 40,
-                "playersPerShard": 50,
-                "rewards": [
-                    {
-                        "subject": "first_place_subject",
-                        "body": "first_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 2000,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 20000,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 1,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "second_place_subject",
-                        "body": "second_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 1000,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 10000,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 2,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "third_place_subject",
-                        "body": "third_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 500,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 5000,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 3,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "top_30_subject",
-                        "body": "top_30_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 200,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 2000,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": 30,
-                        "minimumPercentile": -1,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "top_half_subject",
-                        "body": "top_half_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 150,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 1500,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": -1,
-                        "minimumPercentile": 50,
-                        "timeAwarded": 0
-                    },
-                    {
-                        "subject": "first_place_subject",
-                        "body": "first_place_body",
-                        "banner": "abc.png",
-                        "icon": "icon.png",
-                        "tier": 0,
-                        "attachments": [
-                            {
-                                "Quantity": 50,
-                                "RewardId": "hard_currency",
-                                "Type": "currency"
-                            },
-                            {
-                                "Quantity": 500,
-                                "RewardId": "soft_currency",
-                                "Type": "currency"
-                            }
-                        ],
-                        "internalNote": "ldr_pvp_weekly_v1 reward",
-                        "minimumRank": -1,
-                        "minimumPercentile": 0,
-                        "timeAwarded": 0
-                    }
-                ]
-            }
-        ],
-        "scores": []
-    },
-    "tierIDs": [
-        "623517d10f0c01c01b14075d",
-        "623517d10f0c01c01b14075e"
-    ]
+    "deleted": 4
 }
 ```
