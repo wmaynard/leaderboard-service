@@ -20,7 +20,7 @@ public class AdminController : PlatformController
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
 
-	[HttpPost, Route("update")]
+	[HttpPost, Route("update"), UseMongoTransaction]
 	public ActionResult CreateOrUpdate()
 	{
 		Leaderboard[] leaderboards = Require<Leaderboard[]>("leaderboards");
