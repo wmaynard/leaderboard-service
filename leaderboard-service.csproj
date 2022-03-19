@@ -23,8 +23,4 @@
 	  <Folder Include="Utilities" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\platform-csharp-common\platform-csharp-common.csproj" />
-	</ItemGroup>
-
 </Project>
