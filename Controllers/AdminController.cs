@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Models;
@@ -30,12 +31,8 @@ public class AdminController : PlatformController
 		foreach (Leaderboard leaderboard in leaderboards)
 		{
 			if (!leaderboard.Validate(out string[] errors))
-				return Problem(new
-				{
-					Errors = errors
-				});
+				throw new PlatformException("Leaderboard(s) failed validation.");
 
-		
 			if (_leaderboardService.Count(leaderboard.Type) > 0)
 			{
 				// TODO: If the Max tier changes, delete abandoned tiers or create new tiers.
