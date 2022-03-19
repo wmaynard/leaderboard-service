@@ -24,6 +24,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		internal const string DB_KEY_SHARD_ID = "shard";
 		internal const string DB_KEY_SCORES = "scores";
 		internal const string DB_KEY_RESETTING = "lock";
+		internal const string DB_KEY_TIME_ENDED = "end";
 
 		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
 		public const string FRIENDLY_KEY_TIER = "tier";
@@ -36,6 +37,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public const string FRIENDLY_KEY_SHARD_ID = "shardId";
 		public const string FRIENDLY_KEY_SCORES = "scores";
 		public const string FRIENDLY_KEY_RESETTING = "locked";
+		public const string FRIENDLY_KEY_TIME_ENDED = "lastRollover";
 		
 		public const int PAGE_SIZE = 50;
 		
@@ -100,6 +102,10 @@ namespace Rumble.Platform.LeaderboardService.Models
 		[BsonIgnore]
 		[JsonIgnore]
 		internal List<Ranking> RecentRanks { get; private set; }
+		
+		[BsonElement(DB_KEY_TIME_ENDED), BsonIgnoreIfDefault]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIME_ENDED), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		public long EndTime { get; internal set; }
 
 		internal List<Ranking> CalculateRanks()
 		{
