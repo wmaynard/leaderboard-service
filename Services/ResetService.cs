@@ -71,6 +71,9 @@ public class ResetService : MasterService
 
 	protected override async void Work()
 	{
+		#if DEBUG
+		return;
+		#endif
 		if (!await Do(UpdateConfig))
 			return;
 		

@@ -201,6 +201,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	}
 
 	private async Task<Leaderboard> Close(string id) => await SetRolloverFlag(id, isResetting: true);
+
+	public int DeleteType(IEnumerable<string> types) => (int)_collection.DeleteMany(
+		filter: Builders<Leaderboard>.Filter.In(leaderboard => leaderboard.Type, types)
+	).DeletedCount;
 	private async Task<Leaderboard> Reopen(string id) => await SetRolloverFlag(id, isResetting: false);
 	
 	private async Task<Leaderboard> SetRolloverFlag(string id, bool isResetting) => await _collection.FindOneAndUpdateAsync<Leaderboard>(

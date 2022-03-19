@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Utilities;
@@ -17,43 +18,51 @@ public class AdminController : PlatformController
 	private readonly RewardsService _rewardsService;
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
-	
-	
+
 	[HttpPost, Route("update")]
 	public ActionResult CreateOrUpdate()
 	{
-		Leaderboard leaderboard = Require<Leaderboard>("leaderboard");
-		if (!leaderboard.Validate(out string[] errors))
-			return Problem(new
-			{
-				Errors = errors
-			});
+		Leaderboard[] leaderboards = Require<Leaderboard[]>("leaderboards");
+		string[] deletions = Optional<string[]>("idsToDelete");
+
+		int deleted = _leaderboardService.DeleteType(deletions);
+
+		foreach (Leaderboard leaderboard in leaderboards)
+		{
+			if (!leaderboard.Validate(out string[] errors))
+				return Problem(new
+				{
+					Errors = errors
+				});
 
 		
-		if (_leaderboardService.Count(leaderboard.Type) > 0)
-		{
-			// TODO: If the Max
-			long affected = _leaderboardService.UpdateLeaderboardType(leaderboard);
-			return Ok(new
+			if (_leaderboardService.Count(leaderboard.Type) > 0)
 			{
-				AffectedBoards = affected,
-				Leaderboard = leaderboard
-			});
+				// TODO: If the Max tier changes, delete abandoned tiers or create new tiers.
+				long affected = _leaderboardService.UpdateLeaderboardType(leaderboard);
+				continue;
+				return Ok(new
+				{
+					AffectedBoards = affected,
+					Leaderboard = leaderboard
+				});
+			}
+
+			List<string> ids = new List<string>();
+			int currentTier = 0;
+			do
+			{
+				leaderboard.Tier = currentTier;
+				_leaderboardService.Create(leaderboard);
+				ids.Add(leaderboard.Id);
+				leaderboard.ResetID();
+			} while (currentTier++ < leaderboard.MaxTier);
 		}
 
-		List<string> ids = new List<string>();
-		int currentTier = 0;
-		do
-		{
-			leaderboard.Tier = currentTier;
-			_leaderboardService.Create(leaderboard);
-			ids.Add(leaderboard.Id);
-			leaderboard.ResetID();
-		} while (currentTier++ < leaderboard.MaxTier);
 		return Ok(new
 		{
-			Leaderboard = leaderboard,
-			TierIDs = ids
+			LeaderboardsDeleted = deleted,
+			IDs = leaderboards.Select(leaderboard => leaderboard.Id)
 		});
 	}
 
