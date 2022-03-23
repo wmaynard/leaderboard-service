@@ -19,7 +19,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		internal const string DB_KEY_TITLE = "title";
 		internal const string DB_KEY_DESCRIPTION = "desc";
 		internal const string DB_KEY_ROLLOVER_TYPE = "rtype";
-		internal const string DB_KEY_MAX_TIER = "max";
+		internal const string DB_KEY_TIER_COUNT = "max";
 		internal const string DB_KEY_TIER_RULES = "rules";
 		internal const string DB_KEY_SHARD_ID = "shard";
 		internal const string DB_KEY_SCORES = "scores";
@@ -32,7 +32,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public const string FRIENDLY_KEY_DESCRIPTION = "description";
 		public const string FRIENDLY_KEY_ROLLOVER_TYPE = "rolloverType";
 		public const string FRIENDLY_KEY_ROLLOVER_TYPE_STRING = "rolloverTypeVerbose";
-		public const string FRIENDLY_KEY_MAX_TIER = "maxTier";
+		public const string FRIENDLY_KEY_TIER_COUNT = "tierCount";
 		public const string FRIENDLY_KEY_TIER_RULES = "tierRules";
 		public const string FRIENDLY_KEY_SHARD_ID = "shardId";
 		public const string FRIENDLY_KEY_SCORES = "scores";
@@ -65,9 +65,13 @@ namespace Rumble.Platform.LeaderboardService.Models
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER)]
 		public int Tier { get; set; }
 		
-		[BsonElement(DB_KEY_MAX_TIER)]
-		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_MAX_TIER)]
-		public int MaxTier { get; set; }
+		[BsonElement(DB_KEY_TIER_COUNT)]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER_COUNT)]
+		public int TierCount { get; set; }
+		
+		[BsonIgnore]
+		[JsonIgnore]
+		public int MaxTier => Math.Max(0, TierCount -1 );
 		
 		[BsonElement(DB_KEY_TIER_RULES), BsonIgnoreIfNull]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER_RULES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -197,7 +201,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 			output &= Test(condition: !string.IsNullOrWhiteSpace(Type), error: $"{FRIENDLY_KEY_TYPE} not provided.");
 			output &= Test(condition: !string.IsNullOrWhiteSpace(Title), error: $"{FRIENDLY_KEY_TITLE} not provided.");
 			output &= Test(condition: !string.IsNullOrWhiteSpace(Description), error: $"{FRIENDLY_KEY_DESCRIPTION} not provided.");
-			output &= Test(condition: MaxTier >= 0, error: $"{FRIENDLY_KEY_MAX_TIER} must be greater than or equal to 0.");
+			output &= Test(condition: MaxTier >= 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.");
 			output &= Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined.");
 
 			if (TierRules != null)

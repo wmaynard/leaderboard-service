@@ -36,7 +36,7 @@ Every leaderboard shares some simple descriptors.  Since leaderboards will be lo
   * 4: Annually (untested)
   * 5: None (untested)
 * The **playersPerShard** controls how many players can be assigned to a particular leaderboard before a new shard of it is created.  This is currently a placeholder for future functionality.
-* The **maxTier** determines how many leaderboards will actually be created.  When leaderboards hit rollover, players can be promoted or demoted to different tiers.  This is zero-indexed, so a value of 1 will create two tiers.
+* The **tierCount** determines how many leaderboards will actually be created.  When leaderboards hit rollover, players can be promoted or demoted to different tiers.  A value greater than 1 is required.
 
 Leaderboards are passed as an array of objects.  Here's our sample request so far:
 
@@ -52,7 +52,7 @@ Leaderboards are passed as an array of objects.  Here's our sample request so fa
         "title": "Daily PvP Leaderboards",
         "description": "Use your PvP tickets and climb the ranks!",
         "rolloverType": 1,
-        "maxTier": 1,
+        "tierCount": 2,
         ...
     },
     ...
@@ -176,7 +176,7 @@ Authorization: `Bearer {leaderboard_AdminToken}`
         "title": "Weekly PvP Leaderboards",
         "description": "Use your PvP tickets and climb the ranks!",
         "rolloverType": 2,
-        "maxTier": 1,
+        "tierCount": 2,
         "tierRules": [
             {
                 "tier": 0,

@@ -48,7 +48,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 				.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 				// .Set(leaderboard => leaderboard.PlayersPerShard, template.PlayersPerShard)
-				.Set(leaderboard => leaderboard.MaxTier, template.MaxTier)
+				.Set(leaderboard => leaderboard.TierCount, template.TierCount)
 		).ModifiedCount;
 		return output;
 	}

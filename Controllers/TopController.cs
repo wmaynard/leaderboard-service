@@ -60,7 +60,6 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		{
 			string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 			
-			// _enrollmentService.DemotePlayers(new string[] { Token.AccountId }, new Leaderboard(){MaxTier = 6, Type = type });
 			Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
 			Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, 0);
 			// Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
