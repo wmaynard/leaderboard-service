@@ -69,7 +69,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			foreach (Reward reward in history.Rewards)
 			{
 				if (reward.Expiration == default)
-					reward.Expiration = Timestamp.UnixTimeUTCMS + (long)new TimeSpan(days: 30, hours: 0, minutes: 0, seconds: 0).TotalMilliseconds;
+					reward.Expiration = Timestamp.UnixTimeUTC + (long)new TimeSpan(days: 30, hours: 0, minutes: 0, seconds: 0).TotalSeconds;
 				
 				msg.Add(new GenericData()
 				{
