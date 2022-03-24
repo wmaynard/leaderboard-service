@@ -117,7 +117,7 @@ public class ResetService : MasterService
 				{
 					Log.Info(Owner.Will, "Weekly rollover triggered.");
 					_leaderboardService.Rollover(RolloverType.Weekly);
-					LastDailyRollover = now;
+					LastWeeklyRollover = now;
 				}
 				catch (InvalidLeaderboardException e)
 				{
@@ -140,7 +140,7 @@ public class ResetService : MasterService
 				{
 					Log.Info(Owner.Will, "Monthly rollover triggered.");
 					_leaderboardService.Rollover(RolloverType.Monthly);
-					LastDailyRollover = now;
+					LastMonthlyRollover = now;
 				}
 				catch (InvalidLeaderboardException e)
 				{
