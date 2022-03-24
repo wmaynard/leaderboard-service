@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.FileProviders.Physical;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -31,30 +32,34 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	public long UpdateLeaderboardType(Leaderboard template)
 	{
-		// string[] foo = _enrollmentService.FindActiveAccounts(template.Type);
-		int maxTier = _collection
-			.Find(filter: leaderboard => leaderboard.Type == template.Type)
-			.Project<GenericData>(Builders<Leaderboard>.Projection.Include(leaderboard => leaderboard.Tier))
-			.ToList()
-			.Max(data => data.Require<int>(Leaderboard.DB_KEY_TIER));
-			// .Max();
+		StartTransactionIfRequested(out IClientSessionHandle session);
 		
-		
-		long output = _collection.UpdateMany(
-			filter: leaderboard => leaderboard.Type == template.Type,
-			update: Builders<Leaderboard>.Update
-				.Set(leaderboard => leaderboard.Description, template.Description)
-				.Set(leaderboard => leaderboard.Title, template.Title)
-				.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
-				.Set(leaderboard => leaderboard.TierRules, template.TierRules)
-				// .Set(leaderboard => leaderboard.PlayersPerShard, template.PlayersPerShard)
-				.Set(leaderboard => leaderboard.TierCount, template.TierCount)
-		).ModifiedCount;
-		return output;
+		return session != null 
+			? _collection.UpdateMany(
+				filter: leaderboard => leaderboard.Type == template.Type,
+				session: session,
+				update: Builders<Leaderboard>.Update
+					.Set(leaderboard => leaderboard.Description, template.Description)
+					.Set(leaderboard => leaderboard.Title, template.Title)
+					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
+					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
+					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
+			).ModifiedCount
+			: _collection.UpdateMany(
+				filter: leaderboard => leaderboard.Type == template.Type,
+				update: Builders<Leaderboard>.Update
+					.Set(leaderboard => leaderboard.Description, template.Description)
+					.Set(leaderboard => leaderboard.Title, template.Title)
+					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
+					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
+					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
+			).ModifiedCount;
 	}
 
 	private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment)
 	{
+		EnsureUnlocked(enrollment);
+		
 		FilterDefinitionBuilder<Leaderboard> filter = Builders<Leaderboard>.Filter;
 		return filter.And(
 			filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
@@ -62,32 +67,63 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			filter.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID)
 		); 
 	}
-	
-	public void GetScores(string accountId, string type)
+
+	private void EnsureUnlocked(Enrollment enrollment)
 	{
-		// TODO: Aggregation in Mongo with the C# drivers is very, very poorly documented.
-		// This should be done with a query, but in the interest of speed, will order with LINQ.
-		BsonArray query = new BsonArray
-		{
-			new BsonDocument("$project",
-				new BsonDocument("Scores", 1)),
-			new BsonDocument("$unwind",
-				new BsonDocument
-				{
-					{ "path", "$Scores" },
-					{ "preserveNullAndEmptyArrays", false }
-				}),
-			new BsonDocument("$sort",
-				new BsonDocument("Scores.Score", -1))
-		};
+		FilterDefinitionBuilder<Leaderboard> builder = Builders<Leaderboard>.Filter;
+		FilterDefinition<Leaderboard> filter = builder.And(
+			builder.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
+			builder.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
+			builder.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID)
+		);
+
+		bool locked = _collection
+			.Find(filter: filter)
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.IsResetting))
+			.ToList()
+			.Any(isResetting => isResetting);
+
+		if (locked)
+			throw new PlatformException("A leaderboard is locked; try again later.");
 	}
-	
+
+	public Leaderboard SetScore(Enrollment enrollment, long score, bool isIncrement = false)
+	{
+		StartTransactionIfRequested(out IClientSessionHandle session);
+
+		if (enrollment == null || score < 0)
+			return null;
+
+		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update
+			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score)
+			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
+
+		return _collection.FindOneAndUpdate<Leaderboard>(
+			filter: CreateFilter(enrollment),
+			session: session,
+			update: Builders<Leaderboard>.Update.Set("Scores.$.Score", score),
+			options: new FindOneAndUpdateOptions<Leaderboard>()
+			{
+				ReturnDocument = ReturnDocument.After,
+				IsUpsert = false
+			}
+		);
+	}
+
 	// TODO: Fix filter to work with sharding
 	public Leaderboard AddScore(Enrollment enrollment, int score)
 	{
+		StartTransactionIfRequested(out IClientSessionHandle session);
+		
+		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Inc($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score);
+			
+		if (score != 0)
+			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
+
 		Leaderboard output = _collection.FindOneAndUpdate<Leaderboard>(
 			filter: CreateFilter(enrollment),
-			update: Builders<Leaderboard>.Update.Inc("Scores.$.Score", score),
+			session: session,
+			update: update,
 			options: new FindOneAndUpdateOptions<Leaderboard>()
 			{
 				ReturnDocument = ReturnDocument.After,
@@ -99,11 +135,13 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		output ??= _collection.FindOneAndUpdate<Leaderboard>(
 			filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
 				&& leaderboard.Tier == enrollment.Tier,
+			session: session,
 			update: Builders<Leaderboard>.Update
 				.AddToSet(leaderboard => leaderboard.Scores, new Entry()
 				{
 					AccountID = enrollment.AccountID,
-					Score = Math.Max(score, 0) // Ensure the user's score is at least 0.
+					Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
+					LastUpdated = Timestamp.UnixTimeMS
 				}),
 			options: new FindOneAndUpdateOptions<Leaderboard>()
 			{
@@ -128,7 +166,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			});
 			output = _collection.FindOneAndUpdate<Leaderboard>(
 				filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, output.Id),
-				update: Builders<Leaderboard>.Update.Max("Scores.$[].Score", 0), // Updates all scores to be minimum of 0.
+				session: session,
+				update: Builders<Leaderboard>.Update.Max($"{Leaderboard.DB_KEY_SCORES}.$[].{Entry.DB_KEY_SCORE}", 0), // Updates all scores to be minimum of 0.
 				options: new FindOneAndUpdateOptions<Leaderboard>()
 				{
 					ReturnDocument = ReturnDocument.After,
@@ -190,8 +229,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		// Async option for debugging since Rider's breakpoints trigger on every thread
 		// foreach (string id in ids)
 		// 	Rollover(id).Wait();
-		
-		
+
 		Task<Leaderboard>[] tasks = ids
 			.Select(Rollover)
 			.ToArray();
@@ -202,19 +240,38 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	private async Task<Leaderboard> Close(string id) => await SetRolloverFlag(id, isResetting: true);
 
-	public int DeleteType(IEnumerable<string> types) => (int)_collection.DeleteMany(
-		filter: Builders<Leaderboard>.Filter.In(leaderboard => leaderboard.Type, types)
-	).DeletedCount;
+	public int DeleteType(IEnumerable<string> types)
+	{
+		StartTransactionIfRequested(out IClientSessionHandle session);
+		
+		return session != null
+			? (int)_collection
+				.DeleteMany(
+					filter: Builders<Leaderboard>.Filter.In(leaderboard => leaderboard.Type, types),
+					session: session
+				).DeletedCount
+			: (int)_collection
+				.DeleteMany(
+					filter: Builders<Leaderboard>.Filter.In(leaderboard => leaderboard.Type, types)
+				).DeletedCount;
+	}
 	private async Task<Leaderboard> Reopen(string id) => await SetRolloverFlag(id, isResetting: false);
-	
-	private async Task<Leaderboard> SetRolloverFlag(string id, bool isResetting) => await _collection.FindOneAndUpdateAsync<Leaderboard>(
-		filter: leaderboard => leaderboard.Id == id,
-		update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.IsResetting, isResetting),
-		options: new FindOneAndUpdateOptions<Leaderboard>()
-		{
-			ReturnDocument = ReturnDocument.After
-		}
-	);
+
+	private async Task<Leaderboard> SetRolloverFlag(string id, bool isResetting)
+	{
+		// Since this is called from a timed service, it doesn't see controller attributes.
+		StartTransaction(out IClientSessionHandle session);
+		
+		return await _collection.FindOneAndUpdateAsync<Leaderboard>(
+			filter: leaderboard => leaderboard.Id == id,
+			session: session,
+			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.IsResetting, isResetting),
+			options: new FindOneAndUpdateOptions<Leaderboard>()
+			{
+				ReturnDocument = ReturnDocument.After
+			}
+		);
+	}
 
 	/// <summary>
 	/// Close the leaderboard, roll it over, then reopen it.  While a leaderboard has a flag for "isResetting",
@@ -227,6 +284,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 	{
+		// Unlike other methods here, we actually don't want to start a transaction here, since this gets called from
+		// the ResetService.  Use the one generated there instead.
 		List<Ranking> ranks = leaderboard.CalculateRanks();
 		string[] promotionPlayers = ranks
 			.Where(ranking => ranking.Rank <= leaderboard.CurrentTierRules.PromotionRank && ranking.Score > 0)

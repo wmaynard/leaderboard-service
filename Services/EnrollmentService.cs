@@ -36,7 +36,7 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 	public Enrollment FindOrCreate(string accountId, string leaderboardType) => _collection
 		.Find(filter: enrollment => enrollment.AccountID == accountId && enrollment.LeaderboardType == leaderboardType)
 		.FirstOrDefault()
-		?? Create(model: new Enrollment()
+		?? Create(model: new Enrollment() // Session is handled in platform-common for this one
 		{
 			AccountID = accountId,
 			LeaderboardType = leaderboardType,

@@ -201,8 +201,8 @@ namespace Rumble.Platform.LeaderboardService.Models
 			output &= Test(condition: !string.IsNullOrWhiteSpace(Type), error: $"{FRIENDLY_KEY_TYPE} not provided.");
 			output &= Test(condition: !string.IsNullOrWhiteSpace(Title), error: $"{FRIENDLY_KEY_TITLE} not provided.");
 			output &= Test(condition: !string.IsNullOrWhiteSpace(Description), error: $"{FRIENDLY_KEY_DESCRIPTION} not provided.");
-			output &= Test(condition: MaxTier >= 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.");
-			output &= Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined.");
+			output &= Test(condition: TierCount > 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.");
+			output &= Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined for {Type}.");
 
 			if (TierRules != null)
 			{
@@ -218,7 +218,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 					);
 				}
 				for (int tier = 0; tier <= MaxTier; tier++)
-					output &= Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, error: $"{FRIENDLY_KEY_TIER_RULES} invalid for tier {tier}.");
+					output &= Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, error: $"{FRIENDLY_KEY_TIER_RULES} invalid for {tier}-{Type}.");
 
 				foreach (Reward reward in TierRules.SelectMany(rules => rules.Rewards))
 				{
