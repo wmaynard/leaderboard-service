@@ -56,9 +56,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			).ModifiedCount;
 	}
 
-	private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment)
+	private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment, bool allowLocked = false)
 	{
-		EnsureUnlocked(enrollment);
+		if (!allowLocked)
+			EnsureUnlocked(enrollment);
 		
 		FilterDefinitionBuilder<Leaderboard> filter = Builders<Leaderboard>.Filter;
 		return filter.And(
@@ -286,18 +287,18 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	{
 		// Unlike other methods here, we actually don't want to start a transaction here, since this gets called from
 		// the ResetService.  Use the one generated there instead.
-		List<Ranking> ranks = leaderboard.CalculateRanks();
+		List<Entry> ranks = leaderboard.CalculateRanks();
 		string[] promotionPlayers = ranks
-			.Where(ranking => ranking.Rank <= leaderboard.CurrentTierRules.PromotionRank && ranking.Score > 0)
-			.SelectMany(ranking => ranking.Accounts)
+			.Where(entry => entry.Rank <= leaderboard.CurrentTierRules.PromotionRank && entry.Score > 0)
+			.Select(entry => entry.AccountID)
 			.ToArray();
 		string[] inactivePlayers = ranks
-			.Where(ranking => ranking.Score == 0)
-			.SelectMany(ranking => ranking.Accounts)
+			.Where(entry => entry.Score == 0)
+			.Select(entry => entry.AccountID)
 			.ToArray();
 		string[] demotionPlayers = ranks
-			.Where(ranking => ranking.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1)
-			.SelectMany(ranking => ranking.Accounts)
+			.Where(entry => entry.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1)
+			.Select(entry => entry.AccountID)
 			.Union(inactivePlayers)
 			.ToArray();
 		
@@ -322,14 +323,14 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				.Where(reward => reward.MinimumPercentile >= 0 && percentile >= reward.MinimumPercentile)
 				.OrderByDescending(reward => reward.MinimumPercentile)
 				.FirstOrDefault();
-			
-			playersProcessed += ranks[index].NumberOfAccounts;
+
+			playersProcessed++;
 		}
 
 		foreach (Reward reward in rewards)
 			_rewardService.Grant(reward, ranks
-				.Where(ranking => ranking.Prize?.TemporaryID == reward.TemporaryID)
-				.SelectMany(ranking => ranking.Accounts)
+				.Where(entry => entry.Prize?.TemporaryID == reward.TemporaryID)
+				.Select(entry => entry.AccountID)
 				.ToArray());
 		
 		// await SlackDiagnostics.Log($"Leaderboard Rollover for {leaderboard.Id}", "Rewards calculated!")
@@ -343,8 +344,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		leaderboard.Scores = new List<Entry>();
 
 		string[] activePlayers = ranks
-			.Where(ranking => ranking.Score != 0)
-			.SelectMany(ranking => ranking.Accounts)
+			.Where(entry => entry.Score != 0)
+			.Select(entry => entry.AccountID)
 			.ToArray();
 		// _enrollmentService.DemoteInactivePlayers(leaderboard);
 		_enrollmentService.FlagAsActive(activePlayers, leaderboard.Type);			// If players were flagged as active last week, clear that flag now.
@@ -362,6 +363,18 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		Delete(leaderboard);		// Leaderboard shards are not permanent.  IDs are to be reassigned to new Shards, so they need to be recreated from scratch.
 		// TODO: Respawn and fill shards, as appropriate
 		return null;
+	}
+
+	public List<Entry> CalculateTopScores(Enrollment enrollment)
+	{
+		List<Entry> output = _collection
+			.Find(filter: CreateFilter(enrollment, allowLocked: true))
+			.Sort(Builders<Leaderboard>.Sort.Descending($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}"))
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Scores))
+			.Limit(Leaderboard.PAGE_SIZE)
+			.ToList()
+			.FirstOrDefault();
+		return output;
 	}
 }
 // View leaderboard

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Web;
@@ -11,7 +12,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		internal const string DB_KEY_SCORE = "pts";
 
 		public const string FRIENDLY_KEY_ACCOUNT_ID = "accountId";
-		// public const string FRIENDLY_KEY_LAST_UDPATED = "lastUpdated";
+		public const string FRIENDLY_KEY_LAST_UDPATED = "lastUpdated";
 		public const string FRIENDLY_KEY_RANK = "rank";
 		public const string FRIENDLY_KEY_SCORE = "score";
 
@@ -28,7 +29,12 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public long Score { get; set; }
 		
 		[BsonElement(DB_KEY_LAST_UPDATED)]
-		[JsonIgnore]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_LAST_UDPATED), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public long LastUpdated { get; set; }
+		
+		[JsonIgnore]
+		[BsonIgnore]
+		public Reward Prize { get; set; }
+
 	}
 }

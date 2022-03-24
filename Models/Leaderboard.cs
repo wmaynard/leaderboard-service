@@ -103,76 +103,44 @@ namespace Rumble.Platform.LeaderboardService.Models
 		[JsonIgnore]
 		internal bool IsShard => ShardID != null;
 		
-		[BsonIgnore]
-		[JsonIgnore]
-		internal List<Ranking> RecentRanks { get; private set; }
+		// [BsonIgnore]
+		// [JsonIgnore]
+		// internal List<Ranking> RecentRanks { get; private set; }
 		
 		[BsonElement(DB_KEY_TIME_ENDED), BsonIgnoreIfDefault]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIME_ENDED), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public long EndTime { get; internal set; }
 
-		internal List<Ranking> CalculateRanks()
-		{
-			int rank = 1;
-			Ranking toRankings(IGrouping<long, Entry> group)
-			{
-				Ranking output = new Ranking(rank, group);
-				rank += output.NumberOfAccounts;
-				return output;
-			}
-			return RecentRanks = Scores
-				.GroupBy(entry => entry.Score)
-				.OrderByDescending(grouping => grouping.Key)
-				.Select(toRankings)
+		internal List<Entry> CalculateRanks() => Scores
+				.OrderByDescending(entry => entry.Score)
+				.ThenBy(entry => entry.LastUpdated)
 				.ToList();
-		}
 
 		public GenericData GenerateScoreResponse(string accountId)
 		{
-			List<Ranking> sorted = CalculateRanks();
+			List<Entry> sorted = CalculateRanks();
 
-			List<Ranking> topScores = new List<Ranking>();
-			for (int results = 0, index = 0; index < sorted.Count && results < PAGE_SIZE && results < Scores.Count; index++)
+			int playerIndex = -1;
+			for (int i = 0; i < sorted.Count; i++)
 			{
-				topScores.Add(sorted[index]);
-				results += topScores.Last().NumberOfAccounts;
+				sorted[i].Rank = i + 1;
+				if (sorted[i].AccountID == accountId)
+					playerIndex = i;
 			}
 
-			List<Ranking> nearbyScores = new List<Ranking>();
-			try
-			{
-				Ranking playerRank = sorted.First(ranking => ranking.HasAccount(accountId));
-				nearbyScores.Add(playerRank);
-				playerRank.IsRequestingPlayer = true;
-				// TODO: If we don't care about nearby scores, we can get rid of this loop.
-				int playerIndex = sorted.IndexOf(sorted.First(ranking => ranking.HasAccount(accountId)));
-				for (int offset = 1; nearbyScores.Sum(ranking => ranking.NumberOfAccounts) < PAGE_SIZE; offset++)
-				{
-					int before = playerIndex - offset;
-					int after = playerIndex + offset;
+			IEnumerable<Entry> topScores = sorted.Take(PAGE_SIZE);
+			IEnumerable<Entry> nearbyScores = sorted
+				.Skip(Math.Max(playerIndex - PAGE_SIZE / 2, 0))
+				.Take(PAGE_SIZE);
 
-					// Not enough entries to generate nearby scores properly.  Nearby scores contains all scores.
-					if (before < 0 && after > sorted.Count)
-						break;
-					
-					if (before >= 0)
-						nearbyScores.Insert(0, sorted[before]);
-					if (after < sorted.Count)
-						nearbyScores.Add(sorted[after]);
-				}
-			}
-			catch (Exception e)
-			{
+			if (playerIndex == -1)
 				Log.Error(Owner.Default, $"Player does not have a placement in leaderboard '{Type}'", data: new
 				{
 					LeaderboardId = Id,
 					LeaderboardType = Type,
 					AccountId = accountId
-				}, exception: e);
-				throw;
-			}
-
-
+				});
+			
 			return new GenericData()
 			{
 				{ "topScores", topScores },
@@ -250,7 +218,6 @@ namespace Rumble.Platform.LeaderboardService.Models
 		}
 
 		internal void ResetID() => Id = null;
-
 	}
 
 }
