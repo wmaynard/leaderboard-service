@@ -36,7 +36,7 @@ Every leaderboard shares some simple descriptors.  Since leaderboards will be lo
   * 4: Annually (untested)
   * 5: None (untested)
 * The **playersPerShard** controls how many players can be assigned to a particular leaderboard before a new shard of it is created.  This is currently a placeholder for future functionality.
-* The **tierCount** determines how many leaderboards will actually be created.  When leaderboards hit rollover, players can be promoted or demoted to different tiers.  A value greater than 1 is required.
+* The **tierCount** determines how many leaderboards will actually be created.  When leaderboards hit rollover, players can be promoted or demoted to different tiers.  A value greater than 0 is required.
 
 Leaderboards are passed as an array of objects.  Here's our sample request so far:
 
