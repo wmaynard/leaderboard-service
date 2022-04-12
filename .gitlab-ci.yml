@@ -61,11 +61,11 @@ build_app:
   image: mcr.microsoft.com/dotnet/sdk:6.0
   allow_failure: false
   script:
-    - dotnet nuget add source --username eric.sheris --password $NUGET_PAT --store-password-in-clear-text --name gitlab "https://gitlab.cdrentertainment.com/api/v4/projects/14/packages/nuget/index.json"
+    - dotnet nuget add source --username $BOT_USER --password $BOT_PAT --store-password-in-clear-text --name gitlab "https://gitlab.cdrentertainment.com/api/v4/projects/14/packages/nuget/index.json"
     - dotnet restore
     - dotnet build --no-restore --configuration Release
-    - CURRENTVERSION="$(dotnet ./bin/Release/net6.0/leaderboard-service.dll -version | cut -d':' -f2)"
-    - git tag $CURRENTVERSION; git push https://eric.sheris:${NUGET_PAT}@gitlab.cdrentertainment.com/platform-services/$CI_PROJECT_NAME.git --tags
+    - CURRENTVERSION="$(dotnet ./bin/Release/net5.0/leaderboard-service.dll -version | cut -d':' -f2)"
+    - git tag $CURRENTVERSION; git push https://$BOT_USER:${BOT_PAT}@gitlab.cdrentertainment.com/platform-services/$CI_PROJECT_NAME.git --tags
     - echo "$CURRENTVERSION"
   artifacts:
     paths:
@@ -96,7 +96,7 @@ build_image:
     - tar -zxvf trivy*
     - chmod +x $CI_PROJECT_DIR/trivy
     - wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
-    - ./trivy --cache-dir $CI_PROJECT_DIR/.trivycache image --severity HIGH,CRITICAL --format template --template "@html.tpl" --output $CI_PROJECT_DIR/trivy/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA.html $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
+    - ./trivy --cache-dir $CI_PROJECT_DIR/.trivycache image --severity HIGH,CRITICAL $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
   rules:
     - if: '$BUILD_DISABLED'
       when: never
@@ -114,31 +114,31 @@ build_image:
       - $CI_PROJECT_DIR/trivy/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA.html
     expire_in: 1 week
 
-commit_scan_results:
-  stage: scan
-  allow_failure: false
-  image:
-    name: ubuntu
-  script:
-    - apt update
-    - apt install -y git
-    - git clone https://eric.sheris:${NUGET_PAT}@gitlab.cdrentertainment.com/platform-services/$CI_PROJECT_NAME.wiki.git
-    - mkdir -p $CI_PROJECT_DIR/$CI_PROJECT_NAME.wiki/securityscans/
-    - cp $CI_PROJECT_DIR/trivy/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA.html $CI_PROJECT_NAME.wiki/securityscans/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA.md
-    - cd $CI_PROJECT_NAME.wiki
-    - export TZ=":America/Los_Angeles"
-    - export OUTPUT="[`date +\"%m-%d-%y %r\"`]\(securityscans/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA\)\n\n"
-    - echo "$(echo -e $OUTPUT; cat securityscans/SecurityScans.md)" > securityscans/SecurityScans.md
-    - git config --global user.email "platform-ops@rumbleentertainment.com"
-    - git config --global user.name "Gitlab"
-    - git add .; git commit -m "securityscan for image $CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"; git push
-  needs:
-    - job: build_image
-      artifacts: true
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: on_success
+# commit_scan_results:
+#   stage: scan
+#   allow_failure: false
+#   image:
+#     name: ubuntu
+#   script:
+#     - apt update
+#     - apt install -y git
+#     - git clone https://$BOT_USER:${BOT_PAT}@gitlab.cdrentertainment.com/platform-services/$CI_PROJECT_NAME.wiki.git
+#     - mkdir -p $CI_PROJECT_DIR/$CI_PROJECT_NAME.wiki/securityscans/
+#     - cp $CI_PROJECT_DIR/trivy/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA.html $CI_PROJECT_NAME.wiki/securityscans/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA.md
+#     - cd $CI_PROJECT_NAME.wiki
+#     - export TZ=":America/Los_Angeles"
+#     - export OUTPUT="[`date +\"%m-%d-%y %r\"`]\(securityscans/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA\)\n\n"
+#     - echo "$(echo -e $OUTPUT; cat securityscans/SecurityScans.md)" > securityscans/SecurityScans.md
+#     - git config --global user.email "platform-ops@rumbleentertainment.com"
+#     - git config --global user.name "Gitlab"
+#     - git add .; git commit -m "securityscan for image $CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA"; git push
+#   needs:
+#     - job: build_image
+#       artifacts: true
+#   rules:
+#     - if: $CI_COMMIT_TAG
+#       when: never
+#     - when: on_success
 
 
 include:
