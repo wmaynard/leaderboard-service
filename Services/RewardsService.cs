@@ -22,16 +22,38 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 		_dynamicConfig = config;
 	}
 
-	public long Grant(Reward reward, params string[] accountIds) => accountIds.Length == 0
-		? 0
-		: _collection.UpdateMany(
+	public long Grant(Reward reward, params string[] accountIds)
+	{
+		if (!accountIds.Any())
+			return 0;
+
+		if (_collection.CountDocuments(filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds)) != accountIds.Length)
+		{
+			Log.Warn(Owner.Will, "Reward accounts were missing.  Creating them now.");
+			foreach (string accountId in accountIds)
+				Validate(accountId);
+		}
+		
+		return _collection.UpdateMany(
 			filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds),
 			update: Builders<RewardHistory>.Update.AddToSet(history => history.Rewards, reward),
 			options: new UpdateOptions()
 			{
-				IsUpsert = true
+				IsUpsert = false
 			}
 		).ModifiedCount;
+	}
+
+	/// <summary>
+	/// Ensures the rewards record exists for an account.
+	/// </summary>
+	public RewardHistory Validate(string accountId) => _collection
+		.Find(filter: Builders<RewardHistory>.Filter.Eq(history => history.AccountId, accountId))
+		.FirstOrDefault()
+		?? Create(new RewardHistory()
+		{
+			AccountId = accountId
+		});
 
 	// public void Grant(string accountId, Reward newReward)
 	// {

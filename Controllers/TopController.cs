@@ -22,6 +22,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 		private Services.LeaderboardService _leaderboardService;
 		private EnrollmentService _enrollmentService;
 		private ResetService _resetService;
+		private RewardsService _rewardsService;
 #pragma warning restore CS0649
 
 		[HttpPatch, Route("score")]
@@ -35,6 +36,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 
 			Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
 			Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score);
+			_rewardsService.Validate(Token.AccountId);
 
 			if (leaderboard == null)
 				throw new UnknownLeaderboardException(type);
@@ -102,7 +104,7 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			_leaderboardService.Rollover(RolloverType.Daily);
 			return Ok();
 		}
-		
+
 		#region LOAD_BALANCER
 		[HttpGet, Route("health"), NoAuth]
 		public override ActionResult HealthCheck()
