@@ -362,7 +362,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		}
 		Delete(leaderboard);		// Leaderboard shards are not permanent.  IDs are to be reassigned to new Shards, so they need to be recreated from scratch.
 		// TODO: Respawn and fill shards, as appropriate
-		return null;
+		return leaderboard;
 	}
 
 	public List<Entry> CalculateTopScores(Enrollment enrollment)

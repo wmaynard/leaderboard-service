@@ -18,9 +18,9 @@ public abstract class MasterService : PlatformTimerService
 	private const int MS_INTERVAL = 5_000;					// The interval to check in; recent check-ins indicate service is still active.
 	private const int MS_TAKEOVER = MS_INTERVAL;// * 10;		// The threshold at which the previous MasterService should be replaced by the current one.
 	public static int MaximumRetryTime => MS_TAKEOVER + MS_INTERVAL;
-#pragma warning disable CS0649
+#pragma warning disable
 	private readonly ConfigService _config;
-#pragma warning restore CS0649
+#pragma warning restore
 	
 	private string ID { get; init; }
 
@@ -79,6 +79,9 @@ public abstract class MasterService : PlatformTimerService
 
 	protected sealed override void OnElapsed()
 	{
+#if DEBUG
+		return;
+#endif
 		if (IsPrimary)
 		{
 			_config.Update(LastActiveKey, UnixTimeMS);
