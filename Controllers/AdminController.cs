@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Models;
@@ -113,7 +114,24 @@ public class AdminController : PlatformController
 	[HttpPost, Route("rollover"), IgnorePerformance]
 	public ActionResult ManualRollover()
 	{
+		try
+		{
+			int deployment = int.Parse(PlatformEnvironment.Deployment);
+			if (deployment > 300)
+				throw new PlatformException("This action is not allowed on prod.");
+		}
+		catch { }
+
+#if RELEASE
+		SlackDiagnostics
+			.Log(
+				title: $"{PlatformEnvironment.Deployment}-{RolloverType.Weekly.ToString()} rollover manually triggered",
+				message: $"{Token.ScreenName} manually triggered the leaderboards rollover.")
+			.Attach(name: "Token information", content: Token.JSON)
+			.Send();
+			
 		_leaderboardService.Rollover(RolloverType.Weekly);
+#endif
 
 		return Ok();
 	}
