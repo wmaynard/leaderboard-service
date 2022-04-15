@@ -113,8 +113,6 @@ public class AdminController : PlatformController
 	[HttpPost, Route("rollover"), IgnorePerformance]
 	public ActionResult ManualRollover()
 	{
-		string type = Require<string>("leaderboardId");
-
 		_leaderboardService.Rollover(RolloverType.Weekly);
 
 		return Ok();

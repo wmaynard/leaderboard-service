@@ -84,4 +84,18 @@ public class Reward : PlatformDataModel
 	public string TemporaryID { get; set; }
 
 	public Reward() => TemporaryID = Guid.NewGuid().ToString();
+
+	public override bool Equals(object? obj)
+	{
+		if (obj is not Reward other)
+			return false;
+		
+		return Tier == other.Tier
+			&& Subject == other.Subject
+			&& SentStatus == other.SentStatus
+			&& MinimumPercentile == other.MinimumPercentile
+			&& MinimumRank == other.MinimumRank
+			&& Expiration == other.Expiration
+			&& InternalNote == other.InternalNote;
+	}
 }

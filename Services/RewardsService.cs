@@ -34,7 +34,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 				Validate(accountId);
 		}
 		
-		return _collection.UpdateMany(
+		return _collection.UpdateMany( // TODO: Session?
 			filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds),
 			update: Builders<RewardHistory>.Update.AddToSet(history => history.Rewards, reward),
 			options: new UpdateOptions()
@@ -99,13 +99,15 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 				});
 			}
 
+			string url = PlatformEnvironment.Url("mail/admin/messages/send/bulk");
 			_apiService
-				.Request($"{platformUrl}mail/admin/messages/send/bulk")
+				.Request(url)
 				.AddAuthorization(adminToken)
 				.SetPayload(new MailboxMessage(history.AccountId, history.Rewards).Payload)
 				.OnSuccess(action: (sender, apiResponse) =>
 				{
 					successes.Add(history.Id);
+					Log.Local(Owner.Will, $"Sent {history.Rewards.Count} rewards to {history.AccountId}");
 				})
 				.OnFailure(action: (sender, apiResponse) =>
 				{
@@ -113,7 +115,8 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 					{
 						mailResponse = apiResponse,
 						accountId = history.AccountId,
-						historyId = history.Id
+						historyId = history.Id,
+						url = url
 					});
 				})
 				.Post(out GenericData response, out int code);

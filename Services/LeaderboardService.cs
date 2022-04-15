@@ -234,7 +234,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		Task<Leaderboard>[] tasks = ids
 			.Select(Rollover)
 			.ToArray();
-		Task.WaitAll(tasks);
+
+		foreach (Task<Leaderboard> t in tasks)
+			t.Wait();
+		// Task.WaitAll(tasks);
 		
 		_rewardService.SendRewards();
 	}
@@ -328,15 +331,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		}
 
 		foreach (Reward reward in rewards)
-			_rewardService.Grant(reward, ranks
+			_rewardService.Grant(reward, accountIds: ranks
 				.Where(entry => entry.Prize?.TemporaryID == reward.TemporaryID)
 				.Select(entry => entry.AccountID)
 				.ToArray());
-		
-		// await SlackDiagnostics.Log($"Leaderboard Rollover for {leaderboard.Id}", "Rewards calculated!")
-		// 	.Tag(Owner.Will)
-		// 	.Attach("data.txt", data.JSON)
-		// 	.Send();
 
 		_archiveService.Stash(leaderboard, out string archiveId);
 		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archiveId);
