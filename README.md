@@ -209,6 +209,32 @@ Response:
 
 Admin authorization tokens are required.  Use the `leaderboard_AdminToken` from dynamic config.
 
+| Method | Endpoint   | Description                                                                                                                                                                                                                                           | Required Fields | Optional Fields |
+|-------:|:-----------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------|:----------------|
+|    GET | `/archive` | Returns a list of past leaderboards the player has placed in.  Archives are not kept indefinitely.  By default, only one leaderboard is returned, but any positive number can be specified.  Leaderboards are sorted by end time in descending order. | `leaderboardId` | `count`         |
+
+<hr />
+
+`GET /archive?leaderboardId=ldr_pvp_weekly_v1&count=2`
+
+Response:
+
+```
+{
+    "success": true,
+    "leaderboards": [
+        { ... },
+        { ... }
+    ]
+}
+```
+
+<hr />
+
+### Admin
+
+Admin authorization tokens are required.  Use the `leaderboard_AdminToken` from dynamic config.
+
 | Method | Endpoint        | Description                                                                                                                                                              | Required Fields | Optional Fields |
 |-------:|:----------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------|:----------------|
 |    GET | `/admin/list`   | Returns a list of leaderboard IDs.  This list should be checked against the CSV managed by the design team.  If an ID does not exist, create it through `/admin/update`. |                 ||

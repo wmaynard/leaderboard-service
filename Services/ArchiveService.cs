@@ -19,19 +19,23 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 	public void Stash(Leaderboard leaderboard, out string archiveId)
 	{
 		leaderboard.EndTime = Timestamp.UnixTimeUTCMS;
+		leaderboard.ResetID();
 		Update(leaderboard, true);
 		archiveId = leaderboard.Id;
 	}
 
-	public List<Leaderboard> View(string type, string accountId, int count = 1)
+	public List<Leaderboard> Lookup(string type, string accountId, int count = 1)
 	{
-		// _collection.Find(
-		// 	filter: Builders<Leaderboard>.Filter.And(
-		// 		Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
-		// 		Builders<Leaderboard>.Filter.ElemMatch(leaderboard => leaderboard.Scores)
-		// 		
-		// 	)
-		// )
-		return null;
+		return _collection.Find(
+			filter: Builders<Leaderboard>.Filter.And(
+				Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
+				Builders<Leaderboard>.Filter.ElemMatch(
+					field: leaderboard => leaderboard.Scores,
+					filter: entry => entry.AccountID == accountId
+				)
+			)
+		).SortByDescending(leaderboard => leaderboard.EndTime)
+		.Limit(count)
+		.ToList();
 	}
 }

@@ -130,10 +130,8 @@ public class AdminController : PlatformController
 			.Attach(name: "Token information", content: Token.JSON)
 			.Send()
 			.Wait();
-			
-		_leaderboardService.Rollover(RolloverType.Weekly);
 #endif
-
+		_leaderboardService.Rollover(RolloverType.Weekly);
 		return Ok();
 	}
 	

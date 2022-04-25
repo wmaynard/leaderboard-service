@@ -90,8 +90,9 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			List<GenericData> msg = new List<GenericData>();
 			foreach (Reward reward in history.Rewards)
 			{
+				reward.VisibleFrom = Timestamp.UnixTime;
 				if (reward.Expiration == default)
-					reward.Expiration = Timestamp.UnixTimeUTC + (long)new TimeSpan(days: 30, hours: 0, minutes: 0, seconds: 0).TotalSeconds;
+					reward.Expiration = Timestamp.UnixTime + (long)new TimeSpan(days: 30, hours: 0, minutes: 0, seconds: 0).TotalSeconds;
 				
 				msg.Add(new GenericData()
 				{
