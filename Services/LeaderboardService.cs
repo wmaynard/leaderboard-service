@@ -18,10 +18,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	private readonly ArchiveService _archiveService;
 	private readonly EnrollmentService _enrollmentService;
 	private readonly RewardsService _rewardService;
+	private readonly BroadcastService _broadcastService;
 	// public LeaderboardService(ArchiveService service) : base("leaderboards") => _archiveService = service;
-	public LeaderboardService(ArchiveService archives, EnrollmentService enrollments, RewardsService reward) : base("leaderboards")
+	public LeaderboardService(ArchiveService archives, BroadcastService broadcast, EnrollmentService enrollments, RewardsService reward) : base("leaderboards")
 	{
 		_archiveService = archives;
+		_broadcastService = broadcast;
 		_enrollmentService = enrollments;
 		_rewardService = reward;
 	}
@@ -352,6 +354,18 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		if (leaderboard.Tier > 1)													// People can't get demoted below 1.
 			_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
 		_enrollmentService.FlagAsInactive(inactivePlayers, leaderboard.Type);		// Players that scored 0 this week are to be flagged as inactive now.  Must happen after the demotion.
+		
+		
+		
+		// TODO: Design needs to provide details on how this message should be formatted.
+		try
+		{
+			string first = ranks.First().AccountID;
+			#if DEBUG
+			_broadcastService.Announce(first, $"{first} placed first in Leaderboard {leaderboard.Type}!  This is a placeholder message.");
+			#endif
+		}
+		catch { }
 		
 		try
 		{
