@@ -205,9 +205,9 @@ Response:
 
 <hr />
 
-### Admin
+### Archives
 
-Admin authorization tokens are required.  Use the `leaderboard_AdminToken` from dynamic config.
+Player authorization tokens are required.
 
 | Method | Endpoint   | Description                                                                                                                                                                                                                                           | Required Fields | Optional Fields |
 |-------:|:-----------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------|:----------------|
