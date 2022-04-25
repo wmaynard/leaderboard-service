@@ -225,19 +225,16 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		
 		foreach (string leaderboardType in types)
 			_enrollmentService.DemoteInactivePlayers(leaderboardType);
-			
-
-		// Async option for debugging since Rider's breakpoints trigger on every thread
-		// foreach (string id in ids)
-		// 	Rollover(id).Wait();
 
 		Task<Leaderboard>[] tasks = ids
 			.Select(Rollover)
 			.ToArray();
-
+#if DEBUG
 		foreach (Task<Leaderboard> t in tasks)
 			t.Wait();
-		// Task.WaitAll(tasks);
+#elif RELEASE
+		Task.WaitAll(tasks);
+#endif
 		
 		_rewardService.SendRewards();
 	}
@@ -264,11 +261,11 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	private async Task<Leaderboard> SetRolloverFlag(string id, bool isResetting)
 	{
 		// Since this is called from a timed service, it doesn't see controller attributes.
-		StartTransaction(out IClientSessionHandle session);
+		// StartTransaction(out IClientSessionHandle session);
 		
 		return await _collection.FindOneAndUpdateAsync<Leaderboard>(
 			filter: leaderboard => leaderboard.Id == id,
-			session: session,
+			// session: session,
 			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.IsResetting, isResetting),
 			options: new FindOneAndUpdateOptions<Leaderboard>()
 			{
@@ -284,7 +281,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	/// <param name="id">The MongoDB ID of the leaderboard to modify.</param>
 	/// <returns>An awaitable task returning the reopened leaderboard.</returns>
 	/// Note: The final null coalesce is to handle cases where we're rolling over a shard, and the shard has been deleted.
-	public async Task<Leaderboard> Rollover(string id) => await Reopen((await Rollover(await Close(id)))?.Id ?? id);
+	public async Task<Leaderboard> Rollover(string id)
+	{
+		Leaderboard leaderboard = await Close(id);
+		await Rollover(leaderboard);
+		return await Reopen(id);
+	}
 
 	private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 	{
@@ -319,13 +321,11 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 			ranks[index].Prize = rewards
 				.Where(reward => reward.MinimumRank > 0 && ranks[index].Rank <= reward.MinimumRank)
-				.OrderBy(reward => reward.MinimumRank)
-				.FirstOrDefault();
+				.MinBy(reward => reward.MinimumRank);
 
 			ranks[index].Prize ??= rewards
 				.Where(reward => reward.MinimumPercentile >= 0 && percentile >= reward.MinimumPercentile)
-				.OrderByDescending(reward => reward.MinimumPercentile)
-				.FirstOrDefault();
+				.MaxBy(reward => reward.MinimumPercentile);
 
 			playersProcessed++;
 		}
@@ -352,6 +352,31 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		if (leaderboard.Tier > 1)													// People can't get demoted below 1.
 			_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
 		_enrollmentService.FlagAsInactive(inactivePlayers, leaderboard.Type);		// Players that scored 0 this week are to be flagged as inactive now.  Must happen after the demotion.
+		
+		try
+		{
+			// TODO: Once Portal has a Leaderboards UI, remove this.
+			
+			string attachment = string.Join(Environment.NewLine, ranks.Where(entry => entry.Prize != null).Select(rank => rank.ToString()));
+			int rewardPlayerCount = ranks.Count(entry => entry.Prize != null);
+			int noRewardPlayerCount = ranks.Count(entry => entry.Prize == null);
+
+			string message = $"Player ranks have been calculated.\n{rewardPlayerCount} player(s) received rewards.";
+
+			if (noRewardPlayerCount > 0)
+				message += $"\n{noRewardPlayerCount} player(s) did not receive rewards.";
+
+			await SlackDiagnostics
+				.Log(title: $"{leaderboard.Type} rollover triggered.", message)
+				.Attach(name: "Rankings", content: attachment)
+				.Send();
+
+			Log.Info(Owner.Default, $"{leaderboard.Type} rollover information sent to Slack.");
+		}
+		catch
+		{
+			Log.Error(Owner.Default, $"{leaderboard.Type} rollover information could not be sent to Slack.");
+		}
 		
 		if (!leaderboard.IsShard)	// This is a global leaderboard; we can leave the Scores field empty and just return.
 		{

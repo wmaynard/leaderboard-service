@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
@@ -76,9 +77,8 @@ public class ResetService : MasterService
 		#if DEBUG
 		return;
 		#endif
-		if (!await Do(UpdateConfig))
-			return;
 		
+		UpdateConfig();
 		DateTime now = DateTime.UtcNow;
 		
 		
@@ -93,7 +93,8 @@ public class ResetService : MasterService
 			success &= await Reset(RolloverType.Daily, now);
 		
 		// Check weekly leaderboards
-		if (now.Subtract(LastWeeklyRollover).TotalDays > 7 && PastResetTime(now))
+		bool isRolloverDay = (int)now.DayOfWeek == WeeklyResetDay || true;
+		if (isRolloverDay && now.Subtract(LastWeeklyRollover).TotalDays > 1 && PastResetTime(now))
 			success &= await Reset(RolloverType.Weekly, now);
 
 		// Check monthly leaderboards

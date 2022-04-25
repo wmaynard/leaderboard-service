@@ -15,8 +15,8 @@ namespace Rumble.Platform.LeaderboardService.Services;
 /// </summary>
 public abstract class MasterService : PlatformTimerService
 {
-	private const int MS_INTERVAL = 5_000;					// The interval to check in; recent check-ins indicate service is still active.
-	private const int MS_TAKEOVER = MS_INTERVAL;// * 10;		// The threshold at which the previous MasterService should be replaced by the current one.
+	private const int MS_INTERVAL = 5_000;			// The interval to check in; recent check-ins indicate service is still active.
+	private const int MS_TAKEOVER = 60_000;			// The threshold at which the previous MasterService should be replaced by the current one.
 	public static int MaximumRetryTime => MS_TAKEOVER + MS_INTERVAL;
 #pragma warning disable
 	private readonly ConfigService _config;
@@ -37,7 +37,7 @@ public abstract class MasterService : PlatformTimerService
 	private long LastActivity => _config.Value<long>(LastActiveKey);
 	
 	/// <summary>
-	/// Attempts to complete an action.  If the 
+	/// Attempts to complete an action.  Returns false if the given singleton isn't the master node.
 	/// </summary>
 	/// <param name="action"></param>
 	/// <returns></returns>
@@ -93,7 +93,14 @@ public abstract class MasterService : PlatformTimerService
 				return;
 			
 			IsWorking = true;
-			Work();
+			try
+			{
+				Work();
+			}
+			catch (Exception e)
+			{
+				Log.Error(Owner.Will, e.Message);
+			}
 			IsWorking = false;
 		}
 		else if (UnixTimeMS - LastActivity > MS_TAKEOVER)

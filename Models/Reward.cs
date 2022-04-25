@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Web;
@@ -98,4 +99,6 @@ public class Reward : PlatformDataModel
 			&& Expiration == other.Expiration
 			&& InternalNote == other.InternalNote;
 	}
+
+	public override string ToString() => Contents.Aggregate("", (current, attachment) => current + $"{attachment.Quantity}x {attachment.ResourceID}, ")[..^2];
 }

@@ -13,7 +13,7 @@ using Rumble.Platform.LeaderboardService.Services;
 
 namespace Rumble.Platform.LeaderboardService.Controllers;
 
-[ApiController, Route("leaderboard/admin"), RequireAuth(TokenType.ADMIN), UseMongoTransaction]
+[ApiController, Route("leaderboard/admin"), RequireAuth(AuthType.ADMIN_TOKEN), UseMongoTransaction]
 public class AdminController : PlatformController
 {
 #pragma warning disable CS0649
@@ -128,7 +128,8 @@ public class AdminController : PlatformController
 				title: $"{PlatformEnvironment.Deployment}-{RolloverType.Weekly.ToString()} rollover manually triggered",
 				message: $"{Token.ScreenName} manually triggered the leaderboards rollover.")
 			.Attach(name: "Token information", content: Token.JSON)
-			.Send();
+			.Send()
+			.Wait();
 			
 		_leaderboardService.Rollover(RolloverType.Weekly);
 #endif

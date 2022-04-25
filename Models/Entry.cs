@@ -36,5 +36,12 @@ namespace Rumble.Platform.LeaderboardService.Models
 		[BsonIgnore]
 		public Reward Prize { get; set; }
 
+		public override string ToString()
+		{
+			string rank = (Rank + 1).ToString().PadLeft(5, ' ');
+			string score = Score.ToString().PadRight(7);
+
+			return $"{rank} | {AccountID} | {score} | {Prize.ToString()}";
+		}
 	}
 }

@@ -111,10 +111,18 @@ namespace Rumble.Platform.LeaderboardService.Models
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIME_ENDED), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 		public long EndTime { get; internal set; }
 
-		internal List<Entry> CalculateRanks() => Scores
+		internal List<Entry> CalculateRanks()
+		{
+			List<Entry> output = Scores
 				.OrderByDescending(entry => entry.Score)
 				.ThenBy(entry => entry.LastUpdated)
 				.ToList();
+
+			foreach (Entry entry in output)
+				entry.Rank = output.IndexOf(entry);
+
+			return output;
+		}
 
 		public GenericData GenerateScoreResponse(string accountId)
 		{
