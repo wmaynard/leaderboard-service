@@ -13,31 +13,34 @@ namespace Rumble.Platform.LeaderboardService.Models
 	[BsonIgnoreExtraElements]
 	public class Leaderboard : PlatformCollectionDocument
 	{
-		internal const string DB_KEY_ID = "_id";
-		internal const string DB_KEY_TIER = "tier";
-		internal const string DB_KEY_TYPE = "type";
-		internal const string DB_KEY_TITLE = "title";
 		internal const string DB_KEY_DESCRIPTION = "desc";
+		internal const string DB_KEY_ID = "_id";
+		internal const string DB_KEY_RESETTING = "lock";
 		internal const string DB_KEY_ROLLOVER_TYPE = "rtype";
+		internal const string DB_KEY_SCORES = "scores";
+		internal const string DB_KEY_SHARD_ID = "shard";
+		internal const string DB_KEY_START_TIME = "start";
+		internal const string DB_KEY_TIER = "tier";
 		internal const string DB_KEY_TIER_COUNT = "max";
 		internal const string DB_KEY_TIER_RULES = "rules";
-		internal const string DB_KEY_SHARD_ID = "shard";
-		internal const string DB_KEY_SCORES = "scores";
-		internal const string DB_KEY_RESETTING = "lock";
 		internal const string DB_KEY_TIME_ENDED = "end";
+		internal const string DB_KEY_TITLE = "title";
+		internal const string DB_KEY_TYPE = "type";
 
-		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
-		public const string FRIENDLY_KEY_TIER = "tier";
-		public const string FRIENDLY_KEY_TITLE = "title";
 		public const string FRIENDLY_KEY_DESCRIPTION = "description";
+		public const string FRIENDLY_KEY_RESETTING = "locked";
 		public const string FRIENDLY_KEY_ROLLOVER_TYPE = "rolloverType";
 		public const string FRIENDLY_KEY_ROLLOVER_TYPE_STRING = "rolloverTypeVerbose";
+		public const string FRIENDLY_KEY_START_TIME = "startsOn";
+		public const string FRIENDLY_KEY_SCORES = "scores";
+		public const string FRIENDLY_KEY_SHARD_ID = "shardId";
+		public const string FRIENDLY_KEY_TIER = "tier";
 		public const string FRIENDLY_KEY_TIER_COUNT = "tierCount";
 		public const string FRIENDLY_KEY_TIER_RULES = "tierRules";
-		public const string FRIENDLY_KEY_SHARD_ID = "shardId";
-		public const string FRIENDLY_KEY_SCORES = "scores";
-		public const string FRIENDLY_KEY_RESETTING = "locked";
 		public const string FRIENDLY_KEY_TIME_ENDED = "lastRollover";
+		public const string FRIENDLY_KEY_TITLE = "title";
+		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
+		
 		
 		public const int PAGE_SIZE = 50;
 		
@@ -90,6 +93,10 @@ namespace Rumble.Platform.LeaderboardService.Models
 		[BsonElement(DB_KEY_SHARD_ID), BsonIgnoreIfNull]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SHARD_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string ShardID { get; set; } // can be null
+		
+		[BsonElement(DB_KEY_START_TIME), BsonIgnoreIfDefault]
+		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_START_TIME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+		public long StartTime { get; set; }
 		
 		[BsonElement(DB_KEY_SCORES), BsonIgnoreIfNull]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SCORES), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

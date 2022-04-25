@@ -75,16 +75,16 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		FilterDefinition<Leaderboard> filter = builder.And(
 			builder.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
 			builder.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
-			builder.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID)
+			builder.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID),
+			builder.Lte(leaderboard => leaderboard.StartTime, Timestamp.UnixTime)
 		);
 
-		bool locked = _collection
+		List<bool> locks = _collection
 			.Find(filter: filter)
 			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.IsResetting))
-			.ToList()
-			.Any(isResetting => isResetting);
+			.ToList();
 
-		if (locked)
+		if (!locks.Any() || locks.Any(isResetting => isResetting))
 			throw new PlatformException("A leaderboard is locked; try again later.");
 	}
 
@@ -100,7 +100,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
 
 		return _collection.FindOneAndUpdate<Leaderboard>(
-			filter: CreateFilter(enrollment),
+			filter: CreateFilter(enrollment, allowLocked: false),
 			session: session,
 			update: Builders<Leaderboard>.Update.Set("Scores.$.Score", score),
 			options: new FindOneAndUpdateOptions<Leaderboard>()
@@ -122,7 +122,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
 
 		Leaderboard output = _collection.FindOneAndUpdate<Leaderboard>(
-			filter: CreateFilter(enrollment),
+			filter: CreateFilter(enrollment, allowLocked: false),
 			session: session,
 			update: update,
 			options: new FindOneAndUpdateOptions<Leaderboard>()
