@@ -24,9 +24,14 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 		archiveId = leaderboard.Id;
 	}
 
-	public List<Leaderboard> Lookup(string type, string accountId, int count = 1)
-	{
-		return _collection.Find(
+	public List<Leaderboard> Lookup(string type, int count = 1) => _collection
+			.Find(leaderboard => leaderboard.Type == type)
+			.SortByDescending(leaderboard => leaderboard.EndTime)
+			.Limit(count)
+			.ToList();
+
+	public List<Leaderboard> Lookup(string type, string accountId, int count = 1) => _collection
+		.Find(
 			filter: Builders<Leaderboard>.Filter.And(
 				Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
 				Builders<Leaderboard>.Filter.ElemMatch(
@@ -37,5 +42,4 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 		).SortByDescending(leaderboard => leaderboard.EndTime)
 		.Limit(count)
 		.ToList();
-	}
 }

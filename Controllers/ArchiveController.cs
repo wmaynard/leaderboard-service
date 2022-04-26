@@ -23,12 +23,18 @@ public class ArchiveController : PlatformController
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 		int count = Optional<int?>("count") ?? 1;
 
+		string accountId = Token.IsAdmin
+			? Optional<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID)
+			: Token.AccountId;
+
 		if (count <= 0)
 			throw new PlatformException("If specified, archive count must be greater than 0.");
 
 		return Ok(new
 		{
-			Leaderboards = _archiveService.Lookup(type, Token.AccountId, count)
+			Leaderboards = accountId == null
+				? _archiveService.Lookup(type, count)
+				: _archiveService.Lookup(type, accountId, count)
 		});
 	}
 	
