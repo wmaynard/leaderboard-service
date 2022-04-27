@@ -83,10 +83,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		List<bool> locks = _collection
 			.Find(filter: filter)
-			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.IsResetting))
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.IsResetting || leaderboard.StartTime > Timestamp.UnixTime))
 			.ToList();
 
-		if (!locks.Any() || locks.Any(isResetting => isResetting))
+		if (locks.Any(isResetting => isResetting))
 			throw new PlatformException("A leaderboard is locked; try again later.");
 	}
 
