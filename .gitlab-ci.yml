@@ -18,19 +18,6 @@ variables:
   # These variables are not inherently necessary for your project to run successfully in environments.  A value from these will always come from PLATFORM_COMMON.
   # However, you may want to override them.  Listing them here in the yml removes one step from the maintenance if you need to.
   # In gitlab's CI settings, add a value with any of these keys to override the inherited variables from the PLATFORM_COMMON group var.
-  K8S_SECRET_CONFIG_SERVICE_URL: "$CONFIG_SERVICE_URL"
-  K8S_SECRET_GAME_GUKEY: "$GAME_GUKEY"
-  K8S_SECRET_GRAPHITE: "$GRAPHITE"
-  K8S_SECRET_LOGGLY_URL: "$LOGGLY_URL" # override this if you need to change the tag manually for your service, e.g. receipt-service-v2 when the component name is just receipt-service
-  K8S_SECRET_RUMBLE_KEY: "$RUMBLE_KEY"
-  K8S_SECRET_RUMBLE_TOKEN_VALIDATION: "$RUMBLE_TOKEN_VALIDATION"
-  K8S_SECRET_SLACK_ENDPOINT_POST_MESSAGE: "$SLACK_ENDPOINT_POST_MESSAGE"
-  K8S_SECRET_SLACK_ENDPOINT_UPLOAD: "$SLACK_ENDPOINT_UPLOAD"
-  K8S_SECRET_SLACK_ENDPOINT_USER_LIST: "$SLACK_ENDPOINT_USER_LIST"
-  K8S_SECRET_SLACK_LOG_BOT_TOKEN: "$SLACK_LOG_BOT_TOKEN"
-  K8S_SECRET_SLACK_LOG_CHANNEL: "$SLACK_LOG_CHANNEL"
-  K8S_SECRET_SWARM_MODE: "$SWARM_MODE"
-  K8S_SECRET_VERBOSE_LOGGING: "$VERBOSE_LOGGING"
   
   DOCKER_DRIVER: overlay2
 
