@@ -7,6 +7,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Models;
@@ -192,7 +193,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.ToArray();
 	}
 
-	public void Rollover(RolloverType type)
+	public async Task Rollover(RolloverType type)
 	{
 		// This gives us a collection of GenericData objects of just the ID and the Type of the leaderboards.
 		// This is an optimization to prevent passing in huge amounts of data - once we hit a global release, retrieving all
@@ -228,15 +229,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		foreach (string leaderboardType in types)
 			_enrollmentService.DemoteInactivePlayers(leaderboardType);
 
-		Task<Leaderboard>[] tasks = ids
-			.Select(Rollover)
-			.ToArray();
-#if DEBUG
-		foreach (Task<Leaderboard> t in tasks)
-			t.Wait();
-#elif RELEASE
-		Task.WaitAll(tasks);
-#endif
+		foreach (string id in ids)
+			await Rollover(id);
 		
 		_rewardService.SendRewards();
 	}

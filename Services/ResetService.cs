@@ -60,11 +60,11 @@ public class ResetService : MasterService
 	public ResetService(ConfigService configService) : base(configService)
 	{
 #pragma warning disable CS4014
-		Do(UpdateConfig);
+		Do(UpdateLocalConfig);
 #pragma warning restore CS4014
 	}
 
-	private void UpdateConfig()
+	private void UpdateLocalConfig()
 	{
 		HourlyResetMinute = _dynamicConfig?.GameConfig?.Optional<int?>(CONFIG_HOURLY_SETTING) ?? 0;
 		DailyResetTime = TimeSpan.Parse(_dynamicConfig?.GameConfig.Optional<string>(CONFIG_DAILY_SETTING) ?? "02:00");
@@ -78,7 +78,7 @@ public class ResetService : MasterService
 		return;
 		#endif
 		
-		UpdateConfig();
+		UpdateLocalConfig();
 		DateTime now = DateTime.UtcNow;
 		
 		

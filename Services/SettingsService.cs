@@ -1,5 +1,6 @@
 using System.Linq;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Models;
 

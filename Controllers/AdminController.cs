@@ -57,7 +57,7 @@ public class AdminController : PlatformController
 				leaderboard.Tier = currentTier;
 				_leaderboardService.Create(leaderboard);
 				ids.Add(leaderboard.Id);
-				leaderboard.ResetID();
+				leaderboard.NullifyId();
 			} while (currentTier++ < leaderboard.MaxTier);
 		}
 
@@ -133,12 +133,5 @@ public class AdminController : PlatformController
 #endif
 		_leaderboardService.Rollover(RolloverType.Weekly);
 		return Ok();
-	}
-	
-	
-	[HttpGet, Route("health"), NoAuth]
-	public override ActionResult HealthCheck()
-	{
-		return Ok(_leaderboardService.HealthCheckResponseObject);
 	}
 }

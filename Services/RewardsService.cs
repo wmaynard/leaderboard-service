@@ -55,23 +55,6 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			AccountId = accountId
 		});
 
-	// public void Grant(string accountId, Reward newReward)
-	// {
-	// 	if (newReward.LeaderboardId == null)
-	// 		throw new Exception("All rewards must include the leaderboard objectId that spawned them.");
-	// 	RewardHistory record = _collection.FindOneAndUpdate<RewardHistory>(
-	// 		filter: history => history.AccountId == accountId,
-	// 		update: Builders<RewardHistory>.Update.AddToSet(history => history.Rewards, newReward),
-	// 		options: new FindOneAndUpdateOptions<RewardHistory>()
-	// 		{
-	// 			ReturnDocument = ReturnDocument.After,
-	// 			IsUpsert = true
-	// 		}
-	// 	);
-	// 	if (record.Rewards.Select(reward => reward.LeaderboardId).Distinct().Count() != record.Rewards.Count)
-	// 		Log.Error(Owner.Will, "A player was granted more than one award by a leaderboard.");
-	// }
-
 	public void SendRewards()
 	{
 		string adminToken = _dynamicConfig.GameConfig.Require<string>("leaderboard_AdminToken");
@@ -82,22 +65,15 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			return;
 
 
-		// List<MailboxMessage> messages = new List<MailboxMessage>();
 		List<string> successes = new List<string>();
 
 		foreach (RewardHistory history in histories)
 		{
-			List<GenericData> msg = new List<GenericData>();
 			foreach (Reward reward in history.Rewards)
 			{
 				reward.VisibleFrom = Timestamp.UnixTime;
 				if (reward.Expiration == default)
 					reward.Expiration = Timestamp.UnixTime + (long)new TimeSpan(days: 30, hours: 0, minutes: 0, seconds: 0).TotalSeconds;
-				
-				msg.Add(new GenericData()
-				{
-					{Reward.FRIENDLY_KEY_SUBJECT, reward.Subject}
-				});
 			}
 
 			string url = PlatformEnvironment.Url("mail/admin/messages/send/bulk");

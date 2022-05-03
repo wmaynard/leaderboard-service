@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MongoDB.Driver;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -18,10 +19,11 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 
 	public void Stash(Leaderboard leaderboard, out string archiveId)
 	{
-		leaderboard.EndTime = Timestamp.UnixTimeUTCMS;
-		leaderboard.ResetID();
-		Update(leaderboard, true);
-		archiveId = leaderboard.Id;
+		leaderboard.EndTime = Timestamp.UnixTimeMS;
+		Leaderboard copy = leaderboard.Copy();
+		copy.ChangeId();
+		Update(copy, createIfNotFound: true);
+		archiveId = copy.Id;
 	}
 
 	public List<Leaderboard> Lookup(string type, int count = 1) => _collection

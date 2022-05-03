@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Models;
@@ -36,10 +37,5 @@ public class ArchiveController : PlatformController
 				? _archiveService.Lookup(type, count)
 				: _archiveService.Lookup(type, accountId, count)
 		});
-	}
-	
-	public override ActionResult HealthCheck()
-	{
-		throw new System.NotImplementedException();
 	}
 }

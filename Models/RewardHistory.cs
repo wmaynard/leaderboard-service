@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.LeaderboardService.Models;

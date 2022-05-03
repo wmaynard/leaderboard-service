@@ -1,4 +1,5 @@
 using System;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.LeaderboardService.Models;

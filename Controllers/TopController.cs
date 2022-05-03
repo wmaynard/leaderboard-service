@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Exceptions;
@@ -18,12 +19,13 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 	[ApiController, Route("leaderboard"), RequireAuth, UseMongoTransaction]
 	public class TopController : PlatformController
 	{
-#pragma warning disable CS0649
+#pragma warning disable
 		private Services.LeaderboardService _leaderboardService;
 		private EnrollmentService _enrollmentService;
 		private ResetService _resetService;
 		private RewardsService _rewardsService;
-#pragma warning restore CS0649
+		private DynamicConfigService _config;
+#pragma warning restore
 
 		[HttpPatch, Route("score")]
 		public ActionResult AddScore()
@@ -104,13 +106,5 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			_leaderboardService.Rollover(RolloverType.Daily);
 			return Ok();
 		}
-
-		#region LOAD_BALANCER
-		[HttpGet, Route("health"), NoAuth]
-		public override ActionResult HealthCheck()
-		{
-			return Ok(_leaderboardService.HealthCheckResponseObject, _resetService.HealthCheckResponseObject);
-		}
-		#endregion LOAD_BALANCER
 	}
 }

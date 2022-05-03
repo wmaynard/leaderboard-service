@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Exceptions;
@@ -230,7 +231,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 			return output;
 		}
 
-		internal void ResetID() => Id = null;
+		// internal void ResetID() => Id = null;
 	}
 
 }
