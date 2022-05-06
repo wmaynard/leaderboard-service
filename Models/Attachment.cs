@@ -13,9 +13,9 @@ public class Attachment : PlatformDataModel
 	internal const string DB_KEY_TYPE = "t";
 
 	// These fields match those from mailbox-service
-	public const string FRIENDLY_KEY_QUANTITY = "Quantity";
-	public const string FRIENDLY_KEY_RESOURCE_ID = "RewardId";
-	public const string FRIENDLY_KEY_TYPE = "Type";
+	public const string FRIENDLY_KEY_QUANTITY = "quantity";
+	public const string FRIENDLY_KEY_RESOURCE_ID = "rewardId";
+	public const string FRIENDLY_KEY_TYPE = "type";
 	public const string FRIENDLY_KEY_DATE_RECEIVED = "receivedOn";
 	
 	[BsonElement(DB_KEY_QUANTITY), BsonIgnoreIfDefault]

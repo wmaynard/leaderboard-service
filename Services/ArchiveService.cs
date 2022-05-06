@@ -17,13 +17,13 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 
 	public ArchiveService(DynamicConfigService configService) : base("archives") => _dynamicConfig = configService;
 
-	public void Stash(Leaderboard leaderboard, out string archiveId)
+	public void Stash(Leaderboard leaderboard, out Leaderboard archive)
 	{
 		leaderboard.EndTime = Timestamp.UnixTimeMS;
 		Leaderboard copy = leaderboard.Copy();
 		copy.ChangeId();
 		Update(copy, createIfNotFound: true);
-		archiveId = copy.Id;
+		archive = copy;
 	}
 
 	public List<Leaderboard> Lookup(string type, int count = 1) => _collection

@@ -230,8 +230,5 @@ namespace Rumble.Platform.LeaderboardService.Models
 			errors = messages.ToArray();
 			return output;
 		}
-
-		// internal void ResetID() => Id = null;
 	}
-
 }

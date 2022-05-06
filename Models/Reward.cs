@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.LeaderboardService.Models;
@@ -22,7 +23,9 @@ public class Reward : PlatformDataModel
 	internal const string DB_KEY_TIER = "tier";
 	internal const string DB_KEY_MINIMUM_RANK = "min";
 	internal const string DB_KEY_MINIMUM_RANK_PERCENT = "min%";
+	internal const string DB_KEY_DATA = "data";
 
+	public const string FRIENDLY_KEY_RECIPIENT = "accountId";
 	public const string FRIENDLY_KEY_SUBJECT = "subject";
 	public const string FRIENDLY_KEY_BODY = "body";
 	public const string FRIENDLY_KEY_BANNER = "banner";
@@ -32,6 +35,15 @@ public class Reward : PlatformDataModel
 	public const string FRIENDLY_KEY_EXPIRATION = "expiration";
 	public const string FRIENDLY_KEY_ATTACHMENTS = "attachments";
 	public const string FRIENDLY_KEY_TIER = "tier";
+	public const string FRIENDLY_KEY_DATA = "data";
+	
+	[BsonIgnore]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_RECIPIENT), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public string Recipient { get; set; }
+	
+	[BsonElement(DB_KEY_DATA), BsonIgnoreIfNull]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_DATA), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public GenericData RankingData { get; set; }
 
 	[BsonElement(DB_KEY_SUBJECT), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SUBJECT), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

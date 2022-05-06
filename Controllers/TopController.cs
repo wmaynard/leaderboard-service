@@ -44,7 +44,6 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 				throw new UnknownLeaderboardException(type);
 
 			if (enrollment.CurrentLeaderboardID == leaderboard.Id)
-				// return Ok();
 				return Ok(new { Leaderboard = leaderboard });
 			
 			enrollment.CurrentLeaderboardID = leaderboard.Id;
@@ -52,8 +51,6 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 			_enrollmentService.Update(enrollment);
 
 			return Ok(new { Leaderboard = leaderboard });
-			return Ok();
-			// return Ok(new { Leaderboard = leaderboard });
 		}
 
 		// TODO: Move to admin controller

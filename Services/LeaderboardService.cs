@@ -102,6 +102,16 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score)
 			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
 
+		if (session == null)
+			return _collection.FindOneAndUpdate<Leaderboard>(
+				filter: CreateFilter(enrollment, allowLocked: false),
+				update: Builders<Leaderboard>.Update.Set("Scores.$.Score", score),
+				options: new FindOneAndUpdateOptions<Leaderboard>()
+				{
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			);
 		return _collection.FindOneAndUpdate<Leaderboard>(
 			filter: CreateFilter(enrollment, allowLocked: false),
 			session: session,
@@ -134,25 +144,43 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				IsUpsert = false
 			}
 		);
-		
-		// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
-		output ??= _collection.FindOneAndUpdate<Leaderboard>(
-			filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
-				&& leaderboard.Tier == enrollment.Tier,
-			session: session,
-			update: Builders<Leaderboard>.Update
-				.AddToSet(leaderboard => leaderboard.Scores, new Entry()
+
+		if (session != null)
+			// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
+			output ??= _collection.FindOneAndUpdate<Leaderboard>(
+				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
+					&& leaderboard.Tier == enrollment.Tier,
+				session: session,
+				update: Builders<Leaderboard>.Update
+					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
+					{
+						AccountID = enrollment.AccountID,
+						Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
+						LastUpdated = Timestamp.UnixTimeMS
+					}),
+				options: new FindOneAndUpdateOptions<Leaderboard>()
 				{
-					AccountID = enrollment.AccountID,
-					Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
-					LastUpdated = Timestamp.UnixTimeMS
-				}),
-			options: new FindOneAndUpdateOptions<Leaderboard>()
-			{
-				ReturnDocument = ReturnDocument.After,
-				IsUpsert = false
-			}
-		);
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			);
+		else
+			output ??= _collection.FindOneAndUpdate<Leaderboard>(
+				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
+					&& leaderboard.Tier == enrollment.Tier,
+				update: Builders<Leaderboard>.Update
+					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
+					{
+						AccountID = enrollment.AccountID,
+						Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
+						LastUpdated = Timestamp.UnixTimeMS
+					}),
+				options: new FindOneAndUpdateOptions<Leaderboard>()
+				{
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			);
 
 		// If the score is negative, there's a chance the user was pushed below 0.  This *should* be handled first in the client / server, which shouldn't send us values that
 		// push someone below 0.
@@ -168,16 +196,27 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				Type = output.Type,
 				Enrollment = enrollment
 			});
-			output = _collection.FindOneAndUpdate<Leaderboard>(
-				filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, output.Id),
-				session: session,
-				update: Builders<Leaderboard>.Update.Max($"{Leaderboard.DB_KEY_SCORES}.$[].{Entry.DB_KEY_SCORE}", 0), // Updates all scores to be minimum of 0.
-				options: new FindOneAndUpdateOptions<Leaderboard>()
-				{
-					ReturnDocument = ReturnDocument.After,
-					IsUpsert = false
-				}
-			);
+			if (session != null)
+				output = _collection.FindOneAndUpdate<Leaderboard>(
+					filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, output.Id),
+					session: session,
+					update: Builders<Leaderboard>.Update.Max($"{Leaderboard.DB_KEY_SCORES}.$[].{Entry.DB_KEY_SCORE}", 0), // Updates all scores to be minimum of 0.
+					options: new FindOneAndUpdateOptions<Leaderboard>()
+					{
+						ReturnDocument = ReturnDocument.After,
+						IsUpsert = false
+					}
+				);
+			else
+				output = _collection.FindOneAndUpdate<Leaderboard>(
+					filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, output.Id),
+					update: Builders<Leaderboard>.Update.Max($"{Leaderboard.DB_KEY_SCORES}.$[].{Entry.DB_KEY_SCORE}", 0), // Updates all scores to be minimum of 0.
+					options: new FindOneAndUpdateOptions<Leaderboard>()
+					{
+						ReturnDocument = ReturnDocument.After,
+						IsUpsert = false
+					}
+				);
 		}
 
 		return output;
@@ -310,7 +349,9 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		int playerCount = leaderboard.Scores.Count;
 		int playersProcessed = 0;
-
+		
+		_archiveService.Stash(leaderboard, out Leaderboard archive);
+		
 		for (int index = ranks.Count - 1; playersProcessed < playerCount && index >= 0; index--)
 		{
 			float percentile = 100f * (float)playersProcessed / (float)playerCount;
@@ -323,17 +364,30 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				.Where(reward => reward.MinimumPercentile >= 0 && percentile >= reward.MinimumPercentile)
 				.MaxBy(reward => reward.MinimumPercentile);
 
+			// Add required fields for bulk sending and telemetry
+			// ranks[index].Prize.Recipient = ranks[index].AccountID;
+			ranks[index].Prize.RankingData = new GenericData
+			{
+				{ "leaderboardId", leaderboard.Type },
+				{ "leaderboardRank", ranks[index].Rank + 1 },
+				{ "leaderboardScore", ranks[index].Score },
+				{ "leaderboardTier", leaderboard.Tier },
+				{ "leaderboardArchiveId", archive.Id }
+			};
+
 			playersProcessed++;
 		}
 
-		foreach (Reward reward in rewards)
-			_rewardService.Grant(reward, accountIds: ranks
-				.Where(entry => entry.Prize?.TemporaryID == reward.TemporaryID)
-				.Select(entry => entry.AccountID)
-				.ToArray());
+		foreach (Entry entry in ranks.Where(e => e.Score > 0))
+			_rewardService.Grant(entry.Prize, accountIds: entry.AccountID);
 
-		_archiveService.Stash(leaderboard, out string archiveId);
-		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archiveId);
+		// foreach (Reward reward in rewards)
+		// 	_rewardService.Grant(reward, accountIds: ranks
+		// 		.Where(entry => entry.Prize?.TemporaryID == reward.TemporaryID)
+		// 		.Select(entry => entry.AccountID)
+		// 		.ToArray());
+
+		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id);
 		
 		leaderboard.Scores = new List<Entry>();
 

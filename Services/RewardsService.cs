@@ -24,7 +24,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 
 	public long Grant(Reward reward, params string[] accountIds)
 	{
-		if (!accountIds.Any())
+		if (reward == null || !accountIds.Any())
 			return 0;
 
 		if (_collection.CountDocuments(filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds)) != accountIds.Length)
@@ -37,7 +37,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 		return _collection.UpdateMany( // TODO: Session?
 			filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds),
 			update: Builders<RewardHistory>.Update.AddToSet(history => history.Rewards, reward),
-			options: new UpdateOptions()
+			options: new UpdateOptions
 			{
 				IsUpsert = false
 			}
@@ -50,7 +50,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 	public RewardHistory Validate(string accountId) => _collection
 		.Find(filter: Builders<RewardHistory>.Filter.Eq(history => history.AccountId, accountId))
 		.FirstOrDefault()
-		?? Create(new RewardHistory()
+		?? Create(new RewardHistory
 		{
 			AccountId = accountId
 		});
@@ -58,7 +58,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 	public void SendRewards()
 	{
 		string adminToken = _dynamicConfig.GameConfig.Require<string>("leaderboard_AdminToken");
-		string platformUrl = _dynamicConfig.GameConfig.Require<string>("platformUrl_C#");
+		
 		RewardHistory[] histories = Find(history => history.Rewards.Any(reward => reward.SentStatus == Reward.Status.NotSent));
 
 		if (!histories.Any())
@@ -69,22 +69,30 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 
 		foreach (RewardHistory history in histories)
 		{
-			foreach (Reward reward in history.Rewards)
+			Reward[] toSend = history.Rewards.Where(reward => reward.SentStatus == Reward.Status.NotSent).ToArray();
+
+			if (!toSend.Any())
+				continue;
+			
+			// Prepare the rewards to send.  Mailbox requires a recipient accountId and fields for expiration / visibleFrom.
+			foreach (Reward reward in toSend)
 			{
+				reward.Recipient = history.AccountId;
 				reward.VisibleFrom = Timestamp.UnixTime;
 				if (reward.Expiration == default)
 					reward.Expiration = Timestamp.UnixTime + (long)new TimeSpan(days: 30, hours: 0, minutes: 0, seconds: 0).TotalSeconds;
 			}
 
 			string url = PlatformEnvironment.Url("mail/admin/messages/send/bulk");
+			url = "http://localhost:5070/mail/admin/messages/send/bulk";
 			_apiService
 				.Request(url)
 				.AddAuthorization(adminToken)
-				.SetPayload(new MailboxMessage(history.AccountId, history.Rewards).Payload)
+				.SetPayload(new MailboxMessage(history.AccountId, toSend).Payload)
 				.OnSuccess(action: (sender, apiResponse) =>
 				{
 					successes.Add(history.Id);
-					Log.Local(Owner.Will, $"Sent {history.Rewards.Count} rewards to {history.AccountId}");
+					Log.Local(Owner.Will, $"Sent {toSend.Length} rewards to {history.AccountId}");
 				})
 				.OnFailure(action: (sender, apiResponse) =>
 				{
