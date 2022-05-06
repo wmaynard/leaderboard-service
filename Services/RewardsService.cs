@@ -84,7 +84,6 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			}
 
 			string url = PlatformEnvironment.Url("mail/admin/messages/send/bulk");
-			url = "http://localhost:5070/mail/admin/messages/send/bulk";
 			_apiService
 				.Request(url)
 				.AddAuthorization(adminToken)
