@@ -1,7 +1,12 @@
 .auto-deploy:
   image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-deploy-image:v2.12.0"
   dependencies: []
+  variables:
+    K8S_PROXY_URL: "https://gitlab.cdrentertainment.com/-/kubernetes-agent/k8s-proxy/"
+    KUBE_CONTEXT: "platform-services/platform-services-agent:platform-services"
   script:
+    - kubectl config get-contexts
+    - kubectl config use-context "$KUBE_CONTEXT"
     - auto-deploy check_kube_domain
     - auto-deploy download_chart
     - auto-deploy ensure_namespace
@@ -21,6 +26,10 @@
 dev:
   extends: .auto-deploy
   stage: dev
+  variables:
+    AGENT_ID: 2
+    KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
+    KUBE_NAMESPACE: "leaderboard-service-v2-25-dev"
   environment:
     name: dev
     url: https://dev.nonprod.tower.cdrentertainment.com/
@@ -29,6 +38,10 @@ stage-a:
   extends: .auto-deploy
   stage: staging
   allow_failure: false
+  variables:
+    AGENT_ID: 2
+    KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
+    KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-a"
   environment:
     name: stage-a
     url: https://stage-a.nonprod.tower.cdrentertainment.com/
@@ -37,6 +50,10 @@ stage-b:
   extends: .auto-deploy
   stage: staging
   allow_failure: false
+  variables:
+    AGENT_ID: 2
+    KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
+    KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-b"
   environment:
     name: stage-b
     url: https://stage-b.nonprod.tower.cdrentertainment.com/
@@ -45,6 +62,10 @@ stage-c:
   extends: .auto-deploy
   stage: staging
   allow_failure: false
+  variables:
+    AGENT_ID: 2
+    KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
+    KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-c"
   environment:
     name: stage-c
     url: https://stage-c.nonprod.tower.cdrentertainment.com/
