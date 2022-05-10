@@ -96,10 +96,7 @@ build_image:
   needs:
     - job: build_app
       artifacts: true
-  artifacts:
-    paths:
-      - $CI_PROJECT_DIR/trivy/$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHA.html
-    expire_in: 1 week
+
 
 # commit_scan_results:
 #   stage: scan
