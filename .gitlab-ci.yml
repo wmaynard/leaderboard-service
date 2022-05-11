@@ -54,6 +54,10 @@ build_app:
     - CURRENTVERSION="$(dotnet ./bin/Release/net6.0/leaderboard-service.dll -version | cut -d':' -f2)"
     - git tag $CURRENTVERSION; git push https://$BOT_USER:${BOT_PAT}@gitlab.cdrentertainment.com/platform-services/$CI_PROJECT_NAME.git --tags
     - echo "$CURRENTVERSION"
+    - wget https://github.com/aquasecurity/trivy/releases/download/v0.27.1/trivy_0.27.1_Linux-64bit.tar.gz
+    - tar -zxvf trivy*
+    - chmod +x $CI_PROJECT_DIR/trivy
+    - ./trivy --cache-dir $CI_PROJECT_DIR/.trivycache fs --security-checks vuln .
   artifacts:
     paths:
       - bin/Release/net6.0/*
@@ -82,9 +86,7 @@ build_image:
     - wget https://github.com/aquasecurity/trivy/releases/download/v0.27.1/trivy_0.27.1_Linux-64bit.tar.gz
     - tar -zxvf trivy*
     - chmod +x $CI_PROJECT_DIR/trivy
-    - wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
     - ./trivy --cache-dir $CI_PROJECT_DIR/.trivycache image --severity HIGH,CRITICAL $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA
-    - ./trivy --cache-dir $CI_PROJECT_DIR/.trivycache fs --security-checks vuln bin/Release/net6.0/
   rules:
     - if: '$BUILD_DISABLED'
       when: never
