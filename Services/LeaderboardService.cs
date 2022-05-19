@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.FileProviders.Physical;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;

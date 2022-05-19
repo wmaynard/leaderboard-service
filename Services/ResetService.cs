@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
