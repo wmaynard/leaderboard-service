@@ -9,6 +9,7 @@ variables:
   K8S_SECRET_RUMBLE_COMPONENT: "$RUMBLE_COMPONENT"
   K8S_SECRET_RUMBLE_DEPLOYMENT: "$RUMBLE_DEPLOYMENT"
   K8S_SECRET_MONGODB_URI: "$MONGODB_URI"
+  K8S_SECRET_SLACK_LOG_CHANNEL: "$SLACK_LOG_CHANNEL"
   
   # Common Platform CI variables - contains information for several environments,
   # parsed by PlatformEnvironment.
