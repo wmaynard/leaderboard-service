@@ -126,6 +126,17 @@ public class AdminController : PlatformController
 #if RELEASE
 		SlackDiagnostics
 			.Log(
+				title: $"{PlatformEnvironment.Deployment}-{RolloverType.Daily.ToString()} rollover manually triggered",
+				message: $"{Token.ScreenName} manually triggered the leaderboards rollover.")
+			.Attach(name: "Token information", content: Token.JSON)
+			.Send()
+			.Wait();
+#endif
+		_leaderboardService.Rollover(RolloverType.Daily);
+		
+#if RELEASE
+		SlackDiagnostics
+			.Log(
 				title: $"{PlatformEnvironment.Deployment}-{RolloverType.Weekly.ToString()} rollover manually triggered",
 				message: $"{Token.ScreenName} manually triggered the leaderboards rollover.")
 			.Attach(name: "Token information", content: Token.JSON)

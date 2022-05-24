@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 
@@ -14,7 +15,7 @@ public class RewardHistory : PlatformCollectionDocument
 	public const string FRIENDLY_KEY_ACCOUNT_ID = "accountId";
 	public const string FRIENDLY_KEY_REWARDS = "rewards";
 		
-	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
+	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired, SimpleIndex(dbKey: DB_KEY_ACCOUNT_ID, name: FRIENDLY_KEY_ACCOUNT_ID)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID)]
 	public string AccountId { get; set; }
 		

@@ -75,33 +75,5 @@ namespace Rumble.Platform.LeaderboardService.Controllers
 				Response = leaderboard.GenerateScoreResponse(Token.AccountId),
 			});
 		}
-
-		[HttpGet, Route("test"), NoAuth]
-		public ActionResult Test()
-		{
-			Leaderboard output = null;
-			SortedList<string, long> list = new SortedList<string, long>();
-			for (int i = 0; i < 1_00; i++)
-			{
-				string accountId = "rando-" + i;//+ Guid.NewGuid().ToString();
-				int score = new Random().Next(0, 500);
-				list.Add(accountId, score);
-				string type = "pvp_daily";
-				Enrollment enrollment = _enrollmentService.FindOrCreate(accountId, type);
-				output = _leaderboardService.AddScore(enrollment, score);
-			}
-			
-			return Ok(new
-			{
-				Leaderboard = output
-			});
-		}
-
-		[HttpGet, Route("triggerDailyRollover"), NoAuth]
-		public ActionResult Test2()
-		{
-			_leaderboardService.Rollover(RolloverType.Daily);
-			return Ok();
-		}
 	}
 }
