@@ -16,10 +16,10 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class ResetService : MasterService
 {
-	public const string CONFIG_HOURLY_SETTING = "HourlyResetMinute";	// 0-59
-	public const string CONFIG_DAILY_SETTING = "DailyResetTimeUTC_24h";	// 00:00 - 23:59
-	public const string CONFIG_WEEKLY_SETTING = "WeeklyResetDay";		// NOT 0-index
-	public const string CONFIG_MONTHLY_SETTING = "MonthlyResetDay";		// NOT 0-index
+	public const string CONFIG_HOURLY_SETTING = "leaderboard_HourlyResetMinute";	// 0-59
+	public const string CONFIG_DAILY_SETTING = "leaderboard_DailyResetTimeUTC_24h";	// 00:00 - 23:59
+	public const string CONFIG_WEEKLY_SETTING = "leaderboard_WeeklyResetDay";		// NOT 0-index
+	public const string CONFIG_MONTHLY_SETTING = "leaderboard_MonthlyResetDay";		// NOT 0-index
 	public const string LAST_HOURLY_SETTING = "lastHourlyRollover";
 	public const string LAST_DAILY_SETTING = "lastDailyRollover";
 	public const string LAST_WEEKLY_SETTING = "lastWeeklyRollover";
