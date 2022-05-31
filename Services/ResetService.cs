@@ -57,7 +57,7 @@ public class ResetService : MasterService
 		get => Get<DateTime>(LAST_MONTHLY_SETTING);
 		set => Set(LAST_MONTHLY_SETTING, value);
 	}
-	
+
 	public ResetService(ConfigService configService) : base(configService)
 	{
 #pragma warning disable CS4014

@@ -39,7 +39,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 
 		public override string ToString()
 		{
-			string rank = (Rank + 1).ToString().PadLeft(5, ' ');
+			string rank = Rank.ToString().PadLeft(5, ' ');
 			string score = Score.ToString().PadRight(7);
 
 			return $"{rank} | {AccountID} | {score} | {Prize.ToString()}";

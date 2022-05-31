@@ -128,7 +128,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 				.ToList();
 
 			foreach (Entry entry in output)
-				entry.Rank = output.IndexOf(entry);
+				entry.Rank = output.IndexOf(entry) + 1;
 
 			return output;
 		}

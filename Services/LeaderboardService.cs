@@ -420,8 +420,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		{
 			// TODO: Once Portal has a Leaderboards UI, remove this.
 			
-			string attachment = string.Join(Environment.NewLine, ranks.Where(entry => entry.Prize != null).Select(rank => rank.ToString()));
-			int rewardPlayerCount = ranks.Count(entry => entry.Prize != null);
+			string attachment = string.Join(Environment.NewLine, ranks.Where(entry => entry.Prize != null && entry.Score > 0).Select(rank => rank.ToString()));
+			int rewardPlayerCount = ranks.Count(entry => entry.Prize != null && entry.Score > 0);
 			int noRewardPlayerCount = ranks.Count(entry => entry.Prize == null);
 
 			string message = $"Player ranks have been calculated.\n{rewardPlayerCount} player(s) received rewards.";
