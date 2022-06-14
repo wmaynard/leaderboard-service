@@ -171,65 +171,52 @@ namespace Rumble.Platform.LeaderboardService.Models
 			Scores = new List<Entry>();
 		}
 
-		public bool Validate(out string[] errors)
+		protected override void Validate(out List<string> errors)
 		{
-			List<string> messages = new List<string>();
-			bool output = true;
-
-			bool Test(bool condition, string error)
-			{
-				if (!condition)
-					messages.Add(error);
-				return condition;
-			}
+			
+			errors = null;
 
 			TierRules ??= Array.Empty<TierRules>();
-			output &= Test(condition: !string.IsNullOrWhiteSpace(Type), error: $"{FRIENDLY_KEY_TYPE} not provided.");
-			output &= Test(condition: !string.IsNullOrWhiteSpace(Title), error: $"{FRIENDLY_KEY_TITLE} not provided.");
-			output &= Test(condition: !string.IsNullOrWhiteSpace(Description), error: $"{FRIENDLY_KEY_DESCRIPTION} not provided.");
-			output &= Test(condition: TierCount > 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.");
-			output &= Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined for {Type}.");
+			Test(condition: !string.IsNullOrWhiteSpace(Type), error: $"{FRIENDLY_KEY_TYPE} not provided.", ref errors);
+			Test(condition: !string.IsNullOrWhiteSpace(Title), error: $"{FRIENDLY_KEY_TITLE} not provided.", ref errors);
+			Test(condition: !string.IsNullOrWhiteSpace(Description), error: $"{FRIENDLY_KEY_DESCRIPTION} not provided.", ref errors);
+			Test(condition: TierCount > 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.", ref errors);
+			Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined for {Type}.", ref errors);
 
 			foreach (TierRules rules in TierRules)
 			{
-				output &= Test(
+				Test(
 					condition: rules.PromotionRank < rules.DemotionRank || rules.DemotionRank <= 0, 
-					error: $"'{Models.TierRules.FRIENDLY_KEY_PROMOTION_RANK}' must be greater than '{Models.TierRules.FRIENDLY_KEY_DEMOTION_RANK}'."
+					error: $"'{Models.TierRules.FRIENDLY_KEY_PROMOTION_RANK}' must be greater than '{Models.TierRules.FRIENDLY_KEY_DEMOTION_RANK}'.",
+					ref errors
 				);
-				output &= Test(
+				Test(
 					condition: rules.PlayersPerShard > -1 || rules.PlayersPerShard >= Math.Max(rules.PromotionRank, rules.DemotionRank),
-					error: $"'{Models.TierRules.FRIENDLY_KEY_PLAYERS_PER_SHARD}' must be greater than promotion and demotion rules if it's a non-negative number."
+					error: $"'{Models.TierRules.FRIENDLY_KEY_PLAYERS_PER_SHARD}' must be greater than promotion and demotion rules if it's a non-negative number.", 
+					ref errors
 				);
 			}
 			for (int tier = 0; tier <= MaxTier; tier++)
-				output &= Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, error: $"{FRIENDLY_KEY_TIER_RULES} invalid for {tier}-{Type}.");
+				Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, error: $"{FRIENDLY_KEY_TIER_RULES} invalid for {tier}-{Type}.", ref errors);
 
 			foreach (Reward reward in TierRules.SelectMany(rules => rules.Rewards))
 			{
-				output &= Test(condition: !string.IsNullOrWhiteSpace(reward.Subject), error: $"Reward value '{Reward.FRIENDLY_KEY_SUBJECT}' not provided.");
-				output &= Test(condition: !string.IsNullOrWhiteSpace(reward.Message), error: $"Reward value '{Reward.FRIENDLY_KEY_BODY}' not provided.");
-				output &= Test(condition: reward.Contents != null && reward.Contents.Any(), error: $"Reward value '{Reward.FRIENDLY_KEY_ATTACHMENTS}' not provided.");
-				output &= Test(condition: reward.Tier >= 0, error: $"Reward value '{Reward.FRIENDLY_KEY_TIER}' must be greater than or equal to 0.");
-				output &= Test(condition: reward.MinimumRank >= 1 || (reward.MinimumPercentile >= 0 && reward.MinimumPercentile <= 100), error: "Reward criteria invalid.");
+				Test(condition: !string.IsNullOrWhiteSpace(reward.Subject), error: $"Reward value '{Reward.FRIENDLY_KEY_SUBJECT}' not provided.", ref errors);
+				Test(condition: !string.IsNullOrWhiteSpace(reward.Message), error: $"Reward value '{Reward.FRIENDLY_KEY_BODY}' not provided.", ref errors);
+				Test(condition: reward.Contents != null && reward.Contents.Any(), error: $"Reward value '{Reward.FRIENDLY_KEY_ATTACHMENTS}' not provided.", ref errors);
+				Test(condition: reward.Tier >= 0, error: $"Reward value '{Reward.FRIENDLY_KEY_TIER}' must be greater than or equal to 0.", ref errors);
+				Test(condition: reward.MinimumRank >= 1 || (reward.MinimumPercentile >= 0 && reward.MinimumPercentile <= 100), error: "Reward criteria invalid.", ref errors);
 
 				if (reward.Contents == null)
 					continue;
 
 				foreach (Attachment item in reward.Contents)
 				{
-					output &= Test(condition: item.Quantity > 0, error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_QUANTITY}' must be greater than 0.");
-					output &= Test(condition: !string.IsNullOrWhiteSpace(item.Type), error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_TYPE}' not provided.");
-					output &= Test(condition: !string.IsNullOrWhiteSpace(item.ResourceID), error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_RESOURCE_ID}' not provided.");
+					Test(condition: item.Quantity > 0, error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_QUANTITY}' must be greater than 0.", ref errors);
+					Test(condition: !string.IsNullOrWhiteSpace(item.Type), error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_TYPE}' not provided.", ref errors);
+					Test(condition: !string.IsNullOrWhiteSpace(item.ResourceID), error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_RESOURCE_ID}' not provided.", ref errors);
 				}
 			}
-
-			if (!output)
-				Log.Error(Owner.Will, $"Leaderboard {Type} failed validation.", data: new
-				{
-					Messages = messages
-				});
-			errors = messages.ToArray();
-			return output;
 		}
 	}
 }

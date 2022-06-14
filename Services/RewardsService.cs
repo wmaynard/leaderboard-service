@@ -108,7 +108,11 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 		}
 
 		long sent = MarkAsSent(successes);
-		Log.Info(Owner.Will, $"Successfully sent {sent} players rewards.");
+		if (sent > 0)
+			Log.Info(Owner.Will, $"Successfully sent players rewards.", data: new
+			{
+				Count = sent
+			});
 	}
 	
 	private long MarkAsSent(List<string> ids) => _collection.UpdateMany(

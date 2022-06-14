@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Routing;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.LeaderboardService.Models;
@@ -21,6 +23,7 @@ public class AdminController : PlatformController
 	private readonly EnrollmentService _enrollmentService;
 	private readonly Services.LeaderboardService _leaderboardService;
 	private readonly RewardsService _rewardsService;
+	private readonly ApiService _apiService;
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
 
@@ -36,8 +39,7 @@ public class AdminController : PlatformController
 
 		foreach (Leaderboard leaderboard in leaderboards)
 		{
-			if (!leaderboard.Validate(out string[] errors))
-				return Problem(data: new { Errors = errors });
+			leaderboard.Validate();
 
 			if (_leaderboardService.Count(leaderboard.Type) > 0)
 			{
@@ -145,5 +147,105 @@ public class AdminController : PlatformController
 #endif
 		_leaderboardService.Rollover(RolloverType.Weekly);
 		return Ok();
+	}
+
+	/// <summary>
+	/// This allows QA to create tons of scores to test with.
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="PlatformException"></exception>
+	[HttpPost, Route("mockScores"), IgnorePerformance]
+	public ActionResult AddFakeUserScores()
+	{
+		if (PlatformEnvironment.IsProd)
+			throw new PlatformException("Not allowed on prod.", code: ErrorCode.NotSpecified); // TODO: Create error code
+		const int MAX_USERS = 1_000;
+		
+		int count = Require<int>("userCount");
+		string type = Require<string>("leaderboardId");
+
+		if (!count.Between(1, MAX_USERS))
+			throw new PlatformException($"User count must be a positive integer and {MAX_USERS} or less.", code: ErrorCode.InvalidRequestData);
+
+		int min = Optional<int?>("minScore") ?? 0;
+		int max = Optional<int?>("maxScore") ?? 100;
+
+		if (min >= max)
+			throw new PlatformException("Minimum score must be less than the maximum score.", code: ErrorCode.InvalidRequestData);
+		
+		Random rando = new Random();
+
+		int successes = 0;
+		int failures = 0;
+
+		List<string> ids = new List<string>();
+		
+		while (count-- > 0)
+			try
+			{
+				_apiService
+					.Request(PlatformEnvironment.Url("/player/v2/launch"))
+					.SetPayload(new GenericData
+					{
+						{ "installId", $"locust-leaderboard-{count}" }
+					})
+					.OnSuccess((_, _) =>
+					{
+						successes++;
+					})
+					.OnFailure((_, _) =>
+					{
+						failures++;
+					}).Post(out GenericData launchResponse, out int launchCode);
+
+				if (!launchCode.Between(200, 299))
+					continue;
+
+				string token = launchResponse.Require<string>("accessToken");
+
+				_apiService
+					.Request(PlatformEnvironment.Url("/leaderboard/score"))
+					.AddAuthorization(token)
+					.SetPayload(new GenericData
+					{
+						{ "score", rando.Next(min, max) },
+						{ "leaderboardId", type }
+					})
+					.OnSuccess((_, _) =>
+					{
+						successes++;
+					})
+					.OnFailure((_, _) =>
+					{
+						failures++;
+					})
+					.Patch(out GenericData scoreResponse, out int scoreCode);
+
+				string id = scoreResponse.Optional<Leaderboard>("leaderboard")?.Id;
+				if (id != null)
+					ids.Add(id);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e);
+				throw;
+			}
+
+		List<Leaderboard> leaderboards = new List<Leaderboard>();
+		
+		foreach (string id in ids.Distinct())
+			leaderboards.Add(_leaderboardService.Find(id));
+
+		GenericData output = new GenericData
+		{
+			{ "successfulRequests", successes },
+			{ "failedRequests", failures }
+		};
+		if (leaderboards.Count > 1)
+			output["leaderboards"] = leaderboards;
+		else if (leaderboards.Any())
+			output["leaderboard"] = leaderboards.First();
+
+		return Ok(output);
 	}
 }

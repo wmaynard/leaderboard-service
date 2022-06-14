@@ -118,7 +118,10 @@ public class ResetService : MasterService
 		{
 			try
 			{
-				Log.Info(Owner.Will, $"{rolloverType} rollover triggered.");
+				Log.Info(Owner.Will, $"{rolloverType} rollover triggered.", data: new
+				{
+					ServiceID = ID
+				});
 				_leaderboardService.Rollover(rolloverType);
 				
 				success = true;

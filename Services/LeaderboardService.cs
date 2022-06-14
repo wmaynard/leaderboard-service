@@ -30,6 +30,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		_rewardService = reward;
 	}
 
+	public Leaderboard Find(string id) => _collection.Find(filter: leaderboard => leaderboard.Id == id).FirstOrDefault();
+
 	internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);
 
 	public Leaderboard Find(string accountId, string type) => AddScore(_enrollmentService.FindOrCreate(accountId, type), 0);
@@ -382,12 +384,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		foreach (Entry entry in ranks.Where(e => e.Score > 0))
 			_rewardService.Grant(entry.Prize, accountIds: entry.AccountID);
 
-		// foreach (Reward reward in rewards)
-		// 	_rewardService.Grant(reward, accountIds: ranks
-		// 		.Where(entry => entry.Prize?.TemporaryID == reward.TemporaryID)
-		// 		.Select(entry => entry.AccountID)
-		// 		.ToArray());
-
 		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id);
 		
 		leaderboard.Scores = new List<Entry>();
@@ -463,6 +459,3 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		return output;
 	}
 }
-// View leaderboard
-// Set score for leaderboard (Admin)
-// MS remaining?
