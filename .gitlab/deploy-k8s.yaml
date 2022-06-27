@@ -21,29 +21,6 @@
     - if: $DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"
       when: manual
 
-.auto-deploy-prod:
-  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-deploy-image:v2.26.0"
-  dependencies: []
-  variables:
-    KUBE_CONTEXT: "platform-services/platform-services-agent:prod-platform-services"
-  script:
-    - auto-deploy check_kube_domain
-    - auto-deploy download_chart
-    - auto-deploy ensure_namespace
-    - auto-deploy initialize_tiller
-    - auto-deploy create_secret
-    - auto-deploy deploy
-  rules:
-    - if: '$CI_KUBERNETES_ACTIVE == null || $CI_KUBERNETES_ACTIVE == ""'
-      when: never
-    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
-      when: never
-    - if: $CI_COMMIT_TAG
-      when: never
-    - if: $DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"
-      when: manual
-
-
 dev:
   extends: .auto-deploy
   stage: dev
@@ -88,8 +65,12 @@ stage-c:
     url: https://stage-c.nonprod.tower.cdrentertainment.com/
 
 production:
-  extends: .auto-deploy-prod
+  extends: .auto-deploy
   stage: production
+  variables:
+    KUBE_CONTEXT: "platform-services/platform-services-agent:prod-platform-services"
+    KUBE_INGRESS_BASE_DOMAIN: platform-a.prod.tower.rumblegames.com
+    KUBE_NAMESPACE: "leaderboard-service-v2"
   tags:
     - production
   environment:
