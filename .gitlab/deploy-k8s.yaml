@@ -12,14 +12,11 @@
     - auto-deploy create_secret
     - auto-deploy deploy
   rules:
-    - if: '$CI_KUBERNETES_ACTIVE == null || $CI_KUBERNETES_ACTIVE == ""'
-      when: never
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
       when: never
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"
-      when: manual
+    - when: manual
 
 dev:
   extends: .auto-deploy
@@ -27,6 +24,8 @@ dev:
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
     KUBE_NAMESPACE: "leaderboard-service-v2-25-dev"
+  tags:
+    - cluster
   environment:
     name: dev
     url: https://dev.nonprod.tower.cdrentertainment.com/
@@ -38,6 +37,8 @@ stage-a:
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
     KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-a"
+  tags:
+    - cluster
   environment:
     name: stage-a
     url: https://stage-a.nonprod.tower.cdrentertainment.com/
@@ -49,6 +50,8 @@ stage-b:
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
     KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-b"
+  tags:
+    - cluster
   environment:
     name: stage-b
     url: https://stage-b.nonprod.tower.cdrentertainment.com/
@@ -60,6 +63,8 @@ stage-c:
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
     KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-c"
+  tags:
+    - cluster
   environment:
     name: stage-c
     url: https://stage-c.nonprod.tower.cdrentertainment.com/
@@ -89,3 +94,16 @@ production-b:
   environment:
     name: production/platform-b
     url: https://platform-b.prod.tower.rumblegames.com/
+
+production-c:
+  extends: .auto-deploy
+  stage: production
+  variables:
+    KUBE_CONTEXT: "platform-services/platform-services-agent:prod-c-platform-services"
+    KUBE_INGRESS_BASE_DOMAIN: prod.tower.rumblegames.com
+    KUBE_NAMESPACE: "leaderboard-service-v2"
+  tags:
+    - production-c
+  environment:
+    name: production/platform-c
+    url: https://platform-c.prod.tower.rumblegames.com/
