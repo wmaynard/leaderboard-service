@@ -119,4 +119,4 @@ production-d:
     - production-d
   environment:
     name: production/platform-d
-    url: https://platform-c.prod.tower.rumblegames.com/
+    url: https://platform-d.prod.tower.rumblegames.com/
