@@ -14,6 +14,7 @@ variables:
   # Common Platform CI variables - contains information for several environments,
   # parsed by PlatformEnvironment.
   K8S_SECRET_PLATFORM_COMMON: "$PLATFORM_COMMON"
+  K8S_SECRET_COMMIT_SHA: "$CI_COMMIT_SHA"
   
   # Overrides for Platform Common CI
   # These variables are not inherently necessary for your project to run successfully in environments.  A value from these will always come from PLATFORM_COMMON.
