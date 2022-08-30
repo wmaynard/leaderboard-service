@@ -225,15 +225,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		return output;
 	}
 
-	public string[] ListLeaderboardTypes()
-	{
-		return _collection
-			.Find(leaderboard => true)
-			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Type))
-			.ToList()
-			.Distinct()
-			.ToArray();
-	}
+	public string[] ListLeaderboardTypes() => _collection
+		.Find(leaderboard => true)
+		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Type))
+		.ToList()
+		.Distinct()
+		.ToArray();
 
 	public async Task Rollover(RolloverType type)
 	{
@@ -447,15 +444,11 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		return leaderboard;
 	}
 
-	public List<Entry> CalculateTopScores(Enrollment enrollment)
-	{
-		List<Entry> output = _collection
-			.Find(filter: CreateFilter(enrollment, allowLocked: true))
-			.Sort(Builders<Leaderboard>.Sort.Descending($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}"))
-			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Scores))
-			.Limit(Leaderboard.PAGE_SIZE)
-			.ToList()
-			.FirstOrDefault();
-		return output;
-	}
+	public List<Entry> CalculateTopScores(Enrollment enrollment) => _collection
+		.Find(filter: CreateFilter(enrollment, allowLocked: true))
+		.Sort(Builders<Leaderboard>.Sort.Descending($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}"))
+		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Scores))
+		.Limit(Leaderboard.PAGE_SIZE)
+		.ToList()
+		.FirstOrDefault();
 }
