@@ -135,6 +135,7 @@ public class AdminController : PlatformController
 			.Send()
 			.Wait();
 #endif
+		_leaderboardService.Rollover(RolloverType.Hourly);
 		_leaderboardService.Rollover(RolloverType.Daily);
 		
 #if RELEASE
@@ -147,6 +148,7 @@ public class AdminController : PlatformController
 			.Wait();
 #endif
 		_leaderboardService.Rollover(RolloverType.Weekly);
+		_leaderboardService.Rollover(RolloverType.Monthly);
 		return Ok();
 	}
 
@@ -184,6 +186,9 @@ public class AdminController : PlatformController
 		while (count-- > 0)
 			try
 			{
+				if (count % 10 == 0)
+					Log.Local(Owner.Will, $"{count} scores remaining.");
+				
 				_apiService
 					.Request(PlatformEnvironment.Url("/player/v2/launch"))
 					.SetPayload(new GenericData
@@ -205,7 +210,11 @@ public class AdminController : PlatformController
 				string token = launchResponse.Require<string>("accessToken");
 
 				_apiService
+#if DEBUG
+					.Request(PlatformEnvironment.Url("http://localhost:5091/leaderboard/score"))
+#else
 					.Request(PlatformEnvironment.Url("/leaderboard/score"))
+#endif
 					.AddAuthorization(token)
 					.SetPayload(new GenericData
 					{
@@ -216,7 +225,7 @@ public class AdminController : PlatformController
 					{
 						successes++;
 					})
-					.OnFailure((_, _) =>
+					.OnFailure((_, response) =>
 					{
 						failures++;
 					})

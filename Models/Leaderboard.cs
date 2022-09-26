@@ -42,8 +42,7 @@ namespace Rumble.Platform.LeaderboardService.Models
 		public const string FRIENDLY_KEY_TIME_ENDED = "lastRollover";
 		public const string FRIENDLY_KEY_TITLE = "title";
 		public const string FRIENDLY_KEY_TYPE = "leaderboardId";
-		
-		
+
 		public const int PAGE_SIZE = 50;
 		
 		[BsonElement(DB_KEY_TYPE), BsonRequired]
@@ -65,6 +64,10 @@ namespace Rumble.Platform.LeaderboardService.Models
 		[BsonIgnore]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROLLOVER_TYPE_STRING), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 		public string RolloverTypeString => RolloverType.ToString();
+		
+		[BsonIgnore]
+		[JsonIgnore]
+		public bool IsFull => Scores.Count >= CurrentTierRules.PlayersPerShard;
 		
 		[BsonElement(DB_KEY_TIER)]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER)]

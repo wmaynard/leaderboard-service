@@ -72,6 +72,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         if (LastDailyRollover.Day != now.Day && PastResetTime(now))
         {
             LastDailyRollover = now;
+            // TODO: future improvement - roll over each leaderboard individually as opposed to by type
             CreateTask(new RolloverData
             {
                 RolloverType = RolloverType.Daily

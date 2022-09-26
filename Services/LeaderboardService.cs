@@ -6,6 +6,7 @@ using Microsoft.Extensions.FileProviders.Physical;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
@@ -71,8 +72,71 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		return filter.And(
 			filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
 			filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
-			filter.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID)
+			filter.ElemMatch(
+				field: leaderboard => leaderboard.Scores, 
+				filter: entry => entry.AccountID == enrollment.AccountID
+			)
 		); 
+	}
+
+	private FilterDefinition<Leaderboard> CreateShardFilter(Enrollment enrollment, int playersPerShard)
+	{
+		FilterDefinitionBuilder<Leaderboard> filter = Builders<Leaderboard>.Filter;
+		return filter.And(
+			filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
+			filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
+			// filter.Eq(leaderboard => leaderboard.IsFull, false),
+			filter.SizeLte(leaderboard => leaderboard.Scores, playersPerShard)
+		);
+	}
+
+	private Leaderboard SpawnShard(Enrollment enrollment, long score, IClientSessionHandle session = null)
+	{
+		Leaderboard template = _collection
+			.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType && leaderboard.Tier == enrollment.Tier)
+			.FirstOrDefault();
+		
+		if (template == null)
+			throw new PlatformException("Leaderboard not found.  This is a problem with a Mongo query.", code: ErrorCode.MongoRecordNotFound);
+		
+		template.ChangeId();
+		template.Scores = new List<Entry> { new Entry
+		{
+			AccountID = enrollment.AccountID,
+			LastUpdated = Timestamp.UnixTime,
+			Score = score
+		}};
+		template.ShardID = ObjectId.GenerateNewId().ToString();
+		
+		if (session != null)
+			_collection.InsertOne(session, template);
+		else
+			_collection.InsertOne(template);
+		return template;
+	}
+
+	private Leaderboard AddToExistingScore(Enrollment enrollment, long score, IClientSessionHandle session = null)
+	{
+		FilterDefinition<Leaderboard> filter = CreateFilter(enrollment, allowLocked: false);
+		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Inc($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score);
+		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
+		{
+			ReturnDocument = ReturnDocument.After,
+			IsUpsert = false
+		};
+
+		return session == null
+			? _collection.FindOneAndUpdate<Leaderboard>(
+				filter: filter,
+				update: update,
+				options: options
+			)
+			: _collection.FindOneAndUpdate<Leaderboard>(
+				filter: filter,
+				session: session,
+				update: update,
+				options: options
+			);
 	}
 
 	private void EnsureUnlocked(Enrollment enrollment)
@@ -131,31 +195,45 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	public Leaderboard AddScore(Enrollment enrollment, int score)
 	{
 		StartTransactionIfRequested(out IClientSessionHandle session);
+
+		TierRules rules = _collection
+			.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType)
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.TierRules))
+			.FirstOrDefault()
+			?.FirstOrDefault(rules => rules.Tier == enrollment.Tier);
+
+		if (rules == null)
+			throw new PlatformException("Invalid rule set.  This is a problem with a Mongo query.", code: ErrorCode.MongoRecordNotFound);
+		
+		
 		
 		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Inc($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score);
 			
 		if (score != 0)
 			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
 
-		Leaderboard output = _collection.FindOneAndUpdate<Leaderboard>(
-			filter: CreateFilter(enrollment, allowLocked: false),
-			session: session,
-			update: update,
-			options: new FindOneAndUpdateOptions<Leaderboard>()
-			{
-				ReturnDocument = ReturnDocument.After,
-				IsUpsert = false
-			}
-		);
+		Leaderboard found = _collection.Find(CreateFilter(enrollment, allowLocked: false)).FirstOrDefault();
+		
 
+		Leaderboard output;
 		if (session != null)
+		{
+			output = _collection.FindOneAndUpdate<Leaderboard>(
+				filter: CreateFilter(enrollment, allowLocked: false),
+				session: session,
+				update: update,
+				options: new FindOneAndUpdateOptions<Leaderboard>
+				{
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			);
 			// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
 			output ??= _collection.FindOneAndUpdate<Leaderboard>(
-				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
-					&& leaderboard.Tier == enrollment.Tier,
+				filter: CreateShardFilter(enrollment, rules.PlayersPerShard),
 				session: session,
 				update: Builders<Leaderboard>.Update
-					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
+					.AddToSet(leaderboard => leaderboard.Scores, new Entry
 					{
 						AccountID = enrollment.AccountID,
 						Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
@@ -167,12 +245,27 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 					IsUpsert = false
 				}
 			);
+			
+			// if output is null, it means we need a new shard.
+			output ??= SpawnShard(enrollment, score, session);
+
+			found = output;
+		}
 		else
+		{
+			output = _collection.FindOneAndUpdate<Leaderboard>(
+				filter: CreateFilter(enrollment, allowLocked: false),
+				update: update,
+				options: new FindOneAndUpdateOptions<Leaderboard>
+				{
+					ReturnDocument = ReturnDocument.After,
+					IsUpsert = false
+				}
+			);
 			output ??= _collection.FindOneAndUpdate<Leaderboard>(
-				filter: leaderboard => leaderboard.Type == enrollment.LeaderboardType
-					&& leaderboard.Tier == enrollment.Tier,
+				filter: CreateShardFilter(enrollment, rules.PlayersPerShard),
 				update: Builders<Leaderboard>.Update
-					.AddToSet(leaderboard => leaderboard.Scores, new Entry()
+					.AddToSet(leaderboard => leaderboard.Scores, new Entry
 					{
 						AccountID = enrollment.AccountID,
 						Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
@@ -184,6 +277,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 					IsUpsert = false
 				}
 			);
+			output ??= SpawnShard(enrollment, score);
+		}
 
 		// If the score is negative, there's a chance the user was pushed below 0.  This *should* be handled first in the client / server, which shouldn't send us values that
 		// push someone below 0.
