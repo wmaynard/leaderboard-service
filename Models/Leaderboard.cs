@@ -176,7 +176,6 @@ namespace Rumble.Platform.LeaderboardService.Models
 
 		protected override void Validate(out List<string> errors)
 		{
-			
 			errors = null;
 
 			TierRules ??= Array.Empty<TierRules>();
@@ -193,11 +192,12 @@ namespace Rumble.Platform.LeaderboardService.Models
 					error: $"'{Models.TierRules.FRIENDLY_KEY_PROMOTION_RANK}' must be greater than '{Models.TierRules.FRIENDLY_KEY_DEMOTION_RANK}'.",
 					ref errors
 				);
-				Test(
-					condition: rules.PlayersPerShard > -1 || rules.PlayersPerShard >= Math.Max(rules.PromotionRank, rules.DemotionRank),
-					error: $"'{Models.TierRules.FRIENDLY_KEY_PLAYERS_PER_SHARD}' must be greater than promotion and demotion rules if it's a non-negative number.", 
-					ref errors
-				);
+				if (rules.PlayersPerShard >= 0)
+					Test(
+						condition: rules.PlayersPerShard >= Math.Max(rules.PromotionRank, rules.DemotionRank),
+						error: $"'{Models.TierRules.FRIENDLY_KEY_PLAYERS_PER_SHARD}' must be greater than promotion and demotion rules if it's a non-negative number.", 
+						ref errors
+					);
 			}
 			for (int tier = 0; tier <= MaxTier; tier++)
 				Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, error: $"{FRIENDLY_KEY_TIER_RULES} invalid for {tier}-{Type}.", ref errors);

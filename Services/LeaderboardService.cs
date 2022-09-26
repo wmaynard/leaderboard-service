@@ -86,10 +86,98 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
 			filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
 			// filter.Eq(leaderboard => leaderboard.IsFull, false),
-			filter.SizeLte(leaderboard => leaderboard.Scores, playersPerShard)
+			filter.SizeLt(leaderboard => leaderboard.Scores, playersPerShard) // This condition ignores negative values and returns true
 		);
 	}
+	
+	/// <summary>
+	/// Attempts to append a user's score to an existing score in a leaderboard.
+	/// </summary>
+	/// <param name="enrollment">The user's enrollment information.</param>
+	/// <param name="score">Points that the user scored for the current leaderboard.</param>
+	/// <param name="session">A Mongo session to complete all transactions in.</param>
+	/// <returns>The leaderboard the user is in, if updated.  Otherwise returns null.</returns>
+	private Leaderboard AddToExistingScore(Enrollment enrollment, long score, IClientSessionHandle session = null)
+	{
+		FilterDefinition<Leaderboard> filter = CreateFilter(enrollment, allowLocked: false);
+		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Inc($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score);
+		
+		// This adds a timestamp to nonzero scores; it doesn't overwrite the above incrementation.
+		if (score != 0)
+			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
+		
+		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
+		{
+			ReturnDocument = ReturnDocument.After,
+			IsUpsert = false
+		};
 
+		return session == null
+			? _collection.FindOneAndUpdate<Leaderboard>(
+				filter: filter,
+				update: update,
+				options: options
+			)
+			: _collection.FindOneAndUpdate<Leaderboard>(
+				filter: filter,
+				session: session,
+				update: update,
+				options: options
+			);
+	}
+	
+	/// <summary>
+	/// Attempts to add a new score entry to a leaderboard.  Returns null if there are no available shards to enter.
+	/// </summary>
+	/// <param name="enrollment">The user's enrollment information.</param>
+	/// <param name="score">Points that the user scored for the current leaderboard.</param>
+	/// <param name="session">A Mongo session to complete all transactions in.</param>
+	/// <returns>The leaderboard the user is in, if updated.  Otherwise returns null.</returns>
+	private Leaderboard AppendNewEntry(Enrollment enrollment, long score, IClientSessionHandle session = null)
+	{
+		TierRules rules = _collection
+			.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType)
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.TierRules))
+			.FirstOrDefault()
+			?.FirstOrDefault(rules => rules.Tier == enrollment.Tier);
+		
+		if (rules == null)
+			throw new PlatformException("Invalid rule set.  This is a problem with a Mongo query.", code: ErrorCode.MongoRecordNotFound);
+		
+		FilterDefinition<Leaderboard> filter = CreateShardFilter(enrollment, rules.PlayersPerShard);
+		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.AddToSet(leaderboard => leaderboard.Scores, new Entry
+		{
+			AccountID = enrollment.AccountID,
+			Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
+			LastUpdated = Timestamp.UnixTimeMS
+		});
+		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
+		{
+			ReturnDocument = ReturnDocument.After,
+			IsUpsert = false
+		};
+		
+		return session == null
+			? _collection.FindOneAndUpdate<Leaderboard>(
+				filter: filter,
+				update: update,
+				options: options
+			)
+			: _collection.FindOneAndUpdate<Leaderboard>(
+				filter: filter,
+				session: session,
+				update: update,
+				options: options
+			);
+	}
+	
+	/// <summary>
+	/// Creates a shard of a leaderboard with the user's current score in it.  Once all other updates fail, this gets called to score the user.
+	/// </summary>
+	/// <param name="enrollment">The user's enrollment information.</param>
+	/// <param name="score">Points that the user scored for the current leaderboard.</param>
+	/// <param name="session">A Mongo session to complete all transactions in.</param>
+	/// <returns>The new leaderboard shard for the current user.  Should never be null.</returns>
 	private Leaderboard SpawnShard(Enrollment enrollment, long score, IClientSessionHandle session = null)
 	{
 		Leaderboard template = _collection
@@ -115,17 +203,29 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		return template;
 	}
 
-	private Leaderboard AddToExistingScore(Enrollment enrollment, long score, IClientSessionHandle session = null)
+	private void FloorScores(Leaderboard leaderboard,  IClientSessionHandle session)
 	{
-		FilterDefinition<Leaderboard> filter = CreateFilter(enrollment, allowLocked: false);
-		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Inc($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score);
+		Log.Warn(Owner.Will, "Scores were found to be below zero.  Updating all scores to a minimum of 0.", data: new
+		{
+			LeaderboardId = leaderboard.Id,
+			Type = leaderboard.Type
+		});
+
+		// If the score is negative, there's a chance the user was pushed below 0.  This *should* be handled first in the client / server, which shouldn't send us values that
+		// push someone below 0.
+		// Negative values in the first place should be exceedingly rare, bordering on disallowed.  The one exception is the ability to use the leaderboards-service to track
+		// trophy count for PvP, which does require fluctuating values.  All other scoring criteria should be additive only.
+		// Still, we need to account for a scenario in which someone has been pushed below 0.  No one should be allowed to do that, so if that's the case, this update
+		// will set all negative scores to 0.
+		FilterDefinition<Leaderboard> filter = Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, leaderboard.Id);
+		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Max($"{Leaderboard.DB_KEY_SCORES}.$[].{Entry.DB_KEY_SCORE}", value: 0);
 		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
 		{
 			ReturnDocument = ReturnDocument.After,
 			IsUpsert = false
 		};
-
-		return session == null
+		
+		leaderboard = session == null
 			? _collection.FindOneAndUpdate<Leaderboard>(
 				filter: filter,
 				update: update,
@@ -196,126 +296,17 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	{
 		StartTransactionIfRequested(out IClientSessionHandle session);
 
-		TierRules rules = _collection
-			.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType)
-			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.TierRules))
-			.FirstOrDefault()
-			?.FirstOrDefault(rules => rules.Tier == enrollment.Tier);
+		Leaderboard output = AddToExistingScore(enrollment, score, session);
+		// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
+		output ??= AppendNewEntry(enrollment, score, session);
+		// if output is null, it means we need a new shard.
+		output ??= SpawnShard(enrollment, score, session);
 
-		if (rules == null)
-			throw new PlatformException("Invalid rule set.  This is a problem with a Mongo query.", code: ErrorCode.MongoRecordNotFound);
+		if (output == null)
+			throw new PlatformException("Unable to add to score in leaderboards.", code: ErrorCode.MongoRecordNotFound);
 		
-		
-		
-		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Inc($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score);
-			
-		if (score != 0)
-			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
-
-		Leaderboard found = _collection.Find(CreateFilter(enrollment, allowLocked: false)).FirstOrDefault();
-		
-
-		Leaderboard output;
-		if (session != null)
-		{
-			output = _collection.FindOneAndUpdate<Leaderboard>(
-				filter: CreateFilter(enrollment, allowLocked: false),
-				session: session,
-				update: update,
-				options: new FindOneAndUpdateOptions<Leaderboard>
-				{
-					ReturnDocument = ReturnDocument.After,
-					IsUpsert = false
-				}
-			);
-			// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
-			output ??= _collection.FindOneAndUpdate<Leaderboard>(
-				filter: CreateShardFilter(enrollment, rules.PlayersPerShard),
-				session: session,
-				update: Builders<Leaderboard>.Update
-					.AddToSet(leaderboard => leaderboard.Scores, new Entry
-					{
-						AccountID = enrollment.AccountID,
-						Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
-						LastUpdated = Timestamp.UnixTimeMS
-					}),
-				options: new FindOneAndUpdateOptions<Leaderboard>()
-				{
-					ReturnDocument = ReturnDocument.After,
-					IsUpsert = false
-				}
-			);
-			
-			// if output is null, it means we need a new shard.
-			output ??= SpawnShard(enrollment, score, session);
-
-			found = output;
-		}
-		else
-		{
-			output = _collection.FindOneAndUpdate<Leaderboard>(
-				filter: CreateFilter(enrollment, allowLocked: false),
-				update: update,
-				options: new FindOneAndUpdateOptions<Leaderboard>
-				{
-					ReturnDocument = ReturnDocument.After,
-					IsUpsert = false
-				}
-			);
-			output ??= _collection.FindOneAndUpdate<Leaderboard>(
-				filter: CreateShardFilter(enrollment, rules.PlayersPerShard),
-				update: Builders<Leaderboard>.Update
-					.AddToSet(leaderboard => leaderboard.Scores, new Entry
-					{
-						AccountID = enrollment.AccountID,
-						Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
-						LastUpdated = Timestamp.UnixTimeMS
-					}),
-				options: new FindOneAndUpdateOptions<Leaderboard>()
-				{
-					ReturnDocument = ReturnDocument.After,
-					IsUpsert = false
-				}
-			);
-			output ??= SpawnShard(enrollment, score);
-		}
-
-		// If the score is negative, there's a chance the user was pushed below 0.  This *should* be handled first in the client / server, which shouldn't send us values that
-		// push someone below 0.
-		// Negative values in the first place should be exceedingly rare, bordering on disallowed.  The one exception is the ability to use the leaderboards-service to track
-		// trophy count for PvP, which does require fluctuating values.  All other scoring criteria should be additive only.
-		// Still, we need to account for a scenario in which someone has been pushed below 0.  No one should be allowed to do that, so if that's the case, this update
-		// will set all negative scores to 0.
-		if (score < 0 && output.Scores.Any(entry => entry.Score < 0))
-		{
-			Log.Warn(Owner.Will, "Scores were found to be below zero.  Updating all scores to a minimum of 0.", data: new
-			{
-				LeaderboardId = output.Id,
-				Type = output.Type,
-				Enrollment = enrollment
-			});
-			if (session != null)
-				output = _collection.FindOneAndUpdate<Leaderboard>(
-					filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, output.Id),
-					session: session,
-					update: Builders<Leaderboard>.Update.Max($"{Leaderboard.DB_KEY_SCORES}.$[].{Entry.DB_KEY_SCORE}", 0), // Updates all scores to be minimum of 0.
-					options: new FindOneAndUpdateOptions<Leaderboard>()
-					{
-						ReturnDocument = ReturnDocument.After,
-						IsUpsert = false
-					}
-				);
-			else
-				output = _collection.FindOneAndUpdate<Leaderboard>(
-					filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, output.Id),
-					update: Builders<Leaderboard>.Update.Max($"{Leaderboard.DB_KEY_SCORES}.$[].{Entry.DB_KEY_SCORE}", 0), // Updates all scores to be minimum of 0.
-					options: new FindOneAndUpdateOptions<Leaderboard>()
-					{
-						ReturnDocument = ReturnDocument.After,
-						IsUpsert = false
-					}
-				);
-		}
+		if (score < 0) // No need to go down this path if the score can't decrease.
+			FloorScores(output, session);
 
 		return output;
 	}

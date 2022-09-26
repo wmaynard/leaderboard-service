@@ -70,6 +70,7 @@ Every tier has a set of rules associated with it.  These rules determine what ha
 * A **demotionRank** which dictates which ranks fall to the lower tier on rollover.  Every rank equal to or greater than this value will be demoted.
 * A **promotionPercentage**, a placeholder for future functionality.
 * A **demotionPercentage**, a placeholder for future functionality.
+* The number of **playersPerShard**.  When this is set to a negative value, a Leaderboard's capacity is _unlimited_.  When set to a positive number, that number becomes the maximum capacity for a leaderboard type.
 * **rewards**, an array of objects determining which players receive in-game items for their participation.
 
 Continuing our request:
@@ -83,7 +84,7 @@ Continuing our request:
                 "demotionRank": -1,
                 "promotionPercentage": null,
                 "demotionPercentage": null,
-                "playersPerShard": 50, // This is just a placeholder for now
+                "playersPerShard": 50,
                 "rewards": [...]                 // Coming up next
             },
             {

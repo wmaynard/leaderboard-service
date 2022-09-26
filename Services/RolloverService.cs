@@ -54,7 +54,6 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         set => Set(LAST_MONTHLY_SETTING, value);
     }
     
-    
     public RolloverService(DynamicConfigService config, LeaderboardService leaderboard) 
         : base(collection: "rollover", primaryNodeTaskCount: 5, secondaryNodeTaskCount: 0)
     {
