@@ -15,6 +15,8 @@ namespace Rumble.Platform.LeaderboardService.Models
 	[BsonIgnoreExtraElements]
 	public class Leaderboard : PlatformCollectionDocument
 	{
+		private const int MAX_PLAYERS_PER_SHARD = 200;
+		
 		internal const string DB_KEY_DESCRIPTION = "desc";
 		internal const string DB_KEY_ID = "_id";
 		internal const string DB_KEY_RESETTING = "lock";
@@ -160,12 +162,18 @@ namespace Rumble.Platform.LeaderboardService.Models
 					LeaderboardType = Type,
 					AccountId = accountId
 				});
-			
-			return new GenericData()
+
+			GenericData output = new GenericData
 			{
 				{ "topScores", topScores },
 				{ "nearbyScores", nearbyScores }
 			};
+
+			// Return all scores for shards and leaderboards of a reasonable size.
+			if (sorted.Count < MAX_PLAYERS_PER_SHARD)
+				output["allScores"] = sorted;
+
+			return output;
 		}
 
 		public Leaderboard()
