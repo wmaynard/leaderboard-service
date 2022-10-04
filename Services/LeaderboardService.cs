@@ -12,6 +12,8 @@ using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
+using Rumble.Platform.LeaderboardService.Exceptions;
 using Rumble.Platform.LeaderboardService.Models;
 
 namespace Rumble.Platform.LeaderboardService.Services;
@@ -146,9 +148,9 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.TierRules))
 			.FirstOrDefault()
 			?.FirstOrDefault(rules => rules.Tier == enrollment.Tier);
-		
+
 		if (rules == null)
-			throw new PlatformException("Invalid rule set.  This is a problem with a Mongo query.", code: ErrorCode.MongoRecordNotFound);
+			throw new UnknownLeaderboardException(enrollment.LeaderboardType);
 		
 		FilterDefinition<Leaderboard> filter = CreateShardFilter(enrollment, rules.PlayersPerShard);
 		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.AddToSet(leaderboard => leaderboard.Scores, new Entry
@@ -330,9 +332,9 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		// This is an optimization to prevent passing in huge amounts of data - once we hit a global release, retrieving all
 		// leaderboard data would result in very large data sets, and would be very slow.  We should only grab what we need,
 		// especially since rollover operations will already require a significant amount of time to complete.
-		GenericData[] data = _collection
+		RumbleJson[] data = _collection
 			.Find<Leaderboard>(leaderboard => leaderboard.RolloverType == type)
-			.Project<GenericData>(Builders<Leaderboard>.Projection.Expression(leaderboard => new GenericData()
+			.Project<RumbleJson>(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
 			{
 				{ Leaderboard.DB_KEY_ID, leaderboard.Id },
 				{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
@@ -459,7 +461,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 			// Add required fields for bulk sending and telemetry
 			// ranks[index].Prize.Recipient = ranks[index].AccountID;
-			ranks[index].Prize.RankingData = new GenericData
+			ranks[index].Prize.RankingData = new RumbleJson
 			{
 				{ "leaderboardId", leaderboard.Type },
 				{ "leaderboardRank", ranks[index].Rank + 1 },

@@ -7,6 +7,7 @@ using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Exceptions;
 using Rumble.Platform.LeaderboardService.Models;
 

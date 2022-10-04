@@ -3,6 +3,7 @@ using RCL.Logging;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.LeaderboardService.Services;
 
@@ -22,12 +23,12 @@ public class BroadcastService : PlatformService
 			_apiService
 				.Request(PlatformEnvironment.Url("/chat/messages/broadcast"))
 				.AddAuthorization(adminToken)
-				.SetPayload(new GenericData()
+				.SetPayload(new RumbleJson
 				{
 					{ "aid", accountId },
 					{ "lastRead", 0 },
 					{
-						"message", new GenericData()
+						"message", new RumbleJson
 						{
 							{ "text", message }
 						}
@@ -39,7 +40,7 @@ public class BroadcastService : PlatformService
 						AccountId = accountId,
 						Message = message
 					});
-				}).Post(out GenericData response, out int code);
+				}).Post(out RumbleJson response, out int code);
 		}
 		catch (Exception e)
 		{

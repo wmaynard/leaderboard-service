@@ -12,6 +12,7 @@ using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Models;
 using Rumble.Platform.LeaderboardService.Services;
 
@@ -188,7 +189,7 @@ public class AdminController : PlatformController
 				
 				_apiService
 					.Request(PlatformEnvironment.Url("/player/v2/launch"))
-					.SetPayload(new GenericData
+					.SetPayload(new RumbleJson
 					{
 						{ "installId", $"locust-leaderboard-{count}" }
 					})
@@ -199,7 +200,7 @@ public class AdminController : PlatformController
 					.OnFailure((_, _) =>
 					{
 						failures++;
-					}).Post(out GenericData launchResponse, out int launchCode);
+					}).Post(out RumbleJson launchResponse, out int launchCode);
 
 				if (!launchCode.Between(200, 299))
 					continue;
@@ -213,7 +214,7 @@ public class AdminController : PlatformController
 					.Request(PlatformEnvironment.Url("/leaderboard/score"))
 #endif
 					.AddAuthorization(token)
-					.SetPayload(new GenericData
+					.SetPayload(new RumbleJson
 					{
 						{ "score", rando.Next(min, max) },
 						{ "leaderboardId", type }
@@ -226,7 +227,7 @@ public class AdminController : PlatformController
 					{
 						failures++;
 					})
-					.Patch(out GenericData scoreResponse, out int scoreCode);
+					.Patch(out RumbleJson scoreResponse, out int scoreCode);
 
 				string id = scoreResponse.Optional<Leaderboard>("leaderboard")?.Id;
 				if (id != null)
@@ -243,7 +244,7 @@ public class AdminController : PlatformController
 		foreach (string id in ids.Distinct())
 			leaderboards.Add(_leaderboardService.Find(id));
 
-		GenericData output = new GenericData
+		RumbleJson output = new RumbleJson
 		{
 			{ "successfulRequests", successes },
 			{ "failedRequests", failures }

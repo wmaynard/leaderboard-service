@@ -8,6 +8,7 @@ using RCL.Logging;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Exceptions;
 
 namespace Rumble.Platform.LeaderboardService.Models;
@@ -156,7 +157,7 @@ public class Leaderboard : PlatformCollectionDocument
 		return output;
 	}
 
-	public GenericData GenerateScoreResponse(string accountId)
+	public RumbleJson GenerateScoreResponse(string accountId)
 	{
 		List<Entry> sorted = CalculateRanks();
 
@@ -181,7 +182,7 @@ public class Leaderboard : PlatformCollectionDocument
 				AccountId = accountId
 			});
 
-		GenericData output = new GenericData
+		RumbleJson output = new RumbleJson
 		{
 			{ "topScores", topScores },
 			{ "nearbyScores", nearbyScores }

@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.LeaderboardService.Models;
 

@@ -6,6 +6,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 
 namespace Rumble.Platform.LeaderboardService.Models;
 
@@ -43,7 +44,7 @@ public class Reward : PlatformDataModel
 	
 	[BsonElement(DB_KEY_DATA), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_DATA), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public GenericData RankingData { get; set; }
+	public RumbleJson RankingData { get; set; }
 
 	[BsonElement(DB_KEY_SUBJECT), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SUBJECT), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

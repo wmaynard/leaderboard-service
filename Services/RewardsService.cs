@@ -8,6 +8,7 @@ using RCL.Logging;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Models;
 
 namespace Rumble.Platform.LeaderboardService.Services;
@@ -104,7 +105,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 						url = url
 					});
 				})
-				.Post(out GenericData response, out int code);
+				.Post(out RumbleJson response, out int code);
 		}
 
 		long sent = MarkAsSent(successes);
