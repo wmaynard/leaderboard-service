@@ -47,19 +47,25 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				session: session,
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
-					.Set(leaderboard => leaderboard.Title, template.Title)
+					.Set(leaderboard => leaderboard.MaxTierOnSeasonReset, template.MaxTierOnSeasonReset)
+					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
+					.Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
+					.Set(leaderboard => leaderboard.Title, template.Title)
 			).ModifiedCount
 			: _collection.UpdateMany(
 				filter: leaderboard => leaderboard.Type == template.Type,
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
-					.Set(leaderboard => leaderboard.Title, template.Title)
+					.Set(leaderboard => leaderboard.MaxTierOnSeasonReset, template.MaxTierOnSeasonReset)
+					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
+					.Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
+					.Set(leaderboard => leaderboard.Title, template.Title)
 			).ModifiedCount;
 	}
 
@@ -320,7 +326,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	public async Task Rollover(RolloverType type)
 	{
-		// This gives us a collection of GenericData objects of just the ID and the Type of the leaderboards.
+		// This gives us a collection of RumbleJson objects of just the ID and the Type of the leaderboards.
 		// This is an optimization to prevent passing in huge amounts of data - once we hit a global release, retrieving all
 		// leaderboard data would result in very large data sets, and would be very slow.  We should only grab what we need,
 		// especially since rollover operations will already require a significant amount of time to complete.
@@ -388,7 +394,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			filter: leaderboard => leaderboard.Id == id,
 			// session: session,
 			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.IsResetting, isResetting),
-			options: new FindOneAndUpdateOptions<Leaderboard>()
+			options: new FindOneAndUpdateOptions<Leaderboard>
 			{
 				ReturnDocument = ReturnDocument.After
 			}
@@ -413,6 +419,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	{
 		// Unlike other methods here, we actually don't want to start a transaction here, since this gets called from
 		// the ResetService.  Use the one generated there instead.
+		
 		List<Entry> ranks = leaderboard.CalculateRanks();
 		string[] promotionPlayers = ranks
 			.Where(entry => entry.Rank <= leaderboard.CurrentTierRules.PromotionRank && entry.Score > 0)

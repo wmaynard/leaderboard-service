@@ -42,16 +42,13 @@ public class AdminController : PlatformController
 		{
 			leaderboard.Validate();
 
+			leaderboard.RolloversRemaining = leaderboard.RolloversInSeason;
+
 			if (_leaderboardService.Count(leaderboard.Type) > 0)
 			{
 				// TODO: If the Max tier changes, delete abandoned tiers or create new tiers.
 				long affected = _leaderboardService.UpdateLeaderboardType(leaderboard);
 				continue;
-				return Ok(new
-				{
-					AffectedBoards = affected,
-					Leaderboard = leaderboard
-				});
 			}
 
 			List<string> ids = new List<string>();

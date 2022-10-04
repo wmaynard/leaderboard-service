@@ -14,6 +14,7 @@ public class TierRules : PlatformDataModel
 	internal const string DB_KEY_DEMOTION_PERCENTAGE = "demo%";
 	internal const string DB_KEY_PLAYERS_PER_SHARD = "cap";
 	internal const string DB_KEY_REWARDS = "rewards";
+	internal const string DB_KEY_SEASON_REWARDS = "sRewards";
 
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_PROMOTION_RANK = "promotionRank";
@@ -22,7 +23,8 @@ public class TierRules : PlatformDataModel
 	public const string FRIENDLY_KEY_DEMOTION_PERCENTAGE = "demotionPercentage";
 	public const string FRIENDLY_KEY_PLAYERS_PER_SHARD = "playersPerShard";
 	public const string FRIENDLY_KEY_REWARDS = "rewards";
-	
+	public const string FRIENDLY_KEY_SEASON_REWARDS = "seasonalRewards";
+		
 	[BsonElement(DB_KEY_TIER), BsonRequired]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER)]
 	public int Tier { get; set; }
@@ -50,5 +52,8 @@ public class TierRules : PlatformDataModel
 	[BsonElement(DB_KEY_REWARDS), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_REWARDS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public Reward[] Rewards { get; set; }
+	
+	[BsonElement(DB_KEY_SEASON_REWARDS), BsonIgnoreIfNull]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_REWARDS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public Reward[] SeasonRewards { get; set; }
 }
-// TODO: Season reset logic

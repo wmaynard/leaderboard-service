@@ -163,3 +163,5 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         public RolloverType RolloverType { get; set; }
     }
 }
+
+// TODO: Don't decrease season counter when nobody is in a leaderboard
