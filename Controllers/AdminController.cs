@@ -25,6 +25,7 @@ public class AdminController : PlatformController
 	private readonly EnrollmentService _enrollmentService;
 	private readonly Services.LeaderboardService _leaderboardService;
 	private readonly RewardsService _rewardsService;
+	private readonly RolloverService _rolloverService;
 	private readonly ApiService _apiService;
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
@@ -116,13 +117,14 @@ public class AdminController : PlatformController
 	[HttpPost, Route("rollover"), IgnorePerformance]
 	public ActionResult ManualRollover()
 	{
-		try
-		{
-			int deployment = int.Parse(PlatformEnvironment.Deployment);
-			if (deployment > 300)
-				throw new PlatformException("This action is not allowed on prod.");
-		}
-		catch { }
+		_rolloverService.ManualRollover();
+		// try
+		// {
+		// 	int deployment = int.Parse(PlatformEnvironment.Deployment);
+		// 	if (deployment > 300)
+		// 		throw new PlatformException("This action is not allowed on prod.");
+		// }
+		// catch { }
 
 #if RELEASE
 		SlackDiagnostics
@@ -133,8 +135,8 @@ public class AdminController : PlatformController
 			.Send()
 			.Wait();
 #endif
-		_leaderboardService.Rollover(RolloverType.Hourly);
-		_leaderboardService.Rollover(RolloverType.Daily);
+		// _leaderboardService.Rollover(RolloverType.Hourly);
+		// _leaderboardService.Rollover(RolloverType.Daily);
 		
 #if RELEASE
 		SlackDiagnostics
@@ -145,8 +147,9 @@ public class AdminController : PlatformController
 			.Send()
 			.Wait();
 #endif
-		_leaderboardService.Rollover(RolloverType.Weekly);
-		_leaderboardService.Rollover(RolloverType.Monthly);
+		// _leaderboardService.Rollover(RolloverType.Weekly);
+		// _leaderboardService.Rollover(RolloverType.Monthly);
+		// TODO
 		return Ok();
 	}
 

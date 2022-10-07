@@ -212,8 +212,8 @@ public class Leaderboard : PlatformCollectionDocument
 		Test(condition: TierCount > 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.", ref errors);
 		Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined for {Type}.", ref errors);
 		Test(condition: RolloversInSeason != 0, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be non-zero; use -1 if not using Seasons.", ref errors);
-		Test(condition: RolloversInSeason > TierCount, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be greater than {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
-		Test(condition: MaxTierOnSeasonReset <= TierCount, error: $"{FRIENDLY_KEY_TIER_RESET} must be less than or equal to {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
+		Test(condition: RolloversInSeason < 0 || RolloversInSeason > TierCount, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be greater than {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
+		Test(condition: MaxTierOnSeasonReset <= TierCount || TierCount <= 0, error: $"{FRIENDLY_KEY_TIER_RESET} must be less than or equal to {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
 
 		foreach (TierRules rules in TierRules)
 		{
@@ -226,6 +226,12 @@ public class Leaderboard : PlatformCollectionDocument
 				Test(
 					condition: rules.PlayersPerShard >= Math.Max(rules.PromotionRank, rules.DemotionRank),
 					error: $"'{Models.TierRules.FRIENDLY_KEY_PLAYERS_PER_SHARD}' must be greater than promotion and demotion rules if it's a non-negative number.", 
+					ref errors
+				);
+			if (RolloversInSeason > 0)
+				Test(
+					condition: rules.SeasonReward != null,
+					error: $"'{Models.TierRules.FRIENDLY_KEY_SEASON_REWARDS}' must be non-null when enabling seasons.",
 					ref errors
 				);
 		}

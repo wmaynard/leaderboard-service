@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using RCL.Logging;
 using Rumble.Platform.Common.Services;
@@ -69,6 +70,23 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			.ToArray();
 	}
 
+	private long UpdateSeasonalMaxTiers()
+	{
+		try
+		{
+			return _collection.UpdateMany(
+				filter: $"{{ $expr: {{ $lt: [ '${Enrollment.DB_KEY_SEASONAL_TIER}', '${Enrollment.DB_KEY_TIER}' ] }} }}", 
+				update: PipelineDefinition<Enrollment, Enrollment>.Create($"{{ $set: {{ {Enrollment.DB_KEY_SEASONAL_TIER}: '${Enrollment.DB_KEY_TIER}' }} }}")
+			).ModifiedCount;
+		}
+		catch (Exception e)
+		{
+			Log.Error(Owner.Will, "Unable to update seasonal max tier in enrollments.", exception: e);
+		}
+
+		return 0;
+	}
+
 	private long AlterTier(string[] accountIds, string type, int? maxTier = null, int delta = 0)
 	{
 		if (delta == 0)
@@ -79,48 +97,41 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 				Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
 				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
 			),
-			update: Builders<Enrollment>.Update.Inc(enrollment => enrollment.Tier, delta)
-			,
-			options: new UpdateOptions()
+			update: Builders<Enrollment>.Update.Inc(enrollment => enrollment.Tier, delta),
+			options: new UpdateOptions
 			{
 				IsUpsert = false
 			}
 		);
-		// TODO: This is a kluge to fix negative enrollment tiers
-		_collection.UpdateMany(filter: enrollment => true, Builders<Enrollment>.Update.Max(enrollment => enrollment.Tier, 1));
-		_collection.UpdateMany(filter: enrollment => true, Builders<Enrollment>.Update.Min(enrollment => enrollment.Tier, maxTier ?? int.MaxValue));
 
-		// TODO: Update the SeasonalMaxTier
-		// This seems impossible to do with regular update definitions since Mongo requires a primitive value to be used.  An SO user achieved this with db.RunCommand().
-		
-		// From: https://stackoverflow.com/questions/3974985/update-mongodb-field-using-value-of-another-field
-		// 		var command = new BsonDocument
-		// 		{
-		// 			{ "update", "CollectionToUpdate" },
-		// 			{ "updates", new BsonArray 
-		// 				{ 
-		// 					new BsonDocument
-		// 					{
-		// 						// Any filter; here the check is if Prop1 does not exist
-		// 						{ "q", new BsonDocument{ ["Prop1"] = new BsonDocument("$exists", false) }}, 
-		// 						// set it to the value of Prop2
-		// 						{ "u", new BsonArray { new BsonDocument { ["$set"] = new BsonDocument("Prop1", "$Prop2") }}},
-		// 						{ "multi", true }
-		// 					}
-		// 				}
-		// 			}
-		// 		};
-		//
-		// 	database.RunCommand<BsonDocument>(command);
-					// _collection.UpdateMany(
-					// 	filter: Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
-					// 	update: Builders<Enrollment>.Update.Max(enrollment => enrollment.SeasonalMaxTier, )
-					// );
+		// TODO: This is a kluge to fix negative enrollment tiers
+		_collection.UpdateMany(filter: enrollment => true, Builders<Enrollment>.Update.Max(enrollment => enrollment.Tier, 0));
+		_collection.UpdateMany(filter: enrollment => enrollment.LeaderboardType == type, Builders<Enrollment>.Update.Min(enrollment => enrollment.Tier, maxTier ?? int.MaxValue));
+
+		UpdateSeasonalMaxTiers();
 
 		return result.ModifiedCount;
 	}
 
+	public string[] GetAccountIdsForTier(string type, int tier) => _collection
+		.Find(enrollment => enrollment.LeaderboardType == type && enrollment.SeasonalMaxTier == tier)
+		.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
+		.ToList()
+		.ToArray();
+
+	public long ResetSeasonalMaxTier(string type) => _collection
+		.UpdateMany(
+			filter: enrollment => enrollment.LeaderboardType == type,
+			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.SeasonalMaxTier, -1)
+		).ModifiedCount;
+
 	public long PromotePlayers(string[] accountIds, Leaderboard caller) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: 1);
 	public long DemotePlayers(string[] accountIds, Leaderboard caller, int levels = 1) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: levels * -1);
 	public void DemoteInactivePlayers(string leaderboardType) => AlterTier(GetInactiveAccounts(leaderboardType), leaderboardType);
+
+	public long FlagAsInactive(string leaderboardType) => _collection
+		.UpdateMany(
+			filter: enrollment => enrollment.LeaderboardType == leaderboardType,
+			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, false)
+		).ModifiedCount;
 }

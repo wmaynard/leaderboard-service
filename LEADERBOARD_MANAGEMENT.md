@@ -71,6 +71,8 @@ Every tier has a set of rules associated with it.  These rules determine what ha
 * A **promotionPercentage**, a placeholder for future functionality.
 * A **demotionPercentage**, a placeholder for future functionality.
 * The number of **playersPerShard**.  When this is set to a negative value, a Leaderboard's capacity is _unlimited_.  When set to a positive number, that number becomes the maximum capacity for a leaderboard type.
+* A **rolloversInSeason**, the count for the number of times a leaderboard can reset before issuing seasonal rewards and resetting tiers.  A value of -1 keeps seasons turned off.
+* A **maxTierOnSeasonEnd**, an optional number that prevents players from being kicked down to the bottom tier when a season ends.
 * **rewards**, an array of objects determining which players receive in-game items for their participation.
 
 Continuing our request:
@@ -85,7 +87,10 @@ Continuing our request:
                 "promotionPercentage": null,
                 "demotionPercentage": null,
                 "playersPerShard": 50,
+                "rolloversInSeason": 20,
+                "maxTierOnSeasonEnd": 0,
                 "rewards": [...]                 // Coming up next
+                "seasonalReward" : { ... }
             },
             {
                 "tier": 2,
@@ -153,7 +158,65 @@ In addition to the rank and percentages, each reward must contain the following 
 ]
 ```
 
-After rollover completes, leaderboard-service will send these rewards to the appropriate mailboxes.
+### Season Rewards
+
+At the end of a leaderboard's season, a reward package is sent out to all players for their participation.  This reward is determined by the highest tier the player managed to hit during the season.  To define this reward, see the below example:
+
+```
+...
+"tierRules: [
+    {
+        "tier": 0
+        ...
+        "rewards": [ ... ],
+        "seasonalReward": {
+            "subject": "placeholder",
+            "body": "placeholder",
+            "banner": "placeholder",
+            "icon": "placeholder",
+            "internalNote": "ldr_pvp_season_01 season reward",
+            "attachments": [
+                {
+                    "type": "Currency",
+                    "rewardId": "pvp_shop_currency",
+                    "quantity": 10
+                },
+                {
+                    "type": "LootTable",
+                    "rewardId": "loot_equipment_04_legendary",
+                    "quantity": 1
+                },
+                {
+                    "type": "Currency",
+                    "rewardId": "shard_limited_time_scroll",
+                    "quantity": 1000
+                },
+                {
+                    "type": "Currency",
+                    "rewardId": "hard_currency",
+                    "quantity": 1000
+                },
+                {
+                    "type": "Currency",
+                    "rewardId": "soft_currency",
+                    "quantity": 100000
+                },
+                {
+                    "type": "Currency",
+                    "rewardId": "xp_currency",
+                    "quantity": 75000
+                }
+            ]
+        }
+    }
+]
+```
+
+The seasonal reward is the same exact model / data structure as the array of placement rewards.  However, the placement data is not used - this is because the season has no concept of where people were in the rankings.  The important difference is that there is a **single reward** per tier instead of an **array**.  When using seasons, a seasonal reward must be defined.
+
+### Rewards Wrap-Up
+
+After rollover completes, leaderboard-service will send all applicable rewards to the appropriate mailboxes.
 
 ## Full Request Example
 

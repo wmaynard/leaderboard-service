@@ -326,15 +326,11 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		.Distinct()
 		.ToArray();
 
-	public async Task Rollover(RolloverType type)
+	public void BeginRollover(RolloverType type, out string[] ids, out string[] types)
 	{
-		// This gives us a collection of RumbleJson objects of just the ID and the Type of the leaderboards.
-		// This is an optimization to prevent passing in huge amounts of data - once we hit a global release, retrieving all
-		// leaderboard data would result in very large data sets, and would be very slow.  We should only grab what we need,
-		// especially since rollover operations will already require a significant amount of time to complete.
 		RumbleJson[] data = _collection
-			.Find<Leaderboard>(leaderboard => leaderboard.RolloverType == type)
-			.Project<RumbleJson>(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
+			.Find(leaderboard => leaderboard.RolloverType == type)
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
 			{
 				{ Leaderboard.DB_KEY_ID, leaderboard.Id },
 				{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
@@ -342,31 +338,68 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.ToList()
 			.ToArray();
 		
-		// We need the leaderboard types to trigger inactive player demotions for all leaderboards of a specified type.
-		// This was originally handled in the individual leaderboard rollover, but if there were 6 tiers of that leaderboard,
-		// it would cause 6 demotions.  We only want to run one update for inactive players, and we need to do it before any
-		// leaderboards roll over (which marks players with a score of 0 as inactive).
-		string[] types = data
-			.Select(generic => generic.Require<string>(Leaderboard.DB_KEY_TYPE))
-			.Distinct()
-			.ToArray();
-
-		// We need the leaderboard IDs to individually trigger leaderboard rollover.
-		string[] ids = data
+		ids = data
 			.Select(generic => generic.Require<string>(Leaderboard.DB_KEY_ID))
 			.ToArray();
 		
-		if (ids.Length == 0)
-			return;
-		
-		foreach (string leaderboardType in types)
-			_enrollmentService.DemoteInactivePlayers(leaderboardType);
-
-		foreach (string id in ids)
-			await Rollover(id);
-		
-		_rewardService.SendRewards();
+		types = data
+			.Select(json => json.Require<string>(Leaderboard.DB_KEY_TYPE))
+			.Distinct()
+			.ToArray();
 	}
+
+	// TODO: This really needs an out struct[].
+	public void BeginRollover(RolloverType type, out RumbleJson[] leaderboards) => leaderboards = _collection
+		.Find(leaderboard => leaderboard.RolloverType == type)
+		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
+		{
+			{ Leaderboard.DB_KEY_ID, leaderboard.Id },
+			{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
+		}))
+		.ToList()
+		.ToArray();
+
+	// public async Task Rollover(RolloverType type)
+	// {
+	// 	// This gives us a collection of RumbleJson objects of just the ID and the Type of the leaderboards.
+	// 	// This is an optimization to prevent passing in huge amounts of data - once we hit a global release, retrieving all
+	// 	// leaderboard data would result in very large data sets, and would be very slow.  We should only grab what we need,
+	// 	// especially since rollover operations will already require a significant amount of time to complete.
+	// 	RumbleJson[] data = _collection
+	// 		.Find<Leaderboard>(leaderboard => leaderboard.RolloverType == type)
+	// 		.Project<RumbleJson>(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
+	// 		{
+	// 			{ Leaderboard.DB_KEY_ID, leaderboard.Id },
+	// 			{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
+	// 		}))
+	// 		.ToList()
+	// 		.ToArray();
+	// 	
+	// 	// We need the leaderboard types to trigger inactive player demotions for all leaderboards of a specified type.
+	// 	// This was originally handled in the individual leaderboard rollover, but if there were 6 tiers of that leaderboard,
+	// 	// it would cause 6 demotions.  We only want to run one update for inactive players, and we need to do it before any
+	// 	// leaderboards roll over (which marks players with a score of 0 as inactive).
+	// 	string[] types = data
+	// 		.Select(generic => generic.Require<string>(Leaderboard.DB_KEY_TYPE))
+	// 		.Distinct()
+	// 		.ToArray();
+	//
+	// 	// We need the leaderboard IDs to individually trigger leaderboard rollover.
+	// 	string[] ids = data
+	// 		.Select(generic => generic.Require<string>(Leaderboard.DB_KEY_ID))
+	// 		.ToArray();
+	// 	
+	// 	if (ids.Length == 0)
+	// 		return;
+	// 	
+	// 	foreach (string leaderboardType in types)
+	// 		_enrollmentService.DemoteInactivePlayers(leaderboardType);
+	//
+	// 	foreach (string id in ids)
+	// 		await Rollover(id);
+	// 	
+	// 	_rewardService.SendRewards();
+	// }
 
 	private async Task<Leaderboard> Close(string id) => await SetRolloverFlag(id, isResetting: true);
 
@@ -417,6 +450,21 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		return await Reopen(id);
 	}
 
+	private bool LeaderboardIsActive(string leaderboardType) => _collection
+		.CountDocuments(
+			filter: Builders<Leaderboard>.Filter.SizeGt(field: leaderboard => leaderboard.Scores, size: 0)
+		) != 0;
+
+	public long DecreaseSeasonCounter(string type)
+	{
+		if (!LeaderboardIsActive(type))
+			return 0;
+		return _collection.UpdateMany(
+			filter: leaderboard => leaderboard.Type == type && leaderboard.RolloversInSeason > 0,
+			update: Builders<Leaderboard>.Update.Inc(leaderboard => leaderboard.RolloversRemaining, -1)
+		).ModifiedCount;
+	}
+
 	private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 	{
 		// Unlike other methods here, we actually don't want to start a transaction here, since this gets called from
@@ -444,7 +492,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		int playerCount = leaderboard.Scores.Count;
 		int playersProcessed = 0;
-		
+		// bool seasonEnd = leaderboard.RolloversRemaining == 0 && leaderboard.RolloversInSeason > 0;
+
 		_archiveService.Stash(leaderboard, out Leaderboard archive);
 		
 		for (int index = ranks.Count - 1; playersProcessed < playerCount && index >= 0; index--)
@@ -484,16 +533,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Where(entry => entry.Score != 0)
 			.Select(entry => entry.AccountID)
 			.ToArray();
-		// _enrollmentService.DemoteInactivePlayers(leaderboard);
-		_enrollmentService.FlagAsActive(activePlayers, leaderboard.Type);			// If players were flagged as active last week, clear that flag now.
+		
 		if (leaderboard.Tier < leaderboard.MaxTier)
 			_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
 		if (leaderboard.Tier > 1)													// People can't get demoted below 1.
 			_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
-		_enrollmentService.FlagAsInactive(inactivePlayers, leaderboard.Type);		// Players that scored 0 this week are to be flagged as inactive now.  Must happen after the demotion.
-		
-		
-		
+
 		// TODO: Design needs to provide details on how this message should be formatted.
 		try
 		{
@@ -504,41 +549,114 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		}
 		catch { }
 		
-		try
+		// Send the rollover Slack message
+		if (playerCount > 0)
 		{
-			// TODO: Once Portal has a Leaderboards UI, remove this.
-			
-			string attachment = string.Join(Environment.NewLine, ranks.Where(entry => entry.Prize != null && entry.Score > 0).Select(rank => rank.ToString()));
-			int rewardPlayerCount = ranks.Count(entry => entry.Prize != null && entry.Score > 0);
-			int noRewardPlayerCount = ranks.Count(entry => entry.Prize == null);
+			try
+			{
+				// TODO: Once Portal has a Leaderboards UI, remove this.
+				
+				string attachment = string.Join(Environment.NewLine, ranks.Where(entry => entry.Prize != null && entry.Score > 0).Select(rank => rank.ToString()));
+				int rewardPlayerCount = ranks.Count(entry => entry.Prize != null && entry.Score > 0);
+				int noRewardPlayerCount = ranks.Count(entry => entry.Prize == null);
 
-			string message = $"Player ranks have been calculated.\n{rewardPlayerCount} player(s) received rewards.";
+				string message = $"Player ranks have been calculated.\n{rewardPlayerCount} player(s) received rewards.";
 
-			if (noRewardPlayerCount > 0)
-				message += $"\n{noRewardPlayerCount} player(s) did not receive rewards.";
+				if (noRewardPlayerCount > 0)
+					message += $"\n{noRewardPlayerCount} player(s) did not receive rewards.";
 
-			await SlackDiagnostics
-				.Log(title: $"{leaderboard.Type} rollover triggered.", message)
-				.Attach(name: "Rankings", content: attachment)
-				.Send();
-
-			Log.Info(Owner.Default, $"{leaderboard.Type} rollover information sent to Slack.");
-		}
-		catch
-		{
-			Log.Error(Owner.Default, $"{leaderboard.Type} rollover information could not be sent to Slack.");
+				await SlackDiagnostics
+					.Log(title: $"{leaderboard.Type} rollover triggered.", message)
+					.Attach(name: "Rankings", content: attachment)
+					.Send();
+				Log.Info(Owner.Default, $"{leaderboard.Type} rollover information sent to Slack."); 
+			}
+			catch
+			{
+				Log.Error(Owner.Default, $"{leaderboard.Type} rollover information could not be sent to Slack.");
+			}
 		}
 		
-		if (!leaderboard.IsShard)	// This is a global leaderboard; we can leave the Scores field empty and just return.
+		if (leaderboard.IsShard)
 		{
-			Update(leaderboard);
+			Delete(leaderboard);		// Leaderboard shards are not permanent.  IDs are to be reassigned to new Shards, so they need to be recreated from scratch.
 			return leaderboard;
 		}
-		Delete(leaderboard);		// Leaderboard shards are not permanent.  IDs are to be reassigned to new Shards, so they need to be recreated from scratch.
-		// TODO: Respawn and fill shards, as appropriate
+
+		// Reset the season counter.
+		// if (seasonEnd)
+		// {
+		// 	leaderboard.RolloversRemaining = leaderboard.RolloversInSeason;
+		//
+		// 	for (int tier = 0; tier < leaderboard.MaxTier; tier++)
+		// 	{
+		// 		string[] accounts = _enrollmentService.GetAccountIdsForTier(leaderboard.Type, tier);
+		// 		Reward prize = leaderboard.TierRules[tier].SeasonReward;
+		// 		_rewardService.Grant(prize, accounts);
+		// 	}
+		//
+		// 	_enrollmentService.ResetSeasonalMaxTier(leaderboard.Type);
+		// }
+
+		Update(leaderboard);
 		return leaderboard;
 	}
 
+	public void RolloverSeasons(string[] types)
+	{
+		foreach (string t in types)
+		{
+			Leaderboard board = _collection.Find(leaderboard => leaderboard.Type == t).FirstOrDefault();
+			if (board == null)
+				continue;
+			
+			for (int tier = 0; tier < board.MaxTier; tier++)
+			{
+				Reward prize = null;
+				try
+				{
+					string[] accounts = _enrollmentService.GetAccountIdsForTier(board.Type, tier);
+					prize = board.TierRules[tier].SeasonReward;
+					_rewardService.Grant(prize, accounts);
+					Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
+				}
+				catch (Exception e)
+				{
+					Log.Error(Owner.Will, "Could not issue season rewards.", data: new
+					{
+						Prize = prize
+					}, exception: e);
+				}
+			}
+			_enrollmentService.ResetSeasonalMaxTier(board.Type);
+		}
+		
+		// Reset the rollover counter for seasons on provided rollover types.
+		try
+		{
+			long affected = _collection.UpdateMany(
+				filter: Builders<Leaderboard>.Filter.And(
+					Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.RolloversRemaining, 0),
+					Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversInSeason, 0),
+					Builders<Leaderboard>.Filter.In(leaderboard => leaderboard.Type, types)
+				),
+				update: PipelineDefinition<Leaderboard, Leaderboard>.Create($"{{ $set: {{ {Leaderboard.DB_KEY_SEASON_COUNTDOWN}: '${Leaderboard.DB_KEY_SEASON_ROLLOVERS}' }} }}")
+			).ModifiedCount;
+			if (affected > 0)
+				Log.Info(Owner.Will, "Reset season counters.", data: new
+				{
+					Count = affected,
+					Types = types
+				});
+		}
+		catch (Exception e)
+		{
+			Log.Error(Owner.Will, "Could not reset season rollover counter.", data: new
+			{
+				Types = types 
+			}, exception: e);
+		}
+	}
 	public List<Entry> CalculateTopScores(Enrollment enrollment) => _collection
 		.Find(filter: CreateFilter(enrollment, allowLocked: true))
 		.Sort(Builders<Leaderboard>.Sort.Descending($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}"))

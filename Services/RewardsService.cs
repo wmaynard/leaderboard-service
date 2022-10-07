@@ -57,6 +57,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			AccountId = accountId
 		});
 
+	// TODO: Create tasks for this as well
 	public void SendRewards()
 	{
 		string adminToken = _dynamicConfig.GameConfig.Require<string>("leaderboard_AdminToken");
