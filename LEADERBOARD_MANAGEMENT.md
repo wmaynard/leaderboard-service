@@ -55,6 +55,8 @@ Leaderboards are passed as an array of objects.  Here's our sample request so fa
         "rolloverType": 1,
         "startTime": 1650922715639,
         "tierCount": 2,
+        "rolloversInSeason": 20,
+        "maxTierOnSeasonEnd": 0,
         ...
     },
     ...
@@ -87,8 +89,6 @@ Continuing our request:
                 "promotionPercentage": null,
                 "demotionPercentage": null,
                 "playersPerShard": 50,
-                "rolloversInSeason": 20,
-                "maxTierOnSeasonEnd": 0,
                 "rewards": [...]                 // Coming up next
                 "seasonalReward" : { ... }
             },
