@@ -38,6 +38,8 @@ Every leaderboard shares some simple descriptors.  Since leaderboards will be lo
 * The **playersPerShard** controls how many players can be assigned to a particular leaderboard before a new shard of it is created.  This is currently a placeholder for future functionality.
 * The **startTime** determines when a leaderboard is eligible to receive scores.  This is a Unix timestamp.
 * The **tierCount** determines how many leaderboards will actually be created.  When leaderboards hit rollover, players can be promoted or demoted to different tiers.  A value greater than 0 is required.
+* A **rolloversInSeason**, the count for the number of times a leaderboard can reset before issuing seasonal rewards and resetting tiers.  A value of -1 keeps seasons turned off.
+* A **maxTierOnSeasonEnd**, an optional number that prevents players from being kicked down to the bottom tier when a season ends.
 
 Leaderboards are passed as an array of objects.  Here's our sample request so far:
 
@@ -73,8 +75,6 @@ Every tier has a set of rules associated with it.  These rules determine what ha
 * A **promotionPercentage**, a placeholder for future functionality.
 * A **demotionPercentage**, a placeholder for future functionality.
 * The number of **playersPerShard**.  When this is set to a negative value, a Leaderboard's capacity is _unlimited_.  When set to a positive number, that number becomes the maximum capacity for a leaderboard type.
-* A **rolloversInSeason**, the count for the number of times a leaderboard can reset before issuing seasonal rewards and resetting tiers.  A value of -1 keeps seasons turned off.
-* A **maxTierOnSeasonEnd**, an optional number that prevents players from being kicked down to the bottom tier when a season ends.
 * **rewards**, an array of objects determining which players receive in-game items for their participation.
 
 Continuing our request:
