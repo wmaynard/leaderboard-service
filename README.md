@@ -144,10 +144,11 @@ All endpoints live off of the base `{platform url}/leaderboard`.
 
 Player authorization tokens are required.
 
-| Method | Endpoint    | Description                                                                                                            | Required Fields            | Optional Fields |
-|-------:|:------------|:-----------------------------------------------------------------------------------------------------------------------|:---------------------------|:----------------|
-|    GET | `/rankings` | Returns ranked and ordered information for a specific leaderboard ID.  Response includes top scores and nearby scores. | `leaderboardId`<br>`score` ||
-|  PATCH | `/score`    | Adds or subtracts a value to the player's score.  While this value can be negative, scores are floored at 0.           | `leaderboardId`            ||
+| Method | Endpoint        | Description                                                                                                            | Required Fields            | Optional Fields |
+|-------:|:----------------|:-----------------------------------------------------------------------------------------------------------------------|:---------------------------|:----------------|
+| DELETE | `/notification` | Acknowlegdes receipt of the `promotionStatus` after rollover.                                                          | `leaderboardId`            ||
+|    GET | `/rankings`     | Returns ranked and ordered information for a specific leaderboard ID.  Response includes top scores and nearby scores. | `leaderboardId`<br>`score` ||
+|  PATCH | `/score`        | Adds or subtracts a value to the player's score.  While this value can be negative, scores are floored at 0.           | `leaderboardId`            ||
 
 <hr />
 
@@ -162,6 +163,26 @@ Response:
     "tier": 1,
     "seasonalMaxTier": 0,
     "response": {
+        "allScores": [ // only shows up on small leaderboards
+            {
+                "accounts": [
+                    "621d7b50ed456b3870d05a4c"
+                ],
+                "rank": 1,
+                "score": 0,
+                "isRequestingPlayer": true
+            }
+        ]
+        "nearbyScores": [
+            {
+                "accounts": [
+                    "621d7b50ed456b3870d05a4c"
+                ],
+                "rank": 1,
+                "score": 0,
+                "isRequestingPlayer": true
+            }
+        ],
         "topScores": [
             {
                 "accounts": [
@@ -172,17 +193,8 @@ Response:
                 "isRequestingPlayer": true
             }
         ],
-        "nearbyScores": [
-            {
-                "accounts": [
-                    "621d7b50ed456b3870d05a4c"
-                ],
-                "rank": 1,
-                "score": 0,
-                "isRequestingPlayer": true
-            }
-        ]
-    }
+    },
+    "promotionStatus": -1 // Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2
 }
 ```
 
