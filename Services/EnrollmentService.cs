@@ -87,17 +87,44 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		return 0;
 	}
 
+	public long AcknowledgeRollover(string accountId, string type) => _collection.UpdateMany(
+			filter: Builders<Enrollment>.Filter.And(
+				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.AccountID, accountId),
+				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
+			),
+			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Acknowledged)
+		).ModifiedCount;
+
 	private long AlterTier(string[] accountIds, string type, int? maxTier = null, int delta = 0)
 	{
 		if (delta == 0)
+		{
+			_collection.UpdateMany(
+				filter: Builders<Enrollment>.Filter.And(
+					Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
+					Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
+				),
+				update: Builders<Enrollment>.Update.Inc(enrollment => enrollment.Tier, delta)
+					.Set(result => result.Status, Enrollment.PromotionStatus.Unchanged
+				),
+				options: new UpdateOptions
+				{
+					IsUpsert = false
+				}
+			);
 			return 0; // throw exception?
+		}
 
 		UpdateResult result = _collection.UpdateMany(
 			filter: Builders<Enrollment>.Filter.And(
 				Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
 				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
 			),
-			update: Builders<Enrollment>.Update.Inc(enrollment => enrollment.Tier, delta),
+			update: Builders<Enrollment>.Update.Inc(enrollment => enrollment.Tier, delta)
+				.Set(result => result.Status, delta > 0
+					? Enrollment.PromotionStatus.Promoted
+					: Enrollment.PromotionStatus.Demoted
+				),
 			options: new UpdateOptions
 			{
 				IsUpsert = false

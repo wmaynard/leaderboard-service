@@ -7,6 +7,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.LeaderboardService.Models;
 
+[BsonIgnoreExtraElements]
 public class Enrollment : PlatformCollectionDocument
 {
 	internal const string DB_KEY_ACCOUNT_ID = "aid";
@@ -16,6 +17,7 @@ public class Enrollment : PlatformCollectionDocument
 	internal const string DB_KEY_SEASONAL_TIER = "seasonMax";
 	internal const string DB_KEY_ACTIVE = "active";
 	internal const string DB_KEY_PAST_LEADERBOARDS = "past";
+	internal const string DB_KEY_PROMOTION_STATUS = "promotion"; 
 	
 	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
 	public string AccountID { get; set; }
@@ -37,6 +39,11 @@ public class Enrollment : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_PAST_LEADERBOARDS)]
 	public List<string> PastLeaderboardIDs { get; set; }
+	
+	[BsonElement(DB_KEY_PROMOTION_STATUS)]
+	public PromotionStatus Status { get; set; }
 
 	public Enrollment() => PastLeaderboardIDs = new List<string>();
+	
+	public enum PromotionStatus { Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2 }
 }

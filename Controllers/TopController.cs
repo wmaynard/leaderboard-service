@@ -64,6 +64,17 @@ public class TopController : PlatformController
 			Tier = leaderboard.Tier,
 			SeasonalMaxTier = enrollment.SeasonalMaxTier,
 			Response = leaderboard.GenerateScoreResponse(Token.AccountId),
+			PromotionStatus = enrollment.Status
 		});
+	}
+
+	[HttpDelete, Route("notification")]
+	public ActionResult AcknowledgeRollover()
+	{
+		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+
+		_enrollmentService.AcknowledgeRollover(Token.AccountId, type);
+		
+		return Ok();
 	}
 }
