@@ -582,22 +582,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			Delete(leaderboard);		// Leaderboard shards are not permanent.  IDs are to be reassigned to new Shards, so they need to be recreated from scratch.
 			return leaderboard;
 		}
-
-		// Reset the season counter.
-		// if (seasonEnd)
-		// {
-		// 	leaderboard.RolloversRemaining = leaderboard.RolloversInSeason;
-		//
-		// 	for (int tier = 0; tier < leaderboard.MaxTier; tier++)
-		// 	{
-		// 		string[] accounts = _enrollmentService.GetAccountIdsForTier(leaderboard.Type, tier);
-		// 		Reward prize = leaderboard.TierRules[tier].SeasonReward;
-		// 		_rewardService.Grant(prize, accounts);
-		// 	}
-		//
-		// 	_enrollmentService.ResetSeasonalMaxTier(leaderboard.Type);
-		// }
-
+		
 		Update(leaderboard);
 		return leaderboard;
 	}
@@ -617,6 +602,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				{
 					string[] accounts = _enrollmentService.GetAccountIdsForTier(board.Type, tier);
 					prize = board.TierRules[tier].SeasonReward;
+					prize.RankingData = new RumbleJson
+					{
+						{ "leaderboardSeasonalMaxTier", tier },
+						// { "leaderboardCurrentTier", null }, // TODO: Is this really necessary?
+						{ "leaderboardNewSeasonTier", Math.Min(board.MaxTierOnSeasonReset, tier) }, // TODO: Change when reset is in tier rules
+					};
 					_rewardService.Grant(prize, accounts);
 					Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
 				}

@@ -100,8 +100,6 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             .Distinct()
             .ToArray();
         
-        
-        
         _leaderboard.RolloverSeasons(data
             .Select(rolloverData => rolloverData.LeaderboardType)
             .Distinct()

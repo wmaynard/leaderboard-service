@@ -11,7 +11,7 @@ public class MailboxMessage : PlatformDataModel
 	public RumbleJson Payload { get; init; }
 
 	public MailboxMessage(string accountId, IEnumerable<Reward> messages) =>
-		Payload = new RumbleJson()
+		Payload = new RumbleJson
 		{
 			{ "accountIds", new string[] { accountId } },
 			{ "messages", messages }
