@@ -116,11 +116,15 @@ public class Leaderboard : PlatformCollectionDocument
 	public Reward[] CurrentTierRewards => CurrentTierRules.Rewards
 		?? throw new InvalidLeaderboardException(this, $"Leaderboard tier rewards not defined for leaderboard {Type}-{Id}.");
 	
+	[BsonIgnore]
+	[JsonIgnore]
+	public bool SeasonsEnabled => RolloversInSeason > 0;
+	
 	[BsonElement(DB_KEY_SHARD_ID), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SHARD_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string ShardID { get; set; } // can be null
 	
-	[BsonElement(DB_KEY_START_TIME), BsonIgnoreIfDefault]
+	[BsonElement(DB_KEY_START_TIME)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_START_TIME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	public long StartTime { get; set; }
 	

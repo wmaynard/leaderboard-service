@@ -17,6 +17,7 @@ public class Enrollment : PlatformCollectionDocument
 	internal const string DB_KEY_TIER = "tier";
 	internal const string DB_KEY_SEASONAL_TIER = "seasonMax";
 	internal const string DB_KEY_ACTIVE = "active";
+	internal const string DB_KEY_ACTIVE_SEASON = "sActive";
 	internal const string DB_KEY_ACTIVE_TIER = "activeTier";
 	internal const string DB_KEY_PAST_LEADERBOARDS = "past";
 	internal const string DB_KEY_PROMOTION_STATUS = "promotion";
@@ -26,6 +27,7 @@ public class Enrollment : PlatformCollectionDocument
 	public const string FRIENDLY_KEY_ACTIVE_TIER = "activeTier";
 	public const string FRIENDLY_KEY_SEASONAL_TIER = "seasonalMaxTier";
 	public const string FRIENDLY_KEY_IS_ACTIVE = "isActive";
+	public const string FRIENDLY_KEY_IS_ACTIVE_SEASON = "isActiveInSeason";
 	public const string FRIENDLY_KEY_PAST_LEADERBOARDS = "archives";
 	public const string FRIENDLY_KEY_PROMOTION_STATUS = "promotionStatus";
 	public const string FRIENDLY_KEY_SEASON_OVER = "seasonEnded";
@@ -57,6 +59,10 @@ public class Enrollment : PlatformCollectionDocument
 	[BsonElement(DB_KEY_ACTIVE)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_IS_ACTIVE)]
 	public bool IsActive { get; set; }
+	
+	[BsonElement(DB_KEY_ACTIVE_SEASON)]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_IS_ACTIVE_SEASON)]
+	public bool IsActiveInSeason { get; set; }
 	
 	[BsonElement(DB_KEY_PAST_LEADERBOARDS)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_PAST_LEADERBOARDS)]

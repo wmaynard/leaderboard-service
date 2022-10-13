@@ -566,7 +566,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 					.Log(title: $"{leaderboard.Type} rollover triggered.", message)
 					.Attach(name: "Rankings", content: attachment)
 					.Send();
-				Log.Info(Owner.Default, $"{leaderboard.Type} rollover information sent to Slack."); 
 			}
 			catch
 			{
@@ -586,63 +585,60 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	public void RolloverSeasons(string[] types)
 	{
-		foreach (string t in types)
-		{
-			Leaderboard board = _collection.Find(leaderboard => leaderboard.Type == t).FirstOrDefault();
-			if (board == null)
-				continue;
-			
-			for (int tier = 0; tier < board.MaxTier; tier++)
-			{
-				Reward prize = null;
-				try
-				{
-					string[] accounts = _enrollmentService.GetAccountIdsForTier(board.Type, tier);
-					prize = board.TierRules[tier].SeasonReward;
-					prize.RankingData = new RumbleJson
-					{
-						{ "leaderboardSeasonalMaxTier", tier },
-						// { "leaderboardCurrentTier", null }, // TODO: Is this really necessary?
-						{ "leaderboardNewSeasonTier", Math.Min(board.MaxTierOnSeasonReset, tier) }, // TODO: Change when reset is in tier rules
-					};
-					_rewardService.Grant(prize, accounts);
-					Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
-				}
-				catch (Exception e)
-				{
-					Log.Error(Owner.Will, "Could not issue season rewards.", data: new
-					{
-						Prize = prize
-					}, exception: e);
-				}
-			}
-			_enrollmentService.ResetSeasonalMaxTier(board.Type);
-		}
-		
-		// Reset the rollover counter for seasons on provided rollover types.
 		try
 		{
-			long affected = _collection.UpdateMany(
-				filter: Builders<Leaderboard>.Filter.And(
-					Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.RolloversRemaining, 0),
-					Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversInSeason, 0),
-					Builders<Leaderboard>.Filter.In(leaderboard => leaderboard.Type, types)
-				),
-				update: PipelineDefinition<Leaderboard, Leaderboard>.Create($"{{ $set: {{ {Leaderboard.DB_KEY_SEASON_COUNTDOWN}: '${Leaderboard.DB_KEY_SEASON_ROLLOVERS}' }} }}")
-			).ModifiedCount;
-			if (affected > 0)
-				Log.Info(Owner.Will, "Reset season counters.", data: new
+			foreach (string type in types)
+			{
+				long affected = _collection.UpdateMany(
+					filter: Builders<Leaderboard>.Filter.And(
+						Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.RolloversRemaining, 0),
+						Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversInSeason, 0),
+						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type)
+					),
+					update: PipelineDefinition<Leaderboard, Leaderboard>.Create($"{{ $set: {{ {Leaderboard.DB_KEY_SEASON_COUNTDOWN}: '${Leaderboard.DB_KEY_SEASON_ROLLOVERS}' }} }}")
+				).ModifiedCount;
+			
+				if (affected == 0) // No leaderboards are ready for season rollover; we don't need to do anything to this type.
+					continue;
+			
+				Log.Info(Owner.Will, "Reset season rollover counter.", data: new
 				{
-					Count = affected,
-					Types = types
+					Types = type
 				});
+			
+				Leaderboard board = _collection.Find(leaderboard => leaderboard.Type == type).FirstOrDefault();
+			
+				// Iterate over every tier and grant rewards to all the players based on their highest tier in the season. 
+				for (int tier = 0; tier < board.MaxTier; tier++)
+				{
+					Reward prize = null;
+					try
+					{
+						string[] accounts = _enrollmentService.GetSeasonalRewardCandidates(type, tier);
+						prize = board.TierRules[tier].SeasonReward;
+						prize.RankingData = new RumbleJson
+						{
+							{ "leaderboardSeasonalMaxTier", tier },
+							// { "leaderboardCurrentTier", null }, // TODO: Is this really necessary?
+							{ "leaderboardNewSeasonTier", Math.Min(board.MaxTierOnSeasonReset, tier) }, // TODO: Change when reset is in tier rules
+						};
+						if (_rewardService.Grant(prize, accounts) > 0)
+							Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
+					}
+					catch (Exception e)
+					{
+						Log.Error(Owner.Will, "Could not issue season rewards.", data: new
+						{
+							Prize = prize
+						}, exception: e);
+					}
+				}
+				_enrollmentService.ResetSeasonalMaxTier(type);
+			}
 		}
 		catch (Exception e)
 		{
-			Log.Error(Owner.Will, "Could not reset season rollover counter.", data: new
-			{
-				Types = types 
-			}, exception: e);
+			Log.Error(Owner.Will, "Unable to perform season rollover tasks.", exception: e);
 		}
 	}
 	public List<Entry> CalculateTopScores(Enrollment enrollment) => _collection

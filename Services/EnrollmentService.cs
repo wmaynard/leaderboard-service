@@ -106,9 +106,7 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 					Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
 					Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
 				),
-				update: Builders<Enrollment>.Update.Inc(enrollment => enrollment.Tier, delta)
-					.Set(result => result.Status, Enrollment.PromotionStatus.Unchanged
-				),
+				update: Builders<Enrollment>.Update.Set(result => result.Status, Enrollment.PromotionStatus.Unchanged),
 				options: new UpdateOptions
 				{
 					IsUpsert = false
@@ -142,8 +140,8 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		return result.ModifiedCount;
 	}
 
-	public string[] GetAccountIdsForTier(string type, int tier) => _collection
-		.Find(enrollment => enrollment.LeaderboardType == type && enrollment.SeasonalMaxTier == tier)
+	public string[] GetSeasonalRewardCandidates(string type, int tier) => _collection
+		.Find(enrollment => enrollment.LeaderboardType == type && enrollment.SeasonalMaxTier == tier && enrollment.IsActiveInSeason)
 		.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
 		.ToList()
 		.ToArray();
@@ -154,11 +152,12 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			update: Builders<Enrollment>.Update
 				.Set(enrollment => enrollment.SeasonalMaxTier, -1)
 				.Set(enrollment => enrollment.SeasonEnded, true)
+				.Set(enrollment => enrollment.IsActiveInSeason, false)
 		).ModifiedCount;
 
 	public long PromotePlayers(string[] accountIds, Leaderboard caller) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: 1);
 	public long DemotePlayers(string[] accountIds, Leaderboard caller, int levels = 1) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: levels * -1);
-	public void DemoteInactivePlayers(string leaderboardType) => AlterTier(GetInactiveAccounts(leaderboardType), leaderboardType);
+	public void DemoteInactivePlayers(string leaderboardType) => AlterTier(GetInactiveAccounts(leaderboardType), leaderboardType, delta: -1);
 
 	public long FlagAsInactive(string leaderboardType) => _collection
 		.UpdateMany(

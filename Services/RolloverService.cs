@@ -72,13 +72,6 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         // _leaderboard.BeginRollover(rolloverType, out string[] ids, out string[] types);
         _leaderboard.BeginRollover(rolloverType, out RumbleJson[] data);
 
-        foreach (string type in data.Select(json => json.Require<string>(Leaderboard.DB_KEY_TYPE)))
-        {
-            _enrollment.DemoteInactivePlayers(type);
-            _enrollment.FlagAsInactive(type);
-            _leaderboard.DecreaseSeasonCounter(type);
-        }
-
         foreach (RumbleJson json in data)
             CreateTask(new RolloverData
             {
@@ -99,6 +92,13 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             .Select(rolloverData => rolloverData.LeaderboardType)
             .Distinct()
             .ToArray();
+        
+        foreach (string type in types)
+        {
+            _enrollment.DemoteInactivePlayers(type);
+            _enrollment.FlagAsInactive(type);
+            _leaderboard.DecreaseSeasonCounter(type);
+        }
         
         _leaderboard.RolloverSeasons(data
             .Select(rolloverData => rolloverData.LeaderboardType)
@@ -150,11 +150,6 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             try
             {
                 await _leaderboard.Rollover(data.LeaderboardId);
-                Log.Info(Owner.Will, $"Rollover triggered.", data: new
-                {
-                    ServiceID = Id,
-                    LeaderboardId = data.LeaderboardId
-                });
                 success = true;
             }
             catch (Exception e)

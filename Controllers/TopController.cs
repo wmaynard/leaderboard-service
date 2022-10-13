@@ -40,6 +40,7 @@ public class TopController : PlatformController
 		
 		enrollment.CurrentLeaderboardID = leaderboard.Id;
 		enrollment.IsActive = true;
+		enrollment.IsActiveInSeason = leaderboard.SeasonsEnabled;
 
 		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged)
 			enrollment.ActiveTier = enrollment.Tier;
