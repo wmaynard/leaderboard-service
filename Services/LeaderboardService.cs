@@ -452,18 +452,15 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	private bool LeaderboardIsActive(string leaderboardType) => _collection
 		.CountDocuments(
-			filter: Builders<Leaderboard>.Filter.SizeGt(field: leaderboard => leaderboard.Scores, size: 0)
+			filter: Builders<Leaderboard>.Filter.Lte(field: leaderboard => leaderboard.StartTime, Timestamp.UnixTime)
 		) != 0;
 
-	public long DecreaseSeasonCounter(string type)
-	{
-		if (!LeaderboardIsActive(type))
-			return 0;
-		return _collection.UpdateMany(
+	public long DecreaseSeasonCounter(string type) => LeaderboardIsActive(type)
+		? _collection.UpdateMany(
 			filter: leaderboard => leaderboard.Type == type && leaderboard.RolloversInSeason > 0,
 			update: Builders<Leaderboard>.Update.Inc(leaderboard => leaderboard.RolloversRemaining, -1)
-		).ModifiedCount;
-	}
+		).ModifiedCount
+		: 0;
 
 	private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 	{
