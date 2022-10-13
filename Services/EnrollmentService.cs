@@ -92,7 +92,9 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.AccountID, accountId),
 				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
 			),
-			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Acknowledged)
+			update: Builders<Enrollment>.Update
+				.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Acknowledged)
+				.Set(enrollment => enrollment.SeasonEnded, false)
 		).ModifiedCount;
 
 	private long AlterTier(string[] accountIds, string type, int? maxTier = null, int delta = 0)
@@ -149,7 +151,9 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 	public long ResetSeasonalMaxTier(string type) => _collection
 		.UpdateMany(
 			filter: enrollment => enrollment.LeaderboardType == type,
-			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.SeasonalMaxTier, -1)
+			update: Builders<Enrollment>.Update
+				.Set(enrollment => enrollment.SeasonalMaxTier, -1)
+				.Set(enrollment => enrollment.SeasonEnded, true)
 		).ModifiedCount;
 
 	public long PromotePlayers(string[] accountIds, Leaderboard caller) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: 1);

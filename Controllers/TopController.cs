@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Exceptions;
 using Rumble.Platform.LeaderboardService.Models;
 using Rumble.Platform.LeaderboardService.Services;
@@ -39,6 +40,9 @@ public class TopController : PlatformController
 		
 		enrollment.CurrentLeaderboardID = leaderboard.Id;
 		enrollment.IsActive = true;
+
+		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged)
+			enrollment.ActiveTier = enrollment.Tier;
 		_enrollmentService.Update(enrollment);
 
 		return Ok(new { Leaderboard = leaderboard });
@@ -57,15 +61,14 @@ public class TopController : PlatformController
 		// Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
 		if (leaderboard == null)
 			throw new UnknownLeaderboardException(type);
-		
-		return Ok( new
+
+		RumbleJson output = new RumbleJson
 		{
-			LeaderboardId = leaderboard.Type,
-			Tier = leaderboard.Tier,
-			SeasonalMaxTier = enrollment.SeasonalMaxTier,
-			Response = leaderboard.GenerateScoreResponse(Token.AccountId),
-			PromotionStatus = enrollment.Status
-		});
+			{ "enrollment", enrollment },
+			{ "leaderboard", leaderboard.GenerateScoreResponse(Token.AccountId) }
+		};
+		
+		return Ok(output);
 	}
 
 	[HttpDelete, Route("notification")]

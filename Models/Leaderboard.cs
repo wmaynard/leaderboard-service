@@ -184,13 +184,18 @@ public class Leaderboard : PlatformCollectionDocument
 
 		RumbleJson output = new RumbleJson
 		{
-			{ "topScores", topScores },
-			{ "nearbyScores", nearbyScores }
+			{ FRIENDLY_KEY_SEASON_ROLLOVERS, RolloversInSeason },
+			{ FRIENDLY_KEY_SEASON_COUNTDOWN, RolloversRemaining },
+			{ FRIENDLY_KEY_TIER, Tier },
+			{ FRIENDLY_KEY_TYPE, Type },
+			{ "allScores", sorted.Count < MAX_PLAYERS_PER_SHARD ? sorted : null },
+			{ "nearbyScores", nearbyScores },
+			{ "topScores", topScores }
 		};
 
 		// Return all scores for shards and leaderboards of a reasonable size.
-		if (sorted.Count < MAX_PLAYERS_PER_SHARD)
-			output["allScores"] = sorted;
+		// if (sorted.Count < MAX_PLAYERS_PER_SHARD)
+			// output["allScores"] = sorted;
 
 		return output;
 	}
