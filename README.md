@@ -18,25 +18,25 @@ By default, the service returns both top and nearby ranks.  While some game lead
 
 # Glossary
 
-| Term               | Definition                                                                                                                                                                                         |
-|:-------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| AccountId / aid    | The MongoDB identifier for an account.                                                                                                                                                             |
-| Archive            | A stored state of a completed leaderboard.  When a leaderboard completes its rollover, a full copy of it is kept as an Archive.                                                                    |
-| Demotion           | If a user underperformed in a leaderboard, they move down in tier, which yields lesser rewards.                                                                                                    |
-| Enrollment         | A service record of a player's exploits within the leaderboard system, containing information about their tier and times participated.                                                             |
-| Global Leaderboard | A leaderboard containing every active player in the game.                                                                                                                                          |
-| Minimum Percentile | For reward distribution.  A value of 0% means all players receive the reward.  A value of 95% in a leaderboard of 300 players means the top 15 receive the reward.                                 |
-| Nearby Rank        | Ranks close to the player in either direction.                                                                                                                                                     |
-| Promotion          | If a user excelled in a leaderboard, they move up in tier, yielding greater rewards.                                                                                                               |
-| Rank               | The relative position of a player in the leaderboard.  If three players have the same score, they share the same rank, and the rank below them skips two.                                          |
-| Reward             | Items to send to players meeting the reward rules.  Rewards are distributed via mailbox-service and contain all information necessary, including subject and message body, to send to mailbox.     |
-| Rollover           | A time that a leaderboard locks down, distributes rewards, archives itself, and resets its scores.                                                                                                 |
-| Rules              | A generic term for how a leaderboard governs itself.  Can refer to either reward distribution or rollover type.                                                                                    |
-| Score              | An arbitrary numeric value indicating a player's progress.  Like in an arcade machine, scores should be varied enough that ties are rare.                                                          |
-| Season             | A period of time where all leaderboards end, distribute rewards, and demote all players - with higher tier players being demoted more - to encourage more tier-climbing in the next season.        |
-| Shard              | A subset of a leaderboard's players.  Shards are useful for driving competition and seeing immediate results.  Sharded leaderboards operate the same as regular ones, but limited in player count. |
-| Tier               | A subset of a leaderboard type, ideally grouping players of similar skill together.  Higher tiers yield better rewards.                                                                            |
-| Winner             | A player who received at least one reward from a leaderboard's rollover.                                                                                                                           |
+| Term               | Definition                                                                                                                                                                                                                                    |
+|:-------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| AccountId / aid    | The MongoDB identifier for an account.                                                                                                                                                                                                        |
+| Archive            | A stored state of a completed leaderboard.  When a leaderboard completes its rollover, a full copy of it is kept as an Archive.                                                                                                               |
+| Demotion           | If a user underperformed in a leaderboard, they move down in tier, which yields lesser rewards.                                                                                                                                               |
+| Enrollment         | A service record of a player's exploits within the leaderboard system, containing information about their tier and times participated.                                                                                                        |
+| Global Leaderboard | A leaderboard containing every active player in the game.                                                                                                                                                                                     |
+| Minimum Percentile | For reward distribution.  A value of 0% means all players receive the reward.  A value of 95% in a leaderboard of 300 players means the top 15 receive the reward.                                                                            |
+| Nearby Rank        | Ranks close to the player in either direction.                                                                                                                                                                                                |
+| Promotion          | If a user excelled in a leaderboard, they move up in tier, yielding greater rewards.                                                                                                                                                          |
+| Rank               | The relative position of a player in the leaderboard.  If three players have the same score, they share the same rank, and the rank below them skips two.                                                                                     |
+| Reward             | Items to send to players meeting the reward rules.  Rewards are distributed via mailbox-service and contain all information necessary, including subject and message body, to send to mailbox.                                                |
+| Rollover           | A time that a leaderboard locks down, distributes rewards, archives itself, and resets its scores.                                                                                                                                            |
+| Rules              | A generic term for how a leaderboard governs itself.  Can refer to either reward distribution or rollover type.                                                                                                                               |
+| Score              | An arbitrary numeric value indicating a player's progress.  Like in an arcade machine, scores should be varied enough that ties are rare.                                                                                                     |
+| Season             | A period of time, defined as a number of rollovers.  At the end of a season, a supplemental reward is sent to players for reaching a specific tier.  Players are then possibly demoted to a lower tier to encourage climbing the ranks again. |
+| Shard              | A subset of a leaderboard's players.  Shards are useful for driving competition and seeing immediate results.  Sharded leaderboards operate the same as regular ones, but limited in player count.                                            |
+| Tier               | A subset of a leaderboard type, ideally grouping players of similar skill together.  Higher tiers yield better rewards.                                                                                                                       |
+| Winner             | A player who received at least one reward from a leaderboard's rollover.                                                                                                                                                                      |
 
 # environment.json
 
@@ -158,45 +158,62 @@ Response:
 
 ```
 {
-    "success": true,
-    "leaderboardId": "pvp_daily",
-    "tier": 1,
-    "seasonalMaxTier": 0,
-    "response": {
-        "allScores": [ // only shows up on small leaderboards
+    "enrollment": {
+        "tier": 1,
+        "activeTier": 0,                                 // Indicates the last tier a user was in when DELETE /notification was called.
+        "seasonalMaxTier": -1,                           // Determines the season reward; highest tier a player hit in the season.
+        "isActive": false,
+        "archives": [
+            "6347060e3343959668563dd4",
+            "6347061b3343959668563de2"
+        ],
+        "promotionStatus": -1,                           // Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2
+        "seasonEnded": false,                            // Also cleared by DELETE /notification
+        "id": "634705e83343959668563dcb"
+    },
+    "leaderboard": {
+        "rolloversInSeason": 7,
+        "rolloversRemaining": 7,
+        "shardId": "deadbeefdeadbeefdeadbeef",
+        "tier": 1,
+        "leaderboardId": "ldr_pvp_daily",
+        "allScores": [                                   // only shows up on small leaderboards 
             {
-                "accounts": [
-                    "621d7b50ed456b3870d05a4c"
-                ],
                 "rank": 1,
+                "accountId": "62e841925030343c6079e78d",
                 "score": 0,
-                "isRequestingPlayer": true
+                "lastUpdated": 1665599430549
             }
-        ]
+        ],
         "nearbyScores": [
             {
-                "accounts": [
-                    "621d7b50ed456b3870d05a4c"
-                ],
                 "rank": 1,
+                "accountId": "62e841925030343c6079e78d",
                 "score": 0,
-                "isRequestingPlayer": true
+                "lastUpdated": 1665599430549
             }
         ],
         "topScores": [
             {
-                "accounts": [
-                    "621d7b50ed456b3870d05a4c"
-                ],
                 "rank": 1,
+                "accountId": "62e841925030343c6079e78d",
                 "score": 0,
-                "isRequestingPlayer": true
+                "lastUpdated": 1665599430549
             }
-        ],
-    },
-    "promotionStatus": -1 // Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2
+        ]
+    }
 }
 ```
+
+#### UI Notifications
+
+Since leaderboards exist perpetually and continue to rollover and operate, it's important to be able to know when a rollover has happened, and to the same extent, know when that rollover was also the end of a season.  The two important fields in the response to handle this are `promotionStatus (enum)` and `seasonEnded (bool)`.  The UI should animate or display special information using these flags; a one-time operation to show that a player has been promoted / demoted / etc.  Once the animation has played successfully, `DELETE /notification` needs to be called to clear these flags.
+
+Some notes on this:
+
+1. The end of a season should be calculated based on the `rolloversRemaining` rather than using CSV data from the game server.  While they _should_ be the same value when calculated, `rolloversRemaining` will be the definitive source that the service uses.
+2. `activeTier` indicates the most recent scoring event _since_ the `DELETE` call.  When a season ends, this may be higher than `tier + 1`.
+3. You can also calculate what tier a player was in in the previous rollover by looking at the `promotionStatus` and `tier`.
 
 <hr />
 
