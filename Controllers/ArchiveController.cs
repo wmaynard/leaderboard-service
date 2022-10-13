@@ -18,7 +18,7 @@ public class ArchiveController : PlatformController
 	private readonly ArchiveService _archiveService;
 #pragma warning restore
 
-	[Route("")]
+	[HttpGet, Route("")]
 	public ActionResult Check()
 	{
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);

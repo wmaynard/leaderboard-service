@@ -186,6 +186,7 @@ public class Leaderboard : PlatformCollectionDocument
 		{
 			{ FRIENDLY_KEY_SEASON_ROLLOVERS, RolloversInSeason },
 			{ FRIENDLY_KEY_SEASON_COUNTDOWN, RolloversRemaining },
+			{ FRIENDLY_KEY_SHARD_ID, ShardID ?? Id },
 			{ FRIENDLY_KEY_TIER, Tier },
 			{ FRIENDLY_KEY_TYPE, Type },
 			{ "allScores", sorted.Count < MAX_PLAYERS_PER_SHARD ? sorted : null },
