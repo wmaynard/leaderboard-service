@@ -150,7 +150,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			?.FirstOrDefault(rules => rules.Tier == enrollment.Tier);
 
 		if (rules == null)
-			throw new UnknownLeaderboardException(enrollment.LeaderboardType);
+			return null;
 		
 		FilterDefinition<Leaderboard> filter = CreateShardFilter(enrollment, rules.PlayersPerShard);
 		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.AddToSet(leaderboard => leaderboard.Scores, new Entry
@@ -191,9 +191,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		Leaderboard template = _collection
 			.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType && leaderboard.Tier == enrollment.Tier)
 			.FirstOrDefault();
-		
+
 		if (template == null)
-			throw new PlatformException("Leaderboard not found.  This is a problem with a Mongo query.", code: ErrorCode.MongoRecordNotFound);
+			return null;
+			// throw new PlatformException("Leaderboard not found.  This is a problem with a Mongo query.", code: ErrorCode.MongoRecordNotFound);
 		
 		template.ChangeId();
 		template.Scores = new List<Entry> { new Entry
@@ -298,26 +299,78 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			}
 		);
 	}
+	
+	/// <summary>
+	/// If a leaderboard is updated to remove tiers, it's possible for players to end up with a tier above that which
+	/// actually exists.  This method is responsible for demoting players who are above that tier.  Ideally, this method
+	/// should never get called; it's simply a safety measure.
+	/// </summary>
+	/// <param name="enrollment">The player's enrollment information, indicating which leaderboard type and tier we should use.</param>
+	/// <param name="score">The amount of score to add to a player's record.</param>
+	/// <returns>The appropriate leaderboard shard a player entered.</returns>
+	/// <exception cref="UnknownLeaderboardException">Thrown when an eligible shard cannot be found.</exception>
+	private Leaderboard RetryScoreWithDemotion(Enrollment enrollment, int score)
+	{
+		int[] tiers = _collection
+			.Find(leaderboard => leaderboard.Type == enrollment.LeaderboardType)
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Tier))
+			.ToList()
+			.Distinct()
+			.OrderByDescending(_ => _)
+			.ToArray();
 
-	// TODO: Fix filter to work with sharding
-	public Leaderboard AddScore(Enrollment enrollment, int score)
+		if (!tiers.Any())
+			throw new UnknownLeaderboardException(enrollment);
+
+		int previous = enrollment.Tier;
+		enrollment.Tier = Math.Min(tiers.First(), enrollment.Tier);
+		
+		if (enrollment.Tier == previous)
+			throw new UnknownLeaderboardException(enrollment);
+		
+		_enrollmentService.Update(enrollment);
+		
+		return AddScore(enrollment, score, withRetry: false) 
+			?? throw new UnknownLeaderboardException(enrollment);
+	}
+
+	/// <summary>
+	/// Attempts to add a score to a leaderboard.  Even a score of 0 will place a player into a shard.
+	/// </summary>
+	/// <param name="enrollment">The player's enrollment information, indicating which leaderboard type and tier we should use.</param>
+	/// <param name="score">The amount of score to add to a player's record.</param>
+	/// <param name="withRetry">If true, will attempt to demote the player to an appropriate tier before throwing an exception.</param>
+	/// <returns>A leaderboard if it was successful; otherwise null.</returns
+	private Leaderboard AddScore(Enrollment enrollment, int score, bool withRetry)
 	{
 		StartTransactionIfRequested(out IClientSessionHandle session);
 
 		Leaderboard output = AddToExistingScore(enrollment, score, session);
 		// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
 		output ??= AppendNewEntry(enrollment, score, session);
-		// if output is null, it means we need a new shard.
+		
+		// If output is null, it means we need a new shard.
 		output ??= SpawnShard(enrollment, score, session);
 
-		if (output == null)
-			throw new PlatformException("Unable to add to score in leaderboards.", code: ErrorCode.MongoRecordNotFound);
+		// If the output is STILL null, perhaps the leaderboard tiers were updated and the enrollment is asking for a tier that doesn't exist.
+		if (withRetry)
+			output ??= RetryScoreWithDemotion(enrollment, score);
+		else if (output == null)
+			return null;
 		
 		if (score < 0) // No need to go down this path if the score can't decrease.
 			FloorScores(output, session);
 
 		return output;
 	}
+
+	/// <summary>
+	/// Attempts to add a score to a leaderboard.  Even a score of 0 will place a player into a shard.
+	/// </summary>
+	/// <param name="enrollment">The player's enrollment information, indicating which leaderboard type and tier we should use.</param>
+	/// <param name="score">The amount of score to add to a player's record.</param>
+	/// <returns>A leaderboard if it was successful; otherwise an UnknownLeaderboardException will be thrown.</returns>
+	public Leaderboard AddScore(Enrollment enrollment, int score) => AddScore(enrollment, score, withRetry: true);
 
 	public string[] ListLeaderboardTypes() => _collection
 		.Find(leaderboard => true)

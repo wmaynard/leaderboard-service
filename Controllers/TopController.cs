@@ -30,10 +30,6 @@ public class TopController : PlatformController
 
 		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
 		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score);
-		_rewardsService.Validate(Token.AccountId);
-
-		if (leaderboard == null)
-			throw new UnknownLeaderboardException(type);
 
 		if (enrollment.CurrentLeaderboardID == leaderboard.Id)
 			return Ok(new { Leaderboard = leaderboard });
@@ -58,10 +54,8 @@ public class TopController : PlatformController
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 		
 		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
-		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, 0);
+		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score: 0);
 		// Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
-		if (leaderboard == null)
-			throw new UnknownLeaderboardException(type);
 
 		RumbleJson output = new RumbleJson
 		{

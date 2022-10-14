@@ -14,7 +14,8 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class EnrollmentService : PlatformMongoService<Enrollment>
 {
-	public EnrollmentService() : base("enrollments") { }
+	private readonly RewardsService _rewardsService;
+	public EnrollmentService(RewardsService rewardsService) : base("enrollments") => _rewardsService = rewardsService; 
 
 	private string[] GetInactiveAccounts(string leaderboardType)
 	{
@@ -35,16 +36,26 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			return Array.Empty<string>();
 		}
 	}
-	
-	public Enrollment FindOrCreate(string accountId, string leaderboardType) => _collection
-		.Find(filter: enrollment => enrollment.AccountID == accountId && enrollment.LeaderboardType == leaderboardType)
-		.FirstOrDefault()
-		?? Create(model: new Enrollment() // Session is handled in platform-common for this one
+
+	public Enrollment FindOrCreate(string accountId, string leaderboardType)
+	{
+		Enrollment output = _collection
+			.Find(filter: enrollment => enrollment.AccountID == accountId && enrollment.LeaderboardType == leaderboardType)
+			.FirstOrDefault();
+
+		if (output != null)
+			return output;
+		
+		output = Create(model: new Enrollment() // Session is handled in platform-common for this one
 		{
 			AccountID = accountId,
 			LeaderboardType = leaderboardType,
 			Tier = 0
 		});
+		_rewardsService.Validate(accountId);
+
+		return output;
+	}
 
 	public void LinkArchive(IEnumerable<string> accountIds, string leaderboardType, string archiveId) => _collection.UpdateMany(
 		filter: Builders<Enrollment>.Filter.And(
