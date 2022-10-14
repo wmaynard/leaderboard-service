@@ -16,7 +16,6 @@ public class TopController : PlatformController
 	private Services.LeaderboardService _leaderboardService;
 	private EnrollmentService _enrollmentService;
 	private RewardsService _rewardsService;
-	private DynamicConfigService _config;
 #pragma warning restore
 
 	[HttpPatch, Route("score")]

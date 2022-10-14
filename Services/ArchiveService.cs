@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MongoDB.Driver;
+using RCL.Logging;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -10,12 +11,7 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class ArchiveService : PlatformMongoService<Leaderboard>
 {
-	private const int FALLBACK_DAYS_TO_KEEP = 30;
-	private readonly DynamicConfigService _dynamicConfig;
-
-	public int DaysToKeep => _dynamicConfig.GameConfig.Optional<int?>("leaderboard_ArchiveDaysToKeep") ?? FALLBACK_DAYS_TO_KEEP;
-
-	public ArchiveService(DynamicConfigService configService) : base("archives") => _dynamicConfig = configService;
+	public ArchiveService() : base("archives") { }
 
 	public void Stash(Leaderboard leaderboard, out Leaderboard archive)
 	{
@@ -44,4 +40,15 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 		).SortByDescending(leaderboard => leaderboard.EndTime)
 		.Limit(count)
 		.ToList();
+
+	public void DeleteOldArchives(int days)
+	{
+		long seconds = 60 * 60 * 24 * days;
+		long affected = _collection
+			.DeleteMany(archive => archive.EndTime < Timestamp.UnixTime - seconds)
+			.DeletedCount;
+		
+		if (affected > 0)
+			Log.Local(Owner.Default, $"Deleted {affected} archives older than {days} days.");
+	}
 }

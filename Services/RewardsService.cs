@@ -16,12 +16,13 @@ namespace Rumble.Platform.LeaderboardService.Services;
 public class RewardsService : PlatformMongoService<RewardHistory>
 {
 	private readonly ApiService _apiService;
-	private readonly DynamicConfigService _dynamicConfig;
 
-	public RewardsService(ApiService apiService, DynamicConfigService config) : base("rewards")
+	private readonly DC2Service _dc2Service;
+
+	public RewardsService(ApiService apiService, DC2Service dc2Service) : base("rewards")
 	{
 		_apiService = apiService;
-		_dynamicConfig = config;
+		_dc2Service = dc2Service;
 	}
 
 	public long Grant(Reward reward, params string[] accountIds)
@@ -60,7 +61,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 	// TODO: Create tasks for this as well
 	public void SendRewards()
 	{
-		string adminToken = _dynamicConfig.GameConfig.Require<string>("leaderboard_AdminToken");
+		string adminToken = _dc2Service.AdminToken;
 		
 		RewardHistory[] histories = Find(history => history.Rewards.Any(reward => reward.SentStatus == Reward.Status.NotSent));
 

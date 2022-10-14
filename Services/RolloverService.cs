@@ -16,16 +16,18 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class RolloverService : QueueService<RolloverService.RolloverData>
 {
-    public const string CONFIG_HOURLY_SETTING = "leaderboard_HourlyResetMinute";	// 0-59
-    public const string CONFIG_DAILY_SETTING = "leaderboard_DailyResetTimeUTC_24h";	// 00:00 - 23:59
-    public const string CONFIG_WEEKLY_SETTING = "leaderboard_WeeklyResetDay";		// NOT 0-index
-    public const string CONFIG_MONTHLY_SETTING = "leaderboard_MonthlyResetDay";		// NOT 0-index
+    public const string CONFIG_HOURLY_SETTING = "hourlyRolloverMinute";	    // 0-59
+    public const string CONFIG_DAILY_SETTING = "rolloverTime";	            // 00:00 - 23:59
+    public const string CONFIG_WEEKLY_SETTING = "weeklyRolloverDay";		// NOT 0-index
+    public const string CONFIG_MONTHLY_SETTING = "monthlyRolloverDay";		// NOT 0-index
+    public const string CONFIG_ARCHIVE_RETENTION = "archiveRetention";
     public const string LAST_HOURLY_SETTING = "lastHourlyRollover";
     public const string LAST_DAILY_SETTING = "lastDailyRollover";
     public const string LAST_WEEKLY_SETTING = "lastWeeklyRollover";
     public const string LAST_MONTHLY_SETTING = "lastMonthlyRollover";
     
-    private readonly DynamicConfigService _config;
+    private readonly ArchiveService _archive;
+    private readonly DC2Service _dc2;
     private readonly EnrollmentService _enrollment;
     private readonly LeaderboardService _leaderboard;
     private readonly RewardsService _rewardService;
@@ -34,6 +36,8 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
     private TimeSpan DailyResetTime { get; set; }
     private int WeeklyResetDay { get; set; }
     private int MonthlyResetDay { get; set; }
+    
+    private int ArchiveRetentionDays { get; set; }
 
     private DateTime LastHourlyRollover
     {
@@ -58,10 +62,12 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         set => Set(LAST_MONTHLY_SETTING, value);
     }
     
-    public RolloverService(DynamicConfigService config, EnrollmentService enrollment, LeaderboardService leaderboard, RewardsService rewards) 
+    public RolloverService(ArchiveService archive, DC2Service dc2, EnrollmentService enrollment, LeaderboardService leaderboard, RewardsService rewards) 
         : base(collection: "rollover", primaryNodeTaskCount: 5, secondaryNodeTaskCount: 0)
     {
-        _config = config;
+        // _config = config;
+        _archive = archive;
+        _dc2 = dc2;
         _enrollment = enrollment;
         _leaderboard = leaderboard;
         _rewardService = rewards;
@@ -105,6 +111,8 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             .Distinct()
             .ToArray()
         );
+        
+        _archive.DeleteOldArchives(ArchiveRetentionDays);
         Log.Local(Owner.Will, "I'm done with my tasks!", emphasis: Log.LogType.ERROR);
     }
 
@@ -169,10 +177,11 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
     private bool PastResetTime(DateTime utc) => DailyResetTime.CompareTo(utc.TimeOfDay) <= 0;
     private void UpdateLocalConfig()
     {
-        HourlyResetMinute = _config?.GameConfig?.Optional<int?>(CONFIG_HOURLY_SETTING) ?? 0;
-        DailyResetTime = TimeSpan.Parse(_config?.GameConfig?.Optional<string>(CONFIG_DAILY_SETTING) ?? "02:00");
-        WeeklyResetDay = _config?.GameConfig?.Optional<int?>(CONFIG_WEEKLY_SETTING) ?? 1;
-        MonthlyResetDay = _config?.GameConfig?.Optional<int?>(CONFIG_MONTHLY_SETTING) ?? 1;
+        HourlyResetMinute = _dc2?.Optional<int?>(CONFIG_HOURLY_SETTING) ?? 0;
+        DailyResetTime = TimeSpan.Parse(_dc2?.Optional<string>(CONFIG_DAILY_SETTING) ?? "02:00");
+        WeeklyResetDay = _dc2?.Optional<int?>(CONFIG_WEEKLY_SETTING) ?? 1;
+        MonthlyResetDay = _dc2?.Optional<int?>(CONFIG_MONTHLY_SETTING) ?? 1;
+        ArchiveRetentionDays = _dc2?.Optional<int?>(CONFIG_ARCHIVE_RETENTION) ?? 60;
     }
     
     public class RolloverData : PlatformDataModel
