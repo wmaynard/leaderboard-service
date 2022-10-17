@@ -114,42 +114,25 @@ public class AdminController : PlatformController
 		return Ok();
 	}
 	
-	[HttpPost, Route("rollover"), IgnorePerformance]
+	// TODO: Remove NoAuth on 12/17
+	[HttpPost, Route("rollover"), IgnorePerformance, NoAuth]
 	public ActionResult ManualRollover()
 	{
+		if (PlatformEnvironment.IsProd && !(Token?.IsAdmin ?? true))
+			throw new InvalidTokenException(Token?.Authorization, "/admin/rollover");
+		if (Token == null)
+			throw new InvalidTokenException(null, "/admin/rollover");
 		_rolloverService.ManualRollover();
-		// try
-		// {
-		// 	int deployment = int.Parse(PlatformEnvironment.Deployment);
-		// 	if (deployment > 300)
-		// 		throw new PlatformException("This action is not allowed on prod.");
-		// }
-		// catch { }
 
 #if RELEASE
 		SlackDiagnostics
 			.Log(
-				title: $"{PlatformEnvironment.Deployment}-{RolloverType.Daily.ToString()} rollover manually triggered",
+				title: $"{PlatformEnvironment.Deployment} rollover manually triggered",
 				message: $"{Token.ScreenName} manually triggered the leaderboards rollover.")
 			.Attach(name: "Token information", content: Token.JSON)
 			.Send()
 			.Wait();
 #endif
-		// _leaderboardService.Rollover(RolloverType.Hourly);
-		// _leaderboardService.Rollover(RolloverType.Daily);
-		
-#if RELEASE
-		SlackDiagnostics
-			.Log(
-				title: $"{PlatformEnvironment.Deployment}-{RolloverType.Weekly.ToString()} rollover manually triggered",
-				message: $"{Token.ScreenName} manually triggered the leaderboards rollover.")
-			.Attach(name: "Token information", content: Token.JSON)
-			.Send()
-			.Wait();
-#endif
-		// _leaderboardService.Rollover(RolloverType.Weekly);
-		// _leaderboardService.Rollover(RolloverType.Monthly);
-		// TODO
 		return Ok();
 	}
 
