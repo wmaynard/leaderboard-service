@@ -563,7 +563,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			ranks[index].Prize.RankingData = new RumbleJson
 			{
 				{ "leaderboardId", leaderboard.Type },
-				{ "leaderboardRank", ranks[index].Rank + 1 },
+				{ "leaderboardRank", ranks[index].Rank },
 				{ "leaderboardScore", ranks[index].Score },
 				{ "leaderboardTier", leaderboard.Tier },
 				{ "leaderboardArchiveId", archive.Id }
