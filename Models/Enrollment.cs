@@ -76,7 +76,11 @@ public class Enrollment : PlatformCollectionDocument
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_OVER)]
 	public bool SeasonEnded { get; set; }
 
-	public Enrollment() => PastLeaderboardIDs = new List<string>();
+	public Enrollment()
+	{
+		PastLeaderboardIDs = new List<string>();
+		Status = PromotionStatus.Acknowledged;
+	} 
 	
 	public enum PromotionStatus { Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2 }
 }
