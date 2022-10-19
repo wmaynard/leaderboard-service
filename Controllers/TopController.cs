@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Web;
@@ -63,6 +66,19 @@ public class TopController : PlatformController
 		};
 		
 		return Ok(output);
+	}
+
+	[HttpGet, Route("enrollments")]
+	public ActionResult GetEnrollments()
+	{
+		string typeString = Optional<string>("leaderboardIds");
+		
+		List<Enrollment> enrollments = _enrollmentService.Find(Token.AccountId, typeString);
+
+		return Ok(new RumbleJson
+		{
+			{ "enrollments", enrollments } 
+		});
 	}
 
 	[HttpDelete, Route("notification")]

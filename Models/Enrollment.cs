@@ -41,7 +41,7 @@ public class Enrollment : PlatformCollectionDocument
 	public string CurrentLeaderboardID { get; set; }
 	
 	[BsonElement(DB_KEY_LEADERBOARD_TYPE), BsonRequired]
-	[JsonIgnore]
+	[JsonInclude, JsonPropertyName(Leaderboard.FRIENDLY_KEY_TYPE)]
 	public string LeaderboardType { get; set; }
 	
 	[BsonElement(DB_KEY_TIER)]

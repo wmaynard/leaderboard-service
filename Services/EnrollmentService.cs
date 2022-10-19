@@ -175,4 +175,23 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			filter: enrollment => enrollment.LeaderboardType == leaderboardType,
 			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, false)
 		).ModifiedCount;
+
+	public List<Enrollment> Find(string accountId, string typeString)
+	{
+		typeString ??= "";
+		FilterDefinition<Enrollment> filter = Builders<Enrollment>.Filter.Eq(enrollment => enrollment.AccountID, accountId);
+
+		string[] types = typeString
+			.Split(',')
+			.Select(str => str.Trim())
+			.Where(str => !string.IsNullOrWhiteSpace(str))
+			.ToArray();
+
+		if (types.Any())
+			filter = Builders<Enrollment>.Filter.And(filter, Builders<Enrollment>.Filter.In(enrollment => enrollment.LeaderboardType, types));
+
+		return _collection
+			.Find(filter)
+			.ToList();
+	}
 }
