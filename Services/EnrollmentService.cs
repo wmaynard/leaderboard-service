@@ -17,12 +17,20 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 	private readonly RewardsService _rewardsService;
 	public EnrollmentService(RewardsService rewardsService) : base("enrollments") => _rewardsService = rewardsService; 
 
-	private string[] GetInactiveAccounts(string leaderboardType)
+	private string[] GetInactiveAccounts(string leaderboardType, bool forDemotion = true)
 	{
 		try
 		{
+			List<FilterDefinition<Enrollment>> filters = new List<FilterDefinition<Enrollment>>
+			{
+				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, leaderboardType),
+				Builders<Enrollment>.Filter.Eq(enrollment => enrollment.IsActive, false)
+			};
+			if (forDemotion)
+				filters.Add(Builders<Enrollment>.Filter.Gt(enrollment => enrollment.Tier, 0));
+
 			return _collection
-				.Find(enrollment => enrollment.LeaderboardType == leaderboardType && !enrollment.IsActive)
+				.Find(Builders<Enrollment>.Filter.And(filters))
 				.Project<string>(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
 				.ToList()
 				.ToArray();
