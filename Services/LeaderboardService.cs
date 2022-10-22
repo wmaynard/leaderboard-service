@@ -49,7 +49,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				session: session,
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
-					.Set(leaderboard => leaderboard.MaxTierOnSeasonReset, template.MaxTierOnSeasonReset)
 					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
 					.Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
@@ -61,7 +60,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				filter: leaderboard => leaderboard.Type == template.Type,
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
-					.Set(leaderboard => leaderboard.MaxTierOnSeasonReset, template.MaxTierOnSeasonReset)
 					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
 					.Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
@@ -583,11 +581,16 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Where(entry => entry.Score != 0)
 			.Select(entry => entry.AccountID)
 			.ToArray();
-		
-		if (leaderboard.Tier < leaderboard.MaxTier)
-			_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
-		if (leaderboard.Tier > 1)													// People can't get demoted below 1.
-			_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
+
+		bool promotionEnabled = !leaderboard.SeasonsEnabled || (leaderboard.SeasonsEnabled && leaderboard.RolloversRemaining > 0);
+
+		if (promotionEnabled)
+		{
+			if (leaderboard.Tier < leaderboard.MaxTier)
+				_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
+			if (leaderboard.Tier > 1)													// People can't get demoted below 1.
+				_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
+		}
 
 		// TODO: Design needs to provide details on how this message should be formatted.
 		try
@@ -642,6 +645,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		{
 			foreach (string type in types)
 			{
+				var foo = _collection.Find(leaderboard => leaderboard.RolloversRemaining <= 0 && leaderboard.RolloversInSeason > 0 && leaderboard.Type == type).ToList();
 				long affected = _collection.UpdateMany(
 					filter: Builders<Leaderboard>.Filter.And(
 						Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.RolloversRemaining, 0),
@@ -660,11 +664,11 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				});
 			
 				Leaderboard board = _collection.Find(leaderboard => leaderboard.Type == type).FirstOrDefault();
-			
-				// Iterate over every tier and grant rewards to all the players based on their highest tier in the season. 
-				for (int tier = 0; tier < board.MaxTier; tier++)
+			 
+				for (int tier = 0; tier <= board.MaxTier; tier++)
 				{
 					Reward prize = null;
+					// Grant rewards based on the max season achieved.
 					try
 					{
 						string[] accounts = _enrollmentService.GetSeasonalRewardCandidates(type, tier);
@@ -673,7 +677,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						{
 							{ "leaderboardSeasonalMaxTier", tier },
 							// { "leaderboardCurrentTier", null }, // TODO: Is this really necessary?
-							{ "leaderboardNewSeasonTier", Math.Min(board.MaxTierOnSeasonReset, tier) }, // TODO: Change when reset is in tier rules
+							{ "leaderboardNewSeasonTier", Math.Min(board.TierRules[tier].MaxTierOnSeasonReset, tier) }, // TODO: Change when reset is in tier rules
 						};
 						if (_rewardService.Grant(prize, accounts) > 0)
 							Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
@@ -684,6 +688,16 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						{
 							Prize = prize
 						}, exception: e);
+					}
+
+					// Demote players based on the max season number.
+					try
+					{
+						_enrollmentService.SeasonDemotion(board.Type, tier, Math.Min(tier, board.TierRules[tier].MaxTierOnSeasonReset));
+					}
+					catch (Exception e)
+					{
+						Log.Error(Owner.Default, "Unable to demote players during a season rollover.");
 					}
 				}
 				_enrollmentService.ResetSeasonalMaxTier(type);

@@ -29,7 +29,6 @@ public class Leaderboard : PlatformCollectionDocument
 	internal const string DB_KEY_START_TIME = "start";
 	internal const string DB_KEY_TIER = "tier";
 	internal const string DB_KEY_TIER_COUNT = "max";
-	internal const string DB_KEY_TIER_RESET = "resetTier";
 	internal const string DB_KEY_TIER_RULES = "rules";
 	internal const string DB_KEY_TIME_ENDED = "end";
 	internal const string DB_KEY_TITLE = "title";
@@ -46,7 +45,6 @@ public class Leaderboard : PlatformCollectionDocument
 	public const string FRIENDLY_KEY_SHARD_ID = "shardId";
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_TIER_COUNT = "tierCount";
-	public const string FRIENDLY_KEY_TIER_RESET = "maxTierOnSeasonEnd";
 	public const string FRIENDLY_KEY_TIER_RULES = "tierRules";
 	public const string FRIENDLY_KEY_TIME_ENDED = "lastRollover";
 	public const string FRIENDLY_KEY_TITLE = "title";
@@ -77,11 +75,7 @@ public class Leaderboard : PlatformCollectionDocument
 	[BsonIgnore]
 	[JsonIgnore]
 	public bool IsFull => Scores.Count >= CurrentTierRules.PlayersPerShard;
-	
-	[BsonElement(DB_KEY_TIER_RESET)]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER_RESET)]
-	public int MaxTierOnSeasonReset { get; set; }
-	
+
 	[BsonElement(DB_KEY_SEASON_ROLLOVERS)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_ROLLOVERS)]
 	public int RolloversInSeason { get; set; }
@@ -223,7 +217,6 @@ public class Leaderboard : PlatformCollectionDocument
 		Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined for {Type}.", ref errors);
 		Test(condition: RolloversInSeason != 0, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be non-zero; use -1 if not using Seasons.", ref errors);
 		Test(condition: RolloversInSeason < 0 || RolloversInSeason > TierCount, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be greater than {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
-		Test(condition: MaxTierOnSeasonReset <= TierCount || TierCount <= 0, error: $"{FRIENDLY_KEY_TIER_RESET} must be less than or equal to {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
 
 		foreach (TierRules rules in TierRules)
 		{
@@ -244,6 +237,8 @@ public class Leaderboard : PlatformCollectionDocument
 					error: $"'{Models.TierRules.FRIENDLY_KEY_SEASON_REWARDS}' must be non-null when enabling seasons.",
 					ref errors
 				);
+			
+			Test(condition: rules.MaxTierOnSeasonReset <= TierCount || TierCount <= 0, error: $"{Models.TierRules.FRIENDLY_KEY_TIER_RESET} must be less than or equal to {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
 		}
 		for (int tier = 0; tier <= MaxTier; tier++)
 			Test(condition: TierRules.Count(rules => rules.Tier == tier) == 1, error: $"{FRIENDLY_KEY_TIER_RULES} invalid for {tier}-{Type}.", ref errors);

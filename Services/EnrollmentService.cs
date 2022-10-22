@@ -202,4 +202,11 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			.Find(filter)
 			.ToList();
 	}
+
+	public long SeasonDemotion(string type, int tier, int newTier) => _collection
+		.UpdateMany(
+			filter: enrollment => enrollment.LeaderboardType == type && enrollment.Tier == tier && enrollment.Tier > newTier,
+			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.Tier, newTier)
+				.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Demoted)
+		).ModifiedCount;
 }

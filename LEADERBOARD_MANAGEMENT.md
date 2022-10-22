@@ -70,6 +70,7 @@ Leaderboards are passed as an array of objects.  Here's our sample request so fa
 Every tier has a set of rules associated with it.  These rules determine what happens at rollover.  Every tier requires its own rules, and these rules need to be defined with our update request.  The `tierRules` of our request body is an array of objects containing:
 
 * A **tier**, a 0-index integer value.
+* A **maxTierOnSeasonEnd**, a 0-index integer value indicating the maximum tier a player can be once a season ends.
 * A **promotionRank** which dictates which ranks advance to the higher tier on rollover.  Every rank less than or equal to this value will be promoted.
 * A **demotionRank** which dictates which ranks fall to the lower tier on rollover.  Every rank equal to or greater than this value will be demoted.
 * A **promotionPercentage**, a placeholder for future functionality.
@@ -84,6 +85,7 @@ Continuing our request:
         "tierRules": [
             {
                 "tier": 0,
+                "maxTierOnSeasonEnd": 0,
                 "promotionRank": 5,
                 "demotionRank": -1,
                 "promotionPercentage": null,
@@ -246,6 +248,7 @@ Authorization: `Bearer {leaderboard_AdminToken}`
         "tierRules": [
             {
                 "tier": 0,
+                "maxTierOnSeasonEnd": 0,
                 "promotionRank": 5,
                 "demotionRank": -1,
                 "promotionPercentage": null,
@@ -382,6 +385,7 @@ Authorization: `Bearer {leaderboard_AdminToken}`
             },
             {
                 "tier": 1,
+                "maxTierOnSeasonEnd": 0,
                 "promotionRank": 5,
                 "demotionRank": 40,
                 "promotionPercentage": null,
