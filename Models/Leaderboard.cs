@@ -215,6 +215,7 @@ public class Leaderboard : PlatformCollectionDocument
 		Test(condition: !string.IsNullOrWhiteSpace(Description), error: $"{FRIENDLY_KEY_DESCRIPTION} not provided.", ref errors);
 		Test(condition: TierCount > 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.", ref errors);
 		Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined for {Type}.", ref errors);
+		Test(condition: (TierRules?.Length ?? 0) >= TierCount, error: $"Must have at least {FRIENDLY_KEY_TIER_COUNT} tier rules defined.", ref errors);
 		Test(condition: RolloversInSeason != 0, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be non-zero; use -1 if not using Seasons.", ref errors);
 		Test(condition: RolloversInSeason < 0 || RolloversInSeason > TierCount, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be greater than {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
 

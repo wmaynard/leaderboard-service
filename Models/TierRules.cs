@@ -6,6 +6,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.LeaderboardService.Models;
 
+[BsonIgnoreExtraElements]
 public class TierRules : PlatformDataModel
 {
 	internal const string DB_KEY_TIER = "tier";
