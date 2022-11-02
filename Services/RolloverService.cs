@@ -102,6 +102,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
     /// </summary>
     protected override void OnTasksCompleted(RolloverData[] data)
     {
+        Log.Info(Owner.Will, "In OnTasksCompleted().");
         string[] types = data
             .Select(rolloverData => rolloverData.LeaderboardType)
             .Distinct()
