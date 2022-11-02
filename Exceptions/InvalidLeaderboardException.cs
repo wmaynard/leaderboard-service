@@ -7,7 +7,7 @@ public class InvalidLeaderboardException : PlatformException
 {
 	public string LeaderboardId { get; init; }
 	public string LeaderboardType { get; init; }
-	public string Detail { get; init; }
+	public string Details { get; init; }
 #if DEBUG
 	public Leaderboard Leaderboard { get; init; }
 #endif
@@ -16,7 +16,7 @@ public class InvalidLeaderboardException : PlatformException
 	{
 		LeaderboardId = leaderboard.Id;
 		LeaderboardType = leaderboard.Type;
-		Detail = detail;
+		Details = detail;
 #if DEBUG
 		Leaderboard = leaderboard;
 #endif

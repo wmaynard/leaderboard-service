@@ -31,11 +31,9 @@ public class ArchiveController : PlatformController
 		if (count <= 0)
 			throw new PlatformException("If specified, archive count must be greater than 0.");
 
-		return Ok(new
-		{
-			Leaderboards = accountId == null
-				? _archiveService.Lookup(type, count)
-				: _archiveService.Lookup(type, accountId, count)
-		});
+		return Ok(accountId == null
+			? _archiveService.Lookup(type, count)
+			: _archiveService.Lookup(type, accountId, count)
+		);
 	}
 }

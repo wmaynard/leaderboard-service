@@ -110,6 +110,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             _enrollment.FlagAsInactive(type);
             long affected = _leaderboard.DecreaseSeasonCounter(type);
             Log.Local(Owner.Will, $"Season counter decreased on {affected} boards.");
+            _leaderboard.RolloverRemainingKluge(type);
         }
         
         _leaderboard.RolloverSeasons(data

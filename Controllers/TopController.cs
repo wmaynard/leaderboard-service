@@ -36,14 +36,14 @@ public class TopController : PlatformController
 		// _enrollmentService.FlagAsActive(enrollment.AccountID, leaderboard.Type, usesSeasons: leaderboard.SeasonsEnabled);
 
 		if (enrollment.CurrentLeaderboardID == leaderboard.Id)
-			return Ok(new { Leaderboard = leaderboard });
+			return Ok(leaderboard);
 		
 		enrollment.CurrentLeaderboardID = leaderboard.Id;
 
 		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged && enrollment.ActiveTier != enrollment.Tier)
 			_enrollmentService.SetActiveTier(enrollment, enrollment.Tier);
 
-		return Ok(new { Leaderboard = leaderboard });
+		return Ok(leaderboard);
 	}
 
 	// TODO: Move to admin controller

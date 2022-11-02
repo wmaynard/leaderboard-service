@@ -504,7 +504,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		int playerCount = leaderboard.Scores.Count;
 		int playersProcessed = 0;
-		// bool seasonEnd = leaderboard.RolloversRemaining == 0 && leaderboard.RolloversInSeason > 0;
 
 		_archiveService.Stash(leaderboard, out Leaderboard archive);
 		
@@ -538,13 +537,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			_rewardService.Grant(entry.Prize, accountIds: entry.AccountID);
 
 		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id);
-		
-		leaderboard.Scores = new List<Entry>();
-
-		string[] activePlayers = ranks
-			.Where(entry => entry.Score != 0)
-			.Select(entry => entry.AccountID)
-			.ToArray();
 
 		bool promotionEnabled = !leaderboard.SeasonsEnabled || (leaderboard.SeasonsEnabled && leaderboard.RolloversRemaining > 1);
 
@@ -601,9 +593,15 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			return leaderboard;
 		}
 		
-		Update(leaderboard);
+		ResetScores(leaderboard.Id);
 		return leaderboard;
 	}
+
+	private void ResetScores(string id) => _collection
+		.UpdateOne(
+			filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, id),
+			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.Scores, new List<Entry>())
+		);
 
 	public void RolloverSeasons(string[] types)
 	{
@@ -663,7 +661,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 					}
 					catch (Exception e)
 					{
-						Log.Error(Owner.Default, "Unable to demote players during a season rollover.");
+						Log.Error(Owner.Default, "Unable to demote players during a season rollover.", exception: e);
 					}
 				}
 				_enrollmentService.ResetSeasonalMaxTier(type);
@@ -681,4 +679,32 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		.Limit(Leaderboard.PAGE_SIZE)
 		.ToList()
 		.FirstOrDefault();
+
+	/// <summary>
+	/// For an unknown reason, the RolloversRemaining field sometimes does not decrement, even though the modified count
+	/// from DecreaseSeasonCounter says it affected all records.  It's possible that there's a write conflict somewhere
+	/// or a transaction is preventing the write.  This method is not a permanent solution, but rather one of necessity
+	/// in the interest of time.
+	/// </summary>
+	public void RolloverRemainingKluge(string type)
+	{
+		int minRolloversRemaining = _collection
+			.Find(leaderboard => leaderboard.Type == type)
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.RolloversRemaining))
+			.ToList()
+			.OrderBy(_ => _)
+			.FirstOrDefault();
+
+		long affected = _collection
+			.UpdateMany(
+				filter: Builders<Leaderboard>.Filter.And(
+					Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
+					Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversRemaining, minRolloversRemaining)
+				),
+				update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.RolloversRemaining, minRolloversRemaining)
+			).ModifiedCount;
+		
+		if (affected > 0)
+			Log.Error(Owner.Will, "Rollover counts were out of sync but now fixed.  A Mongo transaction may be misbehaving.");
+	}
 }

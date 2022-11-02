@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using RCL.Logging;
@@ -26,7 +27,6 @@ public class AdminController : PlatformController
 	private readonly Services.LeaderboardService _leaderboardService;
 	private readonly RewardsService _rewardsService;
 	private readonly RolloverService _rolloverService;
-	private readonly ApiService _apiService;
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
 
@@ -64,9 +64,9 @@ public class AdminController : PlatformController
 			} while (currentTier++ < leaderboard.MaxTier);
 		}
 
-		return Ok(new
+		return Ok(new RumbleJson
 		{
-			deleted = deleted
+			{ "deleted", deleted }
 		});
 	}
 
@@ -100,9 +100,9 @@ public class AdminController : PlatformController
 	public ActionResult ListLeaderboards()
 	{
 		string[] types = _leaderboardService.ListLeaderboardTypes();
-		return Ok(new
+		return Ok(new RumbleJson
 		{
-			LeaderboardIds = types
+			{ "leaderboardIds", types }
 		});
 	}
 
@@ -124,6 +124,20 @@ public class AdminController : PlatformController
 			throw new InvalidTokenException(null, "/admin/rollover");
 		
 		_rolloverService.ManualRollover();
+
+		int waitTime = 0;
+		bool tasksRemain = true;
+		do
+		{
+			const int ms = 5_000;
+			Thread.Sleep(ms);
+			waitTime += ms;
+			tasksRemain = _rolloverService.TasksRemaining() > 0;
+			Log.Local(Owner.Will, $"Tasks remaining: {_rolloverService.TasksRemaining()}");
+			
+			if (waitTime > 120_000)
+				throw new PlatformException("Manual rollover timed out while waiting for tasks to complete.");
+		} while (tasksRemain);
 
 #if RELEASE
 		SlackDiagnostics

@@ -100,7 +100,7 @@ public class Reward : PlatformDataModel
 
 	public Reward() => TemporaryID = Guid.NewGuid().ToString();
 
-	public override bool Equals(object? obj)
+	public override bool Equals(object obj)
 	{
 		if (obj is not Reward other)
 			return false;
