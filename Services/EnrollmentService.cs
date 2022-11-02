@@ -73,26 +73,39 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		update: Builders<Enrollment>.Update.AddToSet(enrollment => enrollment.PastLeaderboardIDs, archiveId)
 	);
 
-	public void FlagAsActive(string accountId, string leaderboardType, bool usesSeasons = false) => SetActiveFlag(new[] { accountId }, leaderboardType, usesSeasons: usesSeasons);
-	public Enrollment[] FlagAsActive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType);
+
+	public void SetActiveTier(Enrollment enrollment, int activeTier) => _collection
+		.UpdateOne(
+			filter: Builders<Enrollment>.Filter.Eq(db => db.Id, enrollment.Id),
+			update: Builders<Enrollment>.Update.Set(db => db.ActiveTier, activeTier));
+	
+	public void FlagAsActive(Enrollment enrollment, bool usesSeasons) => _collection
+			.UpdateOne(
+				filter: Builders<Enrollment>.Filter.Eq(db => db.Id, enrollment.Id),
+				update: usesSeasons
+					? Builders<Enrollment>.Update
+						.Set(db => db.IsActive, true)
+						.Set(db => db.IsActiveInSeason, true)
+					: Builders<Enrollment>.Update.Set(db => db.IsActive, true)
+				// ,options: new FindOneAndUpdateOptions<Enrollment>()
+				// {
+				// 	ReturnDocument = ReturnDocument.After
+				// }
+			);
+	
 	public Enrollment[] FlagAsInactive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType, active: false);
-	private Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true, bool usesSeasons = false)
+	private Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true)
 	{
 		FilterDefinition<Enrollment> filter = Builders<Enrollment>.Filter.And(
 			Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
 			Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
 		);
 		
-		Log.Local(Owner.Will, $"Active: {active} UsesSeasons: {usesSeasons} Type: {type}");
 
-		_collection.UpdateMany(
+		long affected = _collection.UpdateMany(
 			filter: filter,
-			update: active && usesSeasons
-				? Builders<Enrollment>.Update
-					.Set(enrollment => enrollment.IsActive, true)
-					.Set(enrollment => enrollment.IsActiveInSeason, true)
-				: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, active)
-		);
+			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, active)
+		).ModifiedCount;
 		
 		return _collection
 			.Find(filter)

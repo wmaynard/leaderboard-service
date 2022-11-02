@@ -359,6 +359,9 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		if (score < 0) // No need to go down this path if the score can't decrease.
 			FloorScores(output, session);
 
+		if (score > 0)
+			_enrollmentService.FlagAsActive(enrollment, output.SeasonsEnabled);
+
 		return output;
 	}
 
@@ -409,48 +412,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		}))
 		.ToList()
 		.ToArray();
-
-	// public async Task Rollover(RolloverType type)
-	// {
-	// 	// This gives us a collection of RumbleJson objects of just the ID and the Type of the leaderboards.
-	// 	// This is an optimization to prevent passing in huge amounts of data - once we hit a global release, retrieving all
-	// 	// leaderboard data would result in very large data sets, and would be very slow.  We should only grab what we need,
-	// 	// especially since rollover operations will already require a significant amount of time to complete.
-	// 	RumbleJson[] data = _collection
-	// 		.Find<Leaderboard>(leaderboard => leaderboard.RolloverType == type)
-	// 		.Project<RumbleJson>(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
-	// 		{
-	// 			{ Leaderboard.DB_KEY_ID, leaderboard.Id },
-	// 			{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
-	// 		}))
-	// 		.ToList()
-	// 		.ToArray();
-	// 	
-	// 	// We need the leaderboard types to trigger inactive player demotions for all leaderboards of a specified type.
-	// 	// This was originally handled in the individual leaderboard rollover, but if there were 6 tiers of that leaderboard,
-	// 	// it would cause 6 demotions.  We only want to run one update for inactive players, and we need to do it before any
-	// 	// leaderboards roll over (which marks players with a score of 0 as inactive).
-	// 	string[] types = data
-	// 		.Select(generic => generic.Require<string>(Leaderboard.DB_KEY_TYPE))
-	// 		.Distinct()
-	// 		.ToArray();
-	//
-	// 	// We need the leaderboard IDs to individually trigger leaderboard rollover.
-	// 	string[] ids = data
-	// 		.Select(generic => generic.Require<string>(Leaderboard.DB_KEY_ID))
-	// 		.ToArray();
-	// 	
-	// 	if (ids.Length == 0)
-	// 		return;
-	// 	
-	// 	foreach (string leaderboardType in types)
-	// 		_enrollmentService.DemoteInactivePlayers(leaderboardType);
-	//
-	// 	foreach (string id in ids)
-	// 		await Rollover(id);
-	// 	
-	// 	_rewardService.SendRewards();
-	// }
 
 	private async Task<Leaderboard> Close(string id) => await SetRolloverFlag(id, isResetting: true);
 
@@ -508,7 +469,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	public long DecreaseSeasonCounter(string type) => LeaderboardIsActive(type)
 		? _collection.UpdateMany(
-			filter: leaderboard => leaderboard.Type == type && leaderboard.RolloversInSeason > 0,
+			filter: Builders<Leaderboard>.Filter.And(
+				Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
+				Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversInSeason, 0)
+			),
 			update: Builders<Leaderboard>.Update.Inc(leaderboard => leaderboard.RolloversRemaining, -1)
 		).ModifiedCount
 		: 0;
@@ -582,10 +546,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Select(entry => entry.AccountID)
 			.ToArray();
 
-		bool promotionEnabled = !leaderboard.SeasonsEnabled || (leaderboard.SeasonsEnabled && leaderboard.RolloversRemaining > 0);
+		bool promotionEnabled = !leaderboard.SeasonsEnabled || (leaderboard.SeasonsEnabled && leaderboard.RolloversRemaining > 1);
 
 		if (promotionEnabled)
 		{
+			if (promotionPlayers.Length + demotionPlayers.Length > 0)
+				Log.Local(Owner.Will, $"ID: {leaderboard.Id} Demotion: {demotionPlayers.Length} Promotion: {promotionPlayers.Length}", emphasis: Log.LogType.WARN);
 			if (leaderboard.Tier < leaderboard.MaxTier)
 				_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
 			if (leaderboard.Tier > 1)													// People can't get demoted below 1.

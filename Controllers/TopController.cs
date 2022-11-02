@@ -33,16 +33,15 @@ public class TopController : PlatformController
 		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
 		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score);
 
-		_enrollmentService.FlagAsActive(enrollment.AccountID, leaderboard.Type, usesSeasons: leaderboard.SeasonsEnabled);
+		// _enrollmentService.FlagAsActive(enrollment.AccountID, leaderboard.Type, usesSeasons: leaderboard.SeasonsEnabled);
 
 		if (enrollment.CurrentLeaderboardID == leaderboard.Id)
 			return Ok(new { Leaderboard = leaderboard });
 		
 		enrollment.CurrentLeaderboardID = leaderboard.Id;
 
-		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged)
-			enrollment.ActiveTier = enrollment.Tier;
-		_enrollmentService.Update(enrollment);
+		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged && enrollment.ActiveTier != enrollment.Tier)
+			_enrollmentService.SetActiveTier(enrollment, enrollment.Tier);
 
 		return Ok(new { Leaderboard = leaderboard });
 	}

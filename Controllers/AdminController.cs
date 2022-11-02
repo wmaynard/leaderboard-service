@@ -18,7 +18,7 @@ using Rumble.Platform.LeaderboardService.Services;
 
 namespace Rumble.Platform.LeaderboardService.Controllers;
 
-[ApiController, Route("leaderboard/admin"), RequireAuth(AuthType.ADMIN_TOKEN), UseMongoTransaction]
+[ApiController, Route("leaderboard/admin"), RequireAuth(AuthType.ADMIN_TOKEN)]
 public class AdminController : PlatformController
 {
 #pragma warning disable CS0649
