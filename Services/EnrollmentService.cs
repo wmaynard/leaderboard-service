@@ -73,16 +73,27 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		update: Builders<Enrollment>.Update.AddToSet(enrollment => enrollment.PastLeaderboardIDs, archiveId)
 	);
 
-	public void FlagAsActive(string accountId, string leaderboardType) => SetActiveFlag(new[] { accountId }, leaderboardType);
+	public void FlagAsActive(string accountId, string leaderboardType, bool usesSeasons = false) => SetActiveFlag(new[] { accountId }, leaderboardType, usesSeasons: usesSeasons);
 	public Enrollment[] FlagAsActive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType);
 	public Enrollment[] FlagAsInactive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType, active: false);
-	private Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true)
+	private Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true, bool usesSeasons = false)
 	{
-		Expression<Func<Enrollment, bool>> filter = enrollment => accountIds.Contains(enrollment.AccountID) && enrollment.LeaderboardType == type;
+		FilterDefinition<Enrollment> filter = Builders<Enrollment>.Filter.And(
+			Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
+			Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
+		);
+		
+		Log.Local(Owner.Will, $"Active: {active} UsesSeasons: {usesSeasons} Type: {type}");
+
 		_collection.UpdateMany(
 			filter: filter,
-			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, active)
+			update: active && usesSeasons
+				? Builders<Enrollment>.Update
+					.Set(enrollment => enrollment.IsActive, true)
+					.Set(enrollment => enrollment.IsActiveInSeason, true)
+				: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, active)
 		);
+		
 		return _collection
 			.Find(filter)
 			.ToList()
@@ -176,7 +187,7 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 
 	public long PromotePlayers(string[] accountIds, Leaderboard caller) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: 1);
 	public long DemotePlayers(string[] accountIds, Leaderboard caller, int levels = 1) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: levels * -1);
-	public void DemoteInactivePlayers(string leaderboardType) => AlterTier(GetInactiveAccounts(leaderboardType), leaderboardType, delta: -1);
+	public long DemoteInactivePlayers(string leaderboardType) => AlterTier(GetInactiveAccounts(leaderboardType), leaderboardType, delta: -1);
 
 	public long FlagAsInactive(string leaderboardType) => _collection
 		.UpdateMany(

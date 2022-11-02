@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
@@ -88,10 +89,14 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
 
     public void ManualRollover()
     {
+        Confiscate();
         foreach (RolloverType type in Enum.GetValues(typeof(RolloverType)))
             CreateRolloverTasks(type);
     }
 
+    /// <summary>
+    /// Executes after all leaderboard rollovers are acknowledged.
+    /// </summary>
     protected override void OnTasksCompleted(RolloverData[] data)
     {
         string[] types = data
@@ -113,7 +118,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         );
         
         _archive.DeleteOldArchives(ArchiveRetentionDays);
-        Log.Local(Owner.Will, "I'm done with my tasks!", emphasis: Log.LogType.ERROR);
+        Log.Local(Owner.Will, "Rollover complete.", emphasis: Log.LogType.ERROR);
     }
 
     protected override void PrimaryNodeWork()

@@ -532,7 +532,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Select(entry => entry.AccountID)
 			.Union(inactivePlayers)
 			.ToArray();
-		
+
 		Reward[] rewards = leaderboard.CurrentTierRewards
 			.OrderByDescending(reward => reward.MinimumPercentile)
 			.ThenByDescending(reward => reward.MinimumRank)

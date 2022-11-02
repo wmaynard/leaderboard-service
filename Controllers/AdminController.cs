@@ -122,6 +122,7 @@ public class AdminController : PlatformController
 			throw new InvalidTokenException(Token?.Authorization, "/admin/rollover");
 		if (Token == null)
 			throw new InvalidTokenException(null, "/admin/rollover");
+		
 		_rolloverService.ManualRollover();
 
 #if RELEASE

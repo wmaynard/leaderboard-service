@@ -12,7 +12,7 @@ using Rumble.Platform.LeaderboardService.Services;
 
 namespace Rumble.Platform.LeaderboardService.Controllers;
 
-[ApiController, Route("leaderboard"), RequireAuth, UseMongoTransaction]
+[ApiController, Route("leaderboard"), RequireAuth]
 public class TopController : PlatformController
 {
 #pragma warning disable
@@ -33,12 +33,12 @@ public class TopController : PlatformController
 		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
 		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score);
 
+		_enrollmentService.FlagAsActive(enrollment.AccountID, leaderboard.Type, usesSeasons: leaderboard.SeasonsEnabled);
+
 		if (enrollment.CurrentLeaderboardID == leaderboard.Id)
 			return Ok(new { Leaderboard = leaderboard });
 		
 		enrollment.CurrentLeaderboardID = leaderboard.Id;
-		enrollment.IsActive = true;
-		enrollment.IsActiveInSeason = leaderboard.SeasonsEnabled;
 
 		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged)
 			enrollment.ActiveTier = enrollment.Tier;
