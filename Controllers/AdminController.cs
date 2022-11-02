@@ -132,7 +132,7 @@ public class AdminController : PlatformController
 			const int ms = 5_000;
 			Thread.Sleep(ms);
 			waitTime += ms;
-			tasksRemain = _rolloverService.TasksRemaining() > 0;
+			tasksRemain = _rolloverService.TasksRemaining() > 0 || _rolloverService.WaitingOnTaskCompletion();
 			Log.Local(Owner.Will, $"Tasks remaining: {_rolloverService.TasksRemaining()}");
 			
 			if (waitTime > 120_000)
