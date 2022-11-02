@@ -89,6 +89,8 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
 
     public void ManualRollover()
     {
+        if (TasksRemaining() > 0)
+            throw new PlatformException("Rollover tasks still remain; wait for the current rollover to finish.");
         Confiscate();
         foreach (RolloverType type in Enum.GetValues(typeof(RolloverType)))
             CreateRolloverTasks(type);
