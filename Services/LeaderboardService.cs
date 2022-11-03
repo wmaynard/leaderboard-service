@@ -479,22 +479,20 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 	{
+#if DEBUG
+		if (!leaderboard.Scores.Any())
+			return leaderboard;
+#endif
 		// Unlike other methods here, we actually don't want to start a transaction here, since this gets called from
 		// the ResetService.  Use the one generated there instead.
-		
 		List<Entry> ranks = leaderboard.CalculateRanks();
 		string[] promotionPlayers = ranks
 			.Where(entry => entry.Rank <= leaderboard.CurrentTierRules.PromotionRank && entry.Score > 0)
 			.Select(entry => entry.AccountID)
 			.ToArray();
-		string[] inactivePlayers = ranks
-			.Where(entry => entry.Score == 0)
-			.Select(entry => entry.AccountID)
-			.ToArray();
 		string[] demotionPlayers = ranks
-			.Where(entry => entry.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1 && entry.Score > 0)
+			.Where(entry => entry.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1)
 			.Select(entry => entry.AccountID)
-			.Union(inactivePlayers)
 			.ToArray();
 
 		Reward[] rewards = leaderboard.CurrentTierRewards
