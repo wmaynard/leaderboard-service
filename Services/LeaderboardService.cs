@@ -603,13 +603,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.Scores, new List<Entry>())
 		);
 
-	public void RolloverSeasons(string[] types)
+	public void RolloverSeasonsIfNeeded(string[] types)
 	{
 		try
 		{
 			foreach (string type in types)
 			{
-				var foo = _collection.Find(leaderboard => leaderboard.RolloversRemaining <= 0 && leaderboard.RolloversInSeason > 0 && leaderboard.Type == type).ToList();
 				long affected = _collection.UpdateMany(
 					filter: Builders<Leaderboard>.Filter.And(
 						Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.RolloversRemaining, 0),

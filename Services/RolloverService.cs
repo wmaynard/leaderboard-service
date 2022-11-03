@@ -115,10 +115,11 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         
         foreach (string type in types)
         {
+            Log.Info(Owner.Will, $"Processing active flags for {type}");
             _enrollment.DemoteInactivePlayers(type);
             _enrollment.FlagAsInactive(type);
             long affected = _leaderboard.DecreaseSeasonCounter(type);
-            _leaderboard.RolloverRemainingKluge(type);
+            // _leaderboard.RolloverRemainingKluge(type);
             
             Log.Info(Owner.Will, $"Season counter decreased.", data: new
             {
@@ -126,8 +127,9 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
                 affected = affected
             });
         }
+        Log.Info(Owner.Will, "Finished activity flag processing.");
         
-        _leaderboard.RolloverSeasons(data
+        _leaderboard.RolloverSeasonsIfNeeded(data
             .Select(rolloverData => rolloverData.LeaderboardType)
             .Distinct()
             .ToArray()
