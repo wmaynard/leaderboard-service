@@ -492,7 +492,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.Select(entry => entry.AccountID)
 			.ToArray();
 		string[] demotionPlayers = ranks
-			.Where(entry => entry.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1)
+			.Where(entry => entry.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1 && entry.Score > 0)
 			.Select(entry => entry.AccountID)
 			.Union(inactivePlayers)
 			.ToArray();
