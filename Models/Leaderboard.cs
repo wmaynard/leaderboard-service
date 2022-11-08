@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -17,6 +18,7 @@ namespace Rumble.Platform.LeaderboardService.Models;
 public class Leaderboard : PlatformCollectionDocument
 {
 	private const int MAX_PLAYERS_PER_SHARD = 200;
+	internal const string GROUP_SHARD = "Shard Lookup";
 	
 	internal const string DB_KEY_DESCRIPTION = "desc";
 	internal const string DB_KEY_ID = "_id";
@@ -54,6 +56,8 @@ public class Leaderboard : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_TYPE), BsonRequired]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TYPE)]
+	[SimpleIndex]
+	[CompoundIndex(group: GROUP_SHARD, priority: 1)]
 	public string Type { get; set; }
 	
 	[BsonElement(DB_KEY_TITLE), BsonIgnoreIfNull]
@@ -66,6 +70,7 @@ public class Leaderboard : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_ROLLOVER_TYPE)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROLLOVER_TYPE)]
+	[SimpleIndex]
 	public RolloverType RolloverType { get; set; }
 	
 	[BsonIgnore]
@@ -116,6 +121,8 @@ public class Leaderboard : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_SHARD_ID), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SHARD_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	[SimpleIndex]
+	[CompoundIndex(group: GROUP_SHARD, priority: 1)]
 	public string ShardID { get; set; } // can be null
 	
 	[BsonElement(DB_KEY_START_TIME)]
@@ -140,6 +147,7 @@ public class Leaderboard : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_TIME_ENDED), BsonIgnoreIfDefault]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIME_ENDED), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+	[SimpleIndex]
 	public long EndTime { get; internal set; }
 
 	internal List<Entry> CalculateRanks()

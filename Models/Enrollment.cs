@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
@@ -34,6 +35,7 @@ public class Enrollment : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
 	[JsonIgnore]
+	[SimpleIndex]
 	public string AccountID { get; set; }
 	
 	[BsonElement(DB_KEY_LEADERBOARD_ID)]
@@ -42,10 +44,12 @@ public class Enrollment : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_LEADERBOARD_TYPE), BsonRequired]
 	[JsonInclude, JsonPropertyName(Leaderboard.FRIENDLY_KEY_TYPE)]
+	[SimpleIndex]
 	public string LeaderboardType { get; set; }
 	
 	[BsonElement(DB_KEY_TIER)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER)]
+	[SimpleIndex]
 	public int Tier { get; set; }
 	
 	[BsonElement(DB_KEY_ACTIVE_TIER)]

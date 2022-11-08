@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
@@ -24,6 +25,8 @@ namespace Rumble.Platform.LeaderboardService.Models
 		
 		[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
 		[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		[SimpleIndex]
+		[CompoundIndex(Leaderboard.GROUP_SHARD)]
 		public string AccountID { get; set; }
 		
 		[BsonElement(DB_KEY_SCORE), BsonRequired]

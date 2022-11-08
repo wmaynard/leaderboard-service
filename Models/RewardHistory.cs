@@ -16,8 +16,9 @@ public class RewardHistory : PlatformCollectionDocument
 	public const string FRIENDLY_KEY_ACCOUNT_ID = "accountId";
 	public const string FRIENDLY_KEY_REWARDS = "rewards";
 		
-	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired, SimpleIndex(dbKey: DB_KEY_ACCOUNT_ID, name: FRIENDLY_KEY_ACCOUNT_ID)]
+	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID)]
+	[SimpleIndex]
 	public string AccountId { get; set; }
 		
 	[BsonElement(DB_KEY_REWARDS), BsonIgnoreIfNull]
