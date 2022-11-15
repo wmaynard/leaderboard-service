@@ -257,4 +257,24 @@ public class AdminController : PlatformController
 
 		return Ok(output);
 	}
+
+	[HttpPatch, Route("season")]
+	public ActionResult UpdateSeason()
+	{
+		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		int rolloversRemaining = Optional<int>(Leaderboard.FRIENDLY_KEY_SEASON_COUNTDOWN);
+		int rolloversInSeason = Optional<int>(Leaderboard.FRIENDLY_KEY_SEASON_ROLLOVERS);
+		
+		Log.Info(Owner.Will, "Updated leaderboard season information.", new RumbleJson
+		{
+			{ Leaderboard.FRIENDLY_KEY_TYPE, type },
+			{ Leaderboard.FRIENDLY_KEY_SEASON_ROLLOVERS, rolloversInSeason },
+			{ Leaderboard.FRIENDLY_KEY_SEASON_COUNTDOWN, rolloversRemaining }
+		});
+
+		return Ok(new RumbleJson
+		{
+			{ "modified", _leaderboardService.UpdateSeason(type, rolloversInSeason, rolloversRemaining) }
+		});
+	}
 }

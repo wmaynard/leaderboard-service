@@ -50,7 +50,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
 					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
-					.Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
+					// .Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
@@ -61,7 +61,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
 					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
-					.Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
+					// .Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
@@ -704,4 +704,18 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		if (affected > 0)
 			Log.Error(Owner.Will, "Rollover counts were out of sync but now fixed.  A Mongo transaction may be misbehaving.");
 	}
+
+	public long UpdateSeason(string type, int season, int remaining) => _collection
+		.UpdateMany(
+			filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
+			update: season switch
+			{
+				> 0 when remaining > 0 => Builders<Leaderboard>.Update
+					.Set(leaderboard => leaderboard.RolloversInSeason, season)
+					.Set(leaderboard => leaderboard.RolloversRemaining, remaining),
+				> 0 => Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.RolloversInSeason, season),
+				0 when remaining > 0 => Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.RolloversRemaining, remaining),
+				_ => throw new PlatformException("Invalid rollover changes provided.")
+			}
+		).ModifiedCount;
 }
