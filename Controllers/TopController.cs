@@ -43,7 +43,7 @@ public class TopController : PlatformController
 		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged && enrollment.ActiveTier != enrollment.Tier)
 			_enrollmentService.SetActiveTier(enrollment, enrollment.Tier);
 
-		return Ok(leaderboard);
+		return Ok();
 	}
 
 	// TODO: Move to admin controller
