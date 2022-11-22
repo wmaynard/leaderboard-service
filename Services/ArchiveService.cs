@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using MongoDB.Driver;
 using RCL.Logging;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.LeaderboardService.Exceptions;
 using Rumble.Platform.LeaderboardService.Models;
 
 namespace Rumble.Platform.LeaderboardService.Services;
@@ -51,4 +53,9 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 		if (affected > 0)
 			Log.Local(Owner.Default, $"Deleted {affected} archives older than {days} days.");
 	}
+	
+	public Leaderboard FindById(string id) => _collection
+		.Find(filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, id))
+		.FirstOrDefault()
+		?? throw new PlatformException("No archive found");
 }

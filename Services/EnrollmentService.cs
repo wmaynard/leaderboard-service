@@ -208,7 +208,7 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, false)
 		).ModifiedCount;
 
-	public List<Enrollment> Find(string accountId, string typeString)
+	public List<Enrollment> Find(string accountId, string typeString = null)
 	{
 		typeString ??= "";
 		FilterDefinition<Enrollment> filter = Builders<Enrollment>.Filter.Eq(enrollment => enrollment.AccountID, accountId);

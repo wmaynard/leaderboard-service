@@ -89,4 +89,7 @@ public class TopController : PlatformController
 		
 		return Ok();
 	}
+	
+	[HttpGet, Route("")]
+	public ActionResult LeaderboardById() => Ok(_leaderboardService.FindById(Require<string>("id")));
 }

@@ -27,6 +27,7 @@ public class AdminController : PlatformController
 	private readonly Services.LeaderboardService _leaderboardService;
 	private readonly RewardsService _rewardsService;
 	private readonly RolloverService _rolloverService;
+	private readonly ArchiveService _archiveService;
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
 
@@ -194,45 +195,36 @@ public class AdminController : PlatformController
 					{
 						{ "installId", $"locust-leaderboard-{count}" }
 					})
-					.OnSuccess((_, _) =>
+					.OnSuccess(response =>
 					{
-						successes++;
-					})
-					.OnFailure((_, _) =>
-					{
-						failures++;
-					}).Post(out RumbleJson launchResponse, out int launchCode);
-
-				if (!launchCode.Between(200, 299))
-					continue;
-
-				string token = launchResponse.Require<string>("accessToken");
-
-				_apiService
+						string token = response.AsRumbleJson.Require<string>("accessToken");
+						
+						_apiService
 #if DEBUG
-					.Request(PlatformEnvironment.Url("http://localhost:5091/leaderboard/score"))
+							.Request(PlatformEnvironment.Url("http://localhost:5091/leaderboard/score"))
 #else
-					.Request(PlatformEnvironment.Url("/leaderboard/score"))
+							.Request(PlatformEnvironment.Url("/leaderboard/score"))
 #endif
-					.AddAuthorization(token)
-					.SetPayload(new RumbleJson
-					{
-						{ "score", rando.Next(min, max) },
-						{ "leaderboardId", type }
-					})
-					.OnSuccess((_, _) =>
-					{
+							.AddAuthorization(token)
+							.SetPayload(new RumbleJson
+							{
+								{ "score", rando.Next(min, max) },
+								{ "leaderboardId", type }
+							})
+							.OnSuccess(secondResponse =>
+							{
+								string id = secondResponse.AsRumbleJson.Optional<Leaderboard>("leaderboard")?.Id;
+								if (id != null)
+									ids.Add(id);
+								successes++;
+							})
+							.OnFailure(secondResponse => failures++)
+							.Patch();
+						
 						successes++;
 					})
-					.OnFailure((_, response) =>
-					{
-						failures++;
-					})
-					.Patch(out RumbleJson scoreResponse, out int scoreCode);
-
-				string id = scoreResponse.Optional<Leaderboard>("leaderboard")?.Id;
-				if (id != null)
-					ids.Add(id);
+					.OnFailure(response => failures++)
+					.Post();
 			}
 			catch (Exception e)
 			{
@@ -277,4 +269,13 @@ public class AdminController : PlatformController
 			{ "modified", _leaderboardService.UpdateSeason(type, rolloversInSeason, rolloversRemaining) }
 		});
 	}
+
+	[HttpGet, Route("enrollments")]
+	public ActionResult GetUserEnrollments() => Ok(new RumbleJson
+	{
+		{ "enrollments", _enrollmentService.Find(Require<string>("accountId")) }
+	});
+
+	[HttpGet, Route("archive")]
+	public ActionResult ArchiveById() => Ok(_archiveService.FindById(Require<string>("id")));
 }

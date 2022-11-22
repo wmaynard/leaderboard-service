@@ -718,4 +718,9 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				_ => throw new PlatformException("Invalid rollover changes provided.")
 			}
 		).ModifiedCount;
+	
+	public Leaderboard FindById(string id) => _collection
+		.Find(Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, id))
+		.FirstOrDefault()
+		?? throw new PlatformException("Leaderboard not found.");
 }
