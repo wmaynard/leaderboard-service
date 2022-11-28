@@ -145,7 +145,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         }
 		
         // Check weekly leaderboards
-        bool isRolloverDay = (int)now.DayOfWeek == WeeklyResetDay || true;
+        bool isRolloverDay = (int)now.DayOfWeek == WeeklyResetDay;
         if (isRolloverDay && now.Subtract(LastWeeklyRollover).TotalDays > 1 && PastResetTime(now))
         {
             LastWeeklyRollover = now;
