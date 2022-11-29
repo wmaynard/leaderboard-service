@@ -91,7 +91,16 @@ public class TopController : PlatformController
 		
 		return Ok();
 	}
-	
+
 	[HttpGet, Route("")]
-	public ActionResult LeaderboardById() => Ok(_leaderboardService.FindById(Require<string>("id")));
+	public ActionResult LeaderboardById()
+	{
+		Leaderboard output = _leaderboardService.FindById(Require<string>("id"));
+		
+		return Ok(new RumbleJson
+		{
+			{ "leaderboard", output },
+			{ "entries", output?.CalculateRanks() }
+		});
+	}
 }
