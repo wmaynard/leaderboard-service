@@ -65,12 +65,14 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		return output;
 	}
 
-	public void LinkArchive(IEnumerable<string> accountIds, string leaderboardType, string archiveId) => _collection.UpdateMany(
+	public void LinkArchive(IEnumerable<string> accountIds, string leaderboardType, string archiveId, string leaderboardId) => _collection.UpdateMany(
 		filter: Builders<Enrollment>.Filter.And(
 			Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, leaderboardType),
 			Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds)
 		),
-		update: Builders<Enrollment>.Update.AddToSet(enrollment => enrollment.PastLeaderboardIDs, archiveId)
+		update: Builders<Enrollment>.Update
+			.AddToSet(enrollment => enrollment.PastLeaderboardIDs, archiveId)
+			.Unset(enrollment => enrollment.CurrentLeaderboardID)
 	);
 
 

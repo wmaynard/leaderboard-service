@@ -534,7 +534,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		foreach (Entry entry in ranks.Where(e => e.Score > 0))
 			_rewardService.Grant(entry.Prize, accountIds: entry.AccountID);
 
-		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id);
+		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id, leaderboard.Id);
 
 		bool promotionEnabled = !leaderboard.SeasonsEnabled || (leaderboard.SeasonsEnabled && leaderboard.RolloversRemaining > 1);
 
