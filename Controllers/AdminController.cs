@@ -277,5 +277,14 @@ public class AdminController : PlatformController
 	});
 
 	[HttpGet, Route("archive")]
-	public ActionResult ArchiveById() => Ok(_archiveService.FindById(Require<string>("id")));
+	public ActionResult ArchiveById()
+	{
+		Leaderboard output = _archiveService.FindById(Require<string>("id"));
+		
+		return Ok(new RumbleJson
+		{
+			{ "leaderboard", output },
+			{ "entries", output?.CalculateRanks() }
+		});
+	}
 }
