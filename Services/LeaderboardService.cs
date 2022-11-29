@@ -637,8 +637,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						prize.RankingData = new RumbleJson
 						{
 							{ "leaderboardSeasonalMaxTier", tier },
-							// { "leaderboardCurrentTier", null }, // TODO: Is this really necessary?
-							{ "leaderboardNewSeasonTier", Math.Min(board.TierRules[tier].MaxTierOnSeasonReset, tier) }, // TODO: Change when reset is in tier rules
+							{ "leaderboardSeasonalResetTier", board.TierRules[tier].MaxTierOnSeasonReset }
 						};
 						if (_rewardService.Grant(prize, accounts) > 0)
 							Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
