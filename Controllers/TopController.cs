@@ -42,6 +42,8 @@ public class TopController : PlatformController
 
 		if (enrollment.Status == Enrollment.PromotionStatus.Acknowledged && enrollment.ActiveTier != enrollment.Tier)
 			_enrollmentService.SetActiveTier(enrollment, enrollment.Tier);
+		
+		_enrollmentService.Update(enrollment, createIfNotFound: false);
 
 		return Ok();
 	}

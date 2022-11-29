@@ -26,6 +26,7 @@ public class Enrollment : PlatformCollectionDocument
 
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_ACTIVE_TIER = "activeTier";
+	public const string FRIENDLY_KEY_LEADERBOARD_ID = "currentShardId";
 	public const string FRIENDLY_KEY_SEASONAL_TIER = "seasonalMaxTier";
 	public const string FRIENDLY_KEY_IS_ACTIVE = "isActive";
 	public const string FRIENDLY_KEY_IS_ACTIVE_SEASON = "isActiveInSeason";
@@ -39,7 +40,7 @@ public class Enrollment : PlatformCollectionDocument
 	public string AccountID { get; set; }
 	
 	[BsonElement(DB_KEY_LEADERBOARD_ID)]
-	[JsonIgnore]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_LEADERBOARD_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public string CurrentLeaderboardID { get; set; }
 	
 	[BsonElement(DB_KEY_LEADERBOARD_TYPE), BsonRequired]
