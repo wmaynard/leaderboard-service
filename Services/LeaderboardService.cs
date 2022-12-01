@@ -521,6 +521,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			// ranks[index].Prize.Recipient = ranks[index].AccountID;
 			ranks[index].Prize.RankingData = new RumbleJson
 			{
+				{ "rewardType", "standard" },
 				{ "leaderboardId", leaderboard.Type },
 				{ "leaderboardRank", ranks[index].Rank },
 				{ "leaderboardScore", ranks[index].Score },
@@ -636,6 +637,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						prize = board.TierRules[tier].SeasonReward;
 						prize.RankingData = new RumbleJson
 						{
+							{ "rewardType", "season" },
 							{ "leaderboardId", type },
 							{ "leaderboardSeasonalMaxTier", tier },
 							{ "leaderboardSeasonalResetTier", board.TierRules[tier].MaxTierOnSeasonReset }

@@ -23,6 +23,7 @@ public class Enrollment : PlatformCollectionDocument
 	internal const string DB_KEY_PAST_LEADERBOARDS = "past";
 	internal const string DB_KEY_PROMOTION_STATUS = "promotion";
 	internal const string DB_KEY_SEASON_OVER = "seasonEnd";
+	internal const string DB_KEY_SEASON_FINAL_TIER = "seasonEndier";
 
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_ACTIVE_TIER = "activeTier";
@@ -33,6 +34,7 @@ public class Enrollment : PlatformCollectionDocument
 	public const string FRIENDLY_KEY_PAST_LEADERBOARDS = "archives";
 	public const string FRIENDLY_KEY_PROMOTION_STATUS = "promotionStatus";
 	public const string FRIENDLY_KEY_SEASON_OVER = "seasonEnded";
+	public const string FRIENDLY_KEY_SEASON_FINAL_TIER = "seasonFinalTier";
 	
 	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
 	[JsonIgnore]
@@ -80,6 +82,10 @@ public class Enrollment : PlatformCollectionDocument
 	[BsonElement(DB_KEY_SEASON_OVER)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_OVER)]
 	public bool SeasonEnded { get; set; }
+	
+	[BsonElement(DB_KEY_SEASON_FINAL_TIER), BsonIgnoreIfNull]
+	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_FINAL_TIER), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+	public int SeasonFinalTier { get; set; }
 
 	public Enrollment()
 	{

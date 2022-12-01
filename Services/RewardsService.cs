@@ -16,13 +16,14 @@ namespace Rumble.Platform.LeaderboardService.Services;
 public class RewardsService : PlatformMongoService<RewardHistory>
 {
 	private readonly ApiService _apiService;
-
+	private readonly EnrollmentService _enrollmentService;
 	private readonly DC2Service _dc2Service;
 
-	public RewardsService(ApiService apiService, DC2Service dc2Service) : base("rewards")
+	public RewardsService(ApiService apiService, DC2Service dc2Service, EnrollmentService enrollmentService) : base("rewards")
 	{
 		_apiService = apiService;
 		_dc2Service = dc2Service;
+		_enrollmentService = enrollmentService;
 	}
 
 	public long Grant(Reward reward, params string[] accountIds)
@@ -30,11 +31,19 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 		if (reward == null || !accountIds.Any())
 			return 0;
 
-		if (_collection.CountDocuments(filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds)) != accountIds.Length)
+		long existing = _collection.CountDocuments(filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds));
+
+		if (existing != accountIds.Length)
 		{
-			Log.Warn(Owner.Will, "Reward accounts were missing.  Creating them now.");
+			Log.Info(Owner.Will, "Reward accounts were missing.  Creating them now.", data: new
+			{
+				Count = accountIds.Length - existing
+			});
 			foreach (string accountId in accountIds)
-				Validate(accountId);
+				Create(new RewardHistory
+				{
+					AccountId = accountId
+				});
 		}
 		
 		return _collection.UpdateMany( // TODO: Session?
@@ -46,17 +55,6 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			}
 		).ModifiedCount;
 	}
-
-	/// <summary>
-	/// Ensures the rewards record exists for an account.
-	/// </summary>
-	public RewardHistory Validate(string accountId) => _collection
-		.Find(filter: Builders<RewardHistory>.Filter.Eq(history => history.AccountId, accountId))
-		.FirstOrDefault()
-		?? Create(new RewardHistory
-		{
-			AccountId = accountId
-		});
 
 	// TODO: Create tasks for this as well
 	public void SendRewards()
@@ -85,6 +83,23 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 				reward.VisibleFrom = Timestamp.UnixTime;
 				if (reward.Expiration == default)
 					reward.Expiration = Timestamp.UnixTime + (long)new TimeSpan(days: 30, hours: 0, minutes: 0, seconds: 0).TotalSeconds;
+
+				if (reward.RankingData?.Optional<string>("rewardType") != "season")
+					continue;
+				try
+				{
+					string type = reward.RankingData.Require<string>("leaderboardId");
+					Enrollment enrollment = _enrollmentService.Find(history.AccountId, type).First();
+					reward.RankingData["leaderboardCurrentTier"] = enrollment.Tier;
+					reward.RankingData["leaderboardSeasonFinalTier"] = enrollment.SeasonFinalTier;
+				}
+				catch (Exception e)
+				{
+					Log.Warn(Owner.Will, "Unable to attach player-specific tier information to seasonal rewards.", data: new
+					{
+						accountId = history.AccountId
+					}, exception: e);
+				}
 			}
 
 			string url = PlatformEnvironment.Url("mail/admin/messages/send/bulk");

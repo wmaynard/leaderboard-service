@@ -14,8 +14,7 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class EnrollmentService : PlatformMongoService<Enrollment>
 {
-	private readonly RewardsService _rewardsService;
-	public EnrollmentService(RewardsService rewardsService) : base("enrollments") => _rewardsService = rewardsService; 
+	public EnrollmentService() : base("enrollments") { }
 
 	private string[] GetInactiveAccounts(string leaderboardType, bool forDemotion = true)
 	{
@@ -60,7 +59,6 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			LeaderboardType = leaderboardType,
 			Tier = 0
 		});
-		_rewardsService.Validate(accountId);
 
 		return output;
 	}
