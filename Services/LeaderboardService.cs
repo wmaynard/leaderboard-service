@@ -636,6 +636,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						prize = board.TierRules[tier].SeasonReward;
 						prize.RankingData = new RumbleJson
 						{
+							{ "leaderboardId", type },
 							{ "leaderboardSeasonalMaxTier", tier },
 							{ "leaderboardSeasonalResetTier", board.TierRules[tier].MaxTierOnSeasonReset }
 						};
