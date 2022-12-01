@@ -100,7 +100,6 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
 			Builders<Enrollment>.Filter.Eq(enrollment => enrollment.LeaderboardType, type)
 		);
-		
 
 		long affected = _collection.UpdateMany(
 			filter: filter,
@@ -113,6 +112,12 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			.ToArray();
 	}
 
+	/// <summary>
+	/// Find all enrollments that have a higher tier than their max seasonal tier, then update the max seasonal tier to match.
+	/// Requires a really ugly Mongo query because the update is dependent on the record it's looking at - and there's no
+	/// clean way to do this from C# as far as I could find.
+	/// </summary>
+	/// <returns>The affected number of records</returns>
 	private long UpdateSeasonalMaxTiers()
 	{
 		try
@@ -230,7 +235,9 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 	public long SeasonDemotion(string type, int tier, int newTier) => _collection
 		.UpdateMany(
 			filter: enrollment => enrollment.LeaderboardType == type && enrollment.Tier == tier && enrollment.Tier > newTier,
-			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.Tier, newTier)
+			update: Builders<Enrollment>.Update
+				.Set(enrollment => enrollment.Tier, newTier)
 				.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Demoted)
+				.Set(enrollment => enrollment.SeasonFinalTier, tier)
 		).ModifiedCount;
 }
