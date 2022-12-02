@@ -28,7 +28,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
     public const string LAST_MONTHLY_SETTING = "lastMonthlyRollover";
     
     private readonly ArchiveService _archive;
-    private readonly DC2Service _config;
+    private readonly DynamicConfig _config;
     private readonly EnrollmentService _enrollment;
     private readonly LeaderboardService _leaderboard;
     private readonly RewardsService _rewardService;
@@ -63,7 +63,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         set => Set(LAST_MONTHLY_SETTING, value);
     }
     
-    public RolloverService(ArchiveService archive, DC2Service config, EnrollmentService enrollment, LeaderboardService leaderboard, RewardsService rewards) 
+    public RolloverService(ArchiveService archive, DynamicConfig config, EnrollmentService enrollment, LeaderboardService leaderboard, RewardsService rewards) 
         : base(collection: "rollover", primaryNodeTaskCount: 5, secondaryNodeTaskCount: 0)
     {
         // _config = config;

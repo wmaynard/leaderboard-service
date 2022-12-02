@@ -11,14 +11,14 @@ public class BroadcastService : PlatformService
 {
 #pragma warning disable
 	private readonly ApiService _apiService;
-	private readonly DC2Service _dc2Service;
+	private readonly DynamicConfig _dynamicConfig;
 #pragma warning disable
 	
 	public void Announce(string accountId, string message)
 	{
 		try
 		{
-			string adminToken = _dc2Service.AdminToken;
+			string adminToken = _dynamicConfig.AdminToken;
 
 			_apiService
 				.Request(PlatformEnvironment.Url("/chat/messages/broadcast"))

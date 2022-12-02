@@ -17,12 +17,12 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 {
 	private readonly ApiService _apiService;
 	private readonly EnrollmentService _enrollmentService;
-	private readonly DC2Service _dc2Service;
+	private readonly DynamicConfig _dynamicConfig;
 
-	public RewardsService(ApiService apiService, DC2Service dc2Service, EnrollmentService enrollmentService) : base("rewards")
+	public RewardsService(ApiService apiService, DynamicConfig dynamicConfig, EnrollmentService enrollmentService) : base("rewards")
 	{
 		_apiService = apiService;
-		_dc2Service = dc2Service;
+		_dynamicConfig = dynamicConfig;
 		_enrollmentService = enrollmentService;
 	}
 
@@ -59,7 +59,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 	// TODO: Create tasks for this as well
 	public void SendRewards()
 	{
-		string adminToken = _dc2Service.AdminToken;
+		string adminToken = _dynamicConfig.AdminToken;
 		
 		RewardHistory[] histories = Find(history => history.Rewards.Any(reward => reward.SentStatus == Reward.Status.NotSent));
 
