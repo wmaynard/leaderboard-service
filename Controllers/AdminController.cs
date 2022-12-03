@@ -295,6 +295,9 @@ public class AdminController : PlatformController
 		int newTier = Require<int>("tier");
 		int score = Optional<int>("score");
 
+		if (!accountId.CanBeMongoId())
+			throw new PlatformException("Not a valid mongo ID!");
+
 		Enrollment enrollment = _enrollmentService.FindOrCreate(accountId, type);
 		enrollment.Tier = newTier;
 		enrollment.SeasonalMaxTier = Math.Max(enrollment.Tier, newTier);
