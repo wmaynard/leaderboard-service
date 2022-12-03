@@ -10,6 +10,7 @@ using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -140,7 +141,6 @@ public class AdminController : PlatformController
 				throw new PlatformException("Manual rollover timed out while waiting for tasks to complete.");
 		} while (tasksRemain);
 
-#if RELEASE
 		SlackDiagnostics
 			.Log(
 				title: $"{PlatformEnvironment.Deployment} rollover manually triggered",
@@ -148,7 +148,6 @@ public class AdminController : PlatformController
 			.Attach(name: "Token information", content: Token.JSON)
 			.Send()
 			.Wait();
-#endif
 		return Ok();
 	}
 
@@ -286,5 +285,27 @@ public class AdminController : PlatformController
 			{ "leaderboard", output },
 			{ "entries", output?.CalculateRanks() }
 		});
+	}
+
+	[HttpPatch, Route("enrollment")]
+	public ActionResult UpdateEnrollmentInformation()
+	{
+		string accountId = Require<string>("accountId");
+		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		int newTier = Require<int>("tier");
+		int score = Optional<int>("score");
+
+		Enrollment enrollment = _enrollmentService.FindOrCreate(accountId, type);
+		enrollment.Tier = newTier;
+		enrollment.SeasonalMaxTier = Math.Max(enrollment.Tier, newTier);
+		enrollment.IsActive = score > 0;
+		enrollment.Status = Enrollment.PromotionStatus.Acknowledged;
+
+		_enrollmentService.Update(enrollment);
+		_leaderboardService.RemovePlayer(accountId, type);
+		_leaderboardService.AddScore(enrollment, score);
+		
+
+		return Ok();
 	}
 }

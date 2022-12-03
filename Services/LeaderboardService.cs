@@ -725,4 +725,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		.Find(Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, id))
 		.FirstOrDefault()
 		?? throw new PlatformException("Leaderboard not found.");
+
+	public long RemovePlayer(string accountId, string type) => _collection.UpdateMany(
+		filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
+		update: Builders<Leaderboard>.Update.PullFilter(
+			field: leaderboard => leaderboard.Scores,
+			filter: Builders<Entry>.Filter.Eq(entry => entry.AccountID, accountId)
+		)
+	).ModifiedCount;
 }

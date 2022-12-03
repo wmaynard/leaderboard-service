@@ -23,7 +23,7 @@ public class Enrollment : PlatformCollectionDocument
 	internal const string DB_KEY_PAST_LEADERBOARDS = "past";
 	internal const string DB_KEY_PROMOTION_STATUS = "promotion";
 	internal const string DB_KEY_SEASON_OVER = "seasonEnd";
-	internal const string DB_KEY_SEASON_FINAL_TIER = "seasonEndier";
+	internal const string DB_KEY_SEASON_FINAL_TIER = "seasonEndTier";
 
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_ACTIVE_TIER = "activeTier";
