@@ -11,7 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="platform-csharp-common" Version="1.2.35" />
+		<PackageReference Include="platform-csharp-common" Version="1.2.46" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
 	</ItemGroup>
 
@@ -19,6 +19,14 @@
 	  <Content Update="environment.json">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>
+	  <Content Include=".gitlab\deploy-eb.yaml" />
+	  <Content Include=".gitlab\deploy-k8s.yaml" />
+	  <Content Include=".gitlab\dev.values.yaml" />
+	  <Content Include=".gitlab\prod-b.values.yaml" />
+	  <Content Include=".gitlab\prod.values.yaml" />
+	  <Content Include=".gitlab\stage-a.values.yaml" />
+	  <Content Include=".gitlab\stage-b.values.yaml" />
+	  <Content Include=".gitlab\stage-c.values.yaml" />
 	</ItemGroup>
 
 	<ItemGroup>
