@@ -31,27 +31,12 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 		if (reward == null || !accountIds.Any())
 			return 0;
 
-		long existing = _collection.CountDocuments(filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds));
-
-		if (existing != accountIds.Length)
-		{
-			Log.Info(Owner.Will, "Reward accounts were missing.  Creating them now.", data: new
-			{
-				Count = accountIds.Length - existing
-			});
-			foreach (string accountId in accountIds)
-				Create(new RewardHistory
-				{
-					AccountId = accountId
-				});
-		}
-		
 		return _collection.UpdateMany( // TODO: Session?
 			filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds),
 			update: Builders<RewardHistory>.Update.AddToSet(history => history.Rewards, reward),
 			options: new UpdateOptions
 			{
-				IsUpsert = false
+				IsUpsert = true
 			}
 		).ModifiedCount;
 	}

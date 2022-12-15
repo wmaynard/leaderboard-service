@@ -18,7 +18,7 @@ public class RewardHistory : PlatformCollectionDocument
 		
 	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID)]
-	[SimpleIndex]
+	[SimpleIndex(Unique = true)]
 	public string AccountId { get; set; }
 		
 	[BsonElement(DB_KEY_REWARDS), BsonIgnoreIfNull]
