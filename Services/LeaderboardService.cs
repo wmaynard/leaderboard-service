@@ -33,6 +33,33 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		_rewardService = reward;
 	}
 
+	public ShardStat[] ProjectShardStats() => _collection
+		.Find(_ => true)
+		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new
+		{
+			Type = leaderboard.Type,
+			PlayerCount = leaderboard.Scores.Count,
+			Tier = leaderboard.Tier
+		}))
+		.ToList()
+		.GroupBy(obj => new
+		{
+			obj.Type,
+			obj.Tier
+		})
+		.Select(group => new ShardStat
+		{
+			LeaderboardId = group.First().Type,
+			Tier = group.First().Tier,
+			PlayerCounts = group
+				.Select(g => (long)g.PlayerCount)
+				.OrderByDescending(_ => _)
+				.ToArray()
+		})
+		.OrderBy(stat => stat.LeaderboardId)
+		.ThenBy(stat => stat.Tier)
+		.ToArray();
+
 	public Leaderboard Find(string id) => _collection.Find(filter: leaderboard => leaderboard.Id == id).FirstOrDefault();
 
 	internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);

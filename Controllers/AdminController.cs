@@ -72,6 +72,16 @@ public class AdminController : PlatformController
 		});
 	}
 
+	[HttpGet, Route("shardStats")]
+	public ActionResult GetShardStats()
+	{
+		ShardStat[] stats = _leaderboardService.ProjectShardStats();
+		return Ok(new RumbleJson
+		{
+			{ "stats", stats }
+		});
+	}
+
 	[HttpPatch, Route("scores")]
 	public ActionResult SetScoresManually()
 	{
