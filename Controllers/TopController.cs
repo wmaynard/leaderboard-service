@@ -21,7 +21,7 @@ public class TopController : PlatformController
 	private RewardsService _rewardsService;
 #pragma warning restore
 
-	[HttpPatch, Route("score")]
+	[HttpPatch, Route("score"), HealthMonitor(weight: 1)]
 	public ActionResult AddScore()
 	{
 		int score = Require<int>("score");
@@ -70,7 +70,7 @@ public class TopController : PlatformController
 		return Ok(output);
 	}
 
-	[HttpGet, Route("enrollments")]
+	[HttpGet, Route("enrollments"), HealthMonitor(weight: 5)]
 	public ActionResult GetEnrollments()
 	{
 		string typeString = Optional<string>("leaderboardIds");
