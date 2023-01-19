@@ -177,7 +177,10 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             }
             catch (Exception e)
             {
-                Log.Error(Owner.Will, $"Unable to rollover a leaderboard.", exception: e);
+                Log.Error(Owner.Will, $"Unable to rollover a leaderboard.", data: new
+                {
+                    RolloverData = data
+                }, exception: e);
                 message = e.Message;
             }
         } while (!success && ++errors < 10);

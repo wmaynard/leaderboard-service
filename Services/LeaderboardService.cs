@@ -546,15 +546,16 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 			// Add required fields for bulk sending and telemetry
 			// ranks[index].Prize.Recipient = ranks[index].AccountID;
-			ranks[index].Prize.RankingData = new RumbleJson
-			{
-				{ "rewardType", "standard" },
-				{ "leaderboardId", leaderboard.Type },
-				{ "leaderboardRank", ranks[index].Rank },
-				{ "leaderboardScore", ranks[index].Score },
-				{ "leaderboardTier", leaderboard.Tier },
-				{ "leaderboardArchiveId", archive.Id }
-			};
+			if (ranks[index].Prize != null)
+				ranks[index].Prize.RankingData = new RumbleJson
+				{
+					{ "rewardType", "standard" },
+					{ "leaderboardId", leaderboard.Type },
+					{ "leaderboardRank", ranks[index].Rank },
+					{ "leaderboardScore", ranks[index].Score },
+					{ "leaderboardTier", leaderboard.Tier },
+					{ "leaderboardArchiveId", archive.Id }
+				};
 
 			playersProcessed++;
 		}
