@@ -24,6 +24,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	private readonly EnrollmentService _enrollmentService;
 	private readonly RewardsService _rewardService;
 	private readonly BroadcastService _broadcastService;
+	public static LeaderboardService Instance { get; private set; }
 	// public LeaderboardService(ArchiveService service) : base("leaderboards") => _archiveService = service;
 	public LeaderboardService(ArchiveService archives, BroadcastService broadcast, EnrollmentService enrollments, RewardsService reward) : base("leaderboards")
 	{
@@ -31,6 +32,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		_broadcastService = broadcast;
 		_enrollmentService = enrollments;
 		_rewardService = reward;
+		Instance = this;
 	}
 
 	public ShardStat[] ProjectShardStats() => _collection
@@ -544,6 +546,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				.Where(reward => reward.MinimumPercentile >= 0 && percentile >= reward.MinimumPercentile)
 				.MaxBy(reward => reward.MinimumPercentile);
 
+			// TD-15557: Must null-check here; without it, a leaderboard with no / inadequate prize definitions
+			// causes rollover to fail.
 			// Add required fields for bulk sending and telemetry
 			// ranks[index].Prize.Recipient = ranks[index].AccountID;
 			if (ranks[index].Prize != null)
@@ -761,4 +765,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			filter: Builders<Entry>.Filter.Eq(entry => entry.AccountID, accountId)
 		)
 	).ModifiedCount;
+
+	public int[] GetTiersOf(string type) => _collection
+		.Find(Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type))
+		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Tier))
+		.ToList()
+		.Distinct()
+		.OrderBy(_ => _)
+		.ToArray();
 }

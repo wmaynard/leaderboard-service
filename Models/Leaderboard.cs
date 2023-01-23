@@ -270,5 +270,22 @@ public class Leaderboard : PlatformCollectionDocument
 				Test(condition: !string.IsNullOrWhiteSpace(item.ResourceID), error: $"Reward attachment value '{Attachment.FRIENDLY_KEY_RESOURCE_ID}' not provided.", ref errors);
 			}
 		}
+
+		// Protect against a situation where the incoming data is missing tier rules for already-existing tiers.
+		// On 2023.01.22 we had rollover failures where a data update orphaned five tiers of one leaderboard type,
+		// leaving only the tier-0 shard able to rollover.  All other tiers were locked and broken.
+		int[] dbTiers = Services.LeaderboardService.Instance?.GetTiersOf(Type) ?? Array.Empty<int>();
+		int[] tiers = TierRules.Any() 
+			? TierRules.Select(rules => rules.Tier).Distinct().OrderBy(_ => _).ToArray()
+			: Array.Empty<int>();
+		
+		if (dbTiers.Any())
+		{
+			if (dbTiers.Length > tiers.Length)
+				errors.Add("There are more tiers than tier rules; this is not allowed as it would prevent proper rollover behavior.");
+			int[] missing = dbTiers.Where(tier => !tiers.Contains(tier)).ToArray();
+			if (missing.Any())
+				errors.Add("Platform has defined tiers that don't have corresponding TierRules.");
+		}
 	}
 }
