@@ -8,6 +8,7 @@ using MongoDB.Driver;
 using RCL.Logging;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -540,11 +541,13 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 			ranks[index].Prize = rewards
 				.Where(reward => reward.MinimumRank > 0 && ranks[index].Rank <= reward.MinimumRank)
-				.MinBy(reward => reward.MinimumRank);
+				.MinBy(reward => reward.MinimumRank)
+				.Copy();
 
 			ranks[index].Prize ??= rewards
 				.Where(reward => reward.MinimumPercentile >= 0 && percentile >= reward.MinimumPercentile)
-				.MaxBy(reward => reward.MinimumPercentile);
+				.MaxBy(reward => reward.MinimumPercentile)
+				.Copy();
 
 			// TD-15557: Must null-check here; without it, a leaderboard with no / inadequate prize definitions
 			// causes rollover to fail.
@@ -773,4 +776,21 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		.Distinct()
 		.OrderBy(_ => _)
 		.ToArray();
+
+	/// <summary>
+	/// This is used exclusively for debugging archive leaderboards.
+	/// </summary>
+	/// <param name="leaderboard"></param>
+	/// <returns></returns>
+	public Leaderboard Unarchive(string id)
+	{
+		if (PlatformEnvironment.IsProd)
+			throw new EnvironmentPermissionsException();
+	
+		Leaderboard leaderboard = _archiveService.Get(id);
+		leaderboard.ChangeId();
+		_collection.InsertOne(leaderboard);
+
+		return leaderboard;
+	}
 }

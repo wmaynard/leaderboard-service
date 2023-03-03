@@ -321,4 +321,16 @@ public class AdminController : PlatformController
 
 		return Ok();
 	}
+
+	[HttpPost, Route("debugRollover")]
+	public ActionResult DebugArchivse()
+	{
+		string id = Require<string>("archiveId");
+		
+		Leaderboard regen = _leaderboardService.Unarchive(id);
+
+		_leaderboardService.Rollover(regen.Id).Wait();
+
+		return Ok();
+	}
 }
