@@ -580,7 +580,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				Log.Local(Owner.Will, $"ID: {leaderboard.Id} Demotion: {demotionPlayers.Length} Promotion: {promotionPlayers.Length}", emphasis: Log.LogType.WARN);
 			if (leaderboard.Tier < leaderboard.MaxTier)
 				_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
-			if (leaderboard.Tier > 1)													// People can't get demoted below 1.
+			if (leaderboard.Tier > 0)													// People can't get demoted below 0.
 				_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
 		}
 
