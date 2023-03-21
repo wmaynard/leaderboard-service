@@ -5,6 +5,7 @@
   allow_failure: true
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:platform-services"
+    K8S_SECRET_RUMBLE_REGION: "US"
   script:
     - kubectl config use-context "$KUBE_CONTEXT"
     - auto-deploy check_kube_domain
@@ -89,6 +90,7 @@ TT-production-a1-apse1:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a1-apse1-platform-services"
     KUBE_INGRESS_BASE_DOMAIN: prod.tower.rumblegames.com
     KUBE_NAMESPACE: "leaderboard-service-v2"
+    K8S_SECRET_RUMBLE_REGION: "AP"
   tags:
     - production-a1-apse1
   environment:
@@ -115,6 +117,7 @@ TT-production-a2-apse1:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a2-apse1-platform-services"
     KUBE_INGRESS_BASE_DOMAIN: prod.tower.rumblegames.com
     KUBE_NAMESPACE: "leaderboard-service-v2"
+    K8S_SECRET_RUMBLE_REGION: "AP"
   tags:
     - production-a2-apse1
   environment:
