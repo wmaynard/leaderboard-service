@@ -1,8 +1,11 @@
 .auto-deploy:
-  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-deploy-image:v2.26.0"
+  image: "registry.gitlab.com/gitlab-org/cluster-integration/auto-deploy-image:v2.47.0"
   dependencies: []
+  needs: ["build_image"]
+  allow_failure: true
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:platform-services"
+    K8S_SECRET_RUMBLE_REGION: "US"
   script:
     - kubectl config use-context "$KUBE_CONTEXT"
     - auto-deploy check_kube_domain
@@ -33,7 +36,7 @@ dev:
 stage-a:
   extends: .auto-deploy
   stage: staging
-  allow_failure: false
+  needs: ["dev"]
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
     KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-a"
@@ -45,8 +48,8 @@ stage-a:
 
 stage-b:
   extends: .auto-deploy
+  needs: ["dev"]
   stage: staging
-  allow_failure: false
   variables:
     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
     KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-b"
@@ -72,6 +75,7 @@ stage-b:
 TT-production-a1:
   extends: .auto-deploy
   stage: production
+  needs: ["stage-a"]
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a1-platform-services"
     KUBE_INGRESS_BASE_DOMAIN: prod.tower.rumblegames.com
@@ -82,15 +86,46 @@ TT-production-a1:
     name: TT-Prod-A1
     url: https://platform-a1.prod.tower.rumblegames.com/
 
-TT-production-a2:
+TT-production-a1-apse1:
   extends: .auto-deploy
   stage: production
+  needs: ["stage-a"]
+  variables:
+    KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a1-apse1-platform-services"
+    KUBE_INGRESS_BASE_DOMAIN: prod.tower.rumblegames.com
+    KUBE_NAMESPACE: "leaderboard-service-v2"
+    K8S_SECRET_RUMBLE_REGION: "AP"
+  tags:
+    - production-a1-apse1
+  environment:
+    name: TT-Prod-A1
+    url: https://platform-a1.prod.tower.rumblegames.com/
+
+TT-production-a2:
+  extends: .auto-deploy
+  stage: production-2
+  needs: ["stage-a"]
   variables:
     KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a2-platform-services"
     KUBE_INGRESS_BASE_DOMAIN: prod.tower.rumblegames.com
     KUBE_NAMESPACE: "leaderboard-service-v2"
   tags:
     - production-a2
+  environment:
+    name: TT-Prod-A2
+    url: https://platform-a2.prod.tower.rumblegames.com/
+
+TT-production-a2-apse1:
+  extends: .auto-deploy
+  stage: production-2
+  needs: ["stage-a"]
+  variables:
+    KUBE_CONTEXT: "platform-services/platform-services-agent:prod-a2-apse1-platform-services"
+    KUBE_INGRESS_BASE_DOMAIN: prod.tower.rumblegames.com
+    KUBE_NAMESPACE: "leaderboard-service-v2"
+    K8S_SECRET_RUMBLE_REGION: "AP"
+  tags:
+    - production-a2-apse1
   environment:
     name: TT-Prod-A2
     url: https://platform-a2.prod.tower.rumblegames.com/
