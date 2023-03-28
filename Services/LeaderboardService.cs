@@ -639,6 +639,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	public void RolloverSeasonsIfNeeded(string[] types)
 	{
+		if (!types.Any())
+		{
+			Log.Info(Owner.Will, "No need to rollover seasons; no types were specified");
+			return;
+		}
+		
 		try
 		{
 			foreach (string type in types)
@@ -661,7 +667,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				});
 			
 				Leaderboard board = _collection.Find(leaderboard => leaderboard.Type == type).FirstOrDefault();
-			 
+				RumbleJson rewardData = new RumbleJson();
+					
 				for (int tier = 0; tier <= board.MaxTier; tier++)
 				{
 					Reward prize = null;
@@ -679,6 +686,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						};
 						if (_rewardService.Grant(prize, accounts) > 0)
 							Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
+						rewardData[$"tier_{tier}"] = accounts.Length;
 					}
 					catch (Exception e)
 					{
@@ -698,6 +706,12 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						Log.Error(Owner.Default, "Unable to demote players during a season rollover.", exception: e);
 					}
 				}
+				
+				Log.Info(Owner.Will, "Season rewards sent.", data: new
+				{
+					Type = type,
+					RewardData = rewardData
+				});
 				_enrollmentService.ResetSeasonalMaxTier(type);
 			}
 		}

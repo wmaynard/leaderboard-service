@@ -50,8 +50,7 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 
 		if (!histories.Any())
 			return;
-
-
+		
 		List<string> successes = new List<string>();
 
 		foreach (RewardHistory history in histories)
