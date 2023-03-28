@@ -663,7 +663,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			
 				Log.Info(Owner.Will, "Reset season rollover counter.", data: new
 				{
-					Types = type
+					Type = type
 				});
 			
 				Leaderboard board = _collection.Find(leaderboard => leaderboard.Type == type).FirstOrDefault();
@@ -706,7 +706,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						Log.Error(Owner.Default, "Unable to demote players during a season rollover.", exception: e);
 					}
 				}
-				
+
+				rewardData["total"] = rewardData.Sum(pair => (int)pair.Value);
 				Log.Info(Owner.Will, "Season rewards sent.", data: new
 				{
 					Type = type,

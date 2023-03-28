@@ -194,14 +194,23 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		.ToList()
 		.ToArray();
 
-	public long ResetSeasonalMaxTier(string type) => _collection
-		.UpdateMany(
-			filter: enrollment => enrollment.LeaderboardType == type,
-			update: Builders<Enrollment>.Update
-				.Set(enrollment => enrollment.SeasonalMaxTier, -1)
-				.Set(enrollment => enrollment.SeasonEnded, true)
-				.Set(enrollment => enrollment.IsActiveInSeason, false)
-		).ModifiedCount;
+	public long ResetSeasonalMaxTier(string type)
+	{
+		long output = _collection
+			.UpdateMany(
+				filter: enrollment => enrollment.LeaderboardType == type,
+				update: Builders<Enrollment>.Update
+					.Set(enrollment => enrollment.SeasonalMaxTier, -1)
+					.Set(enrollment => enrollment.SeasonEnded, true)
+					.Set(enrollment => enrollment.IsActiveInSeason, false)
+			).ModifiedCount; 
+		Log.Info(Owner.Will, "Marking all players as inactive for a leaderboard", data: new
+		{
+			Affected = output,
+			Type = type
+		});
+		return output;
+	}
 
 	public long PromotePlayers(string[] accountIds, Leaderboard caller) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: 1);
 	public long DemotePlayers(string[] accountIds, Leaderboard caller, int levels = 1) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: levels * -1);
