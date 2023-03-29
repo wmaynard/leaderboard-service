@@ -188,11 +188,46 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		return result.ModifiedCount;
 	}
 
-	public string[] GetSeasonalRewardCandidates(string type, int tier) => _collection
-		.Find(enrollment => enrollment.LeaderboardType == type && enrollment.SeasonalMaxTier == tier && enrollment.IsActiveInSeason)
-		.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
-		.ToList()
-		.ToArray();
+	public string[] GetSeasonalRewardCandidates(string type, int tier)
+	{
+		string[] output = _collection
+			.Find(enrollment => enrollment.LeaderboardType == type && enrollment.SeasonalMaxTier == tier && enrollment.IsActiveInSeason)
+			.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
+			.ToList()
+			.ToArray();
+		
+		if (!PlatformEnvironment.IsProd && type == "ldr_lmt_preseason_20230209")
+		{
+			int enrollmentCount = _collection
+				.Find(enrollment => enrollment.LeaderboardType == type)
+				.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
+				.ToList()
+				.Count;
+			int tierCount = _collection
+				.Find(enrollment => enrollment.LeaderboardType == type && enrollment.SeasonalMaxTier == tier && enrollment.IsActiveInSeason)
+				.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
+				.ToList()
+				.Count;
+			int activeCount = _collection
+				.Find(enrollment => enrollment.LeaderboardType == type && enrollment.SeasonalMaxTier == tier && enrollment.IsActiveInSeason)
+				.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
+				.ToList()
+				.Count;
+			
+			Log.Info(Owner.Will, "Season rollover info counts", data: new
+			{
+				Type = type,
+				Tier = tier,
+				EnrollmentsInType = enrollmentCount,
+				PlayersInTier = tierCount,
+				PlayersActiveInTier = activeCount,
+				CandidatesResult = output
+			});
+		}
+
+
+		return output;
+	}
 
 	public long ResetSeasonalMaxTier(string type)
 	{
