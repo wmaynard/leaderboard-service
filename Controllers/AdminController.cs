@@ -317,13 +317,33 @@ public class AdminController : PlatformController
 		_enrollmentService.Update(enrollment);
 		_leaderboardService.RemovePlayer(accountId, type);
 		_leaderboardService.AddScore(enrollment, score);
-		
 
 		return Ok();
 	}
 
+	[HttpPatch, Route("active")]
+	public ActionResult UpdateEnrollmentActivity()
+	{
+		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		bool? active = Optional<bool?>(Enrollment.FRIENDLY_KEY_IS_ACTIVE);
+		bool? seasonActive = Optional<bool?>(Enrollment.FRIENDLY_KEY_IS_ACTIVE_SEASON);
+		string[] accountIds = Require<string[]>("accountIds");
+
+		if (active == null && seasonActive == null)
+			throw new PlatformException($"You must specify at least one non-null value for: {Enrollment.FRIENDLY_KEY_IS_ACTIVE} or {Enrollment.FRIENDLY_KEY_IS_ACTIVE_SEASON}");
+
+		RumbleJson output = new RumbleJson();
+		if (active != null)
+			output["setAsActive"] = _enrollmentService.SetCurrentlyActive(accountIds, type, (bool)active);
+
+		if (seasonActive != null)
+			output["setAsActiveInSeason"] = _enrollmentService.SetActiveInSeason(accountIds, type, (bool)seasonActive);
+
+		return Ok(output);
+	}
+
 	[HttpPost, Route("debugRollover")]
-	public ActionResult DebugArchivse()
+	public ActionResult DebugArchives()
 	{
 		string id = Require<string>("archiveId");
 		

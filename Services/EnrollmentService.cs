@@ -101,6 +101,20 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 				ReturnDocument = ReturnDocument.After
 			}
 		);
+
+	// TD-16450: This endpoint is a new admin tool to fix accounts incorrectly marked as inactive.
+	public long SetCurrentlyActive(string[] accountIds, string type, bool isActive) => _collection
+		.UpdateMany(
+			filter: Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
+			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActive, isActive)
+		).ModifiedCount;
+	
+	// TD-16450: This endpoint is a new admin tool to fix accounts incorrectly marked as inactive.
+	public long SetActiveInSeason(string[] accountIds, string type, bool isActive) => _collection
+		.UpdateMany(
+			filter: Builders<Enrollment>.Filter.In(enrollment => enrollment.AccountID, accountIds),
+			update: Builders<Enrollment>.Update.Set(enrollment => enrollment.IsActiveInSeason, isActive)
+		).ModifiedCount;
 	
 	public Enrollment[] FlagAsInactive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType, active: false);
 	private Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true)
