@@ -195,9 +195,14 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 			.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
 			.ToList()
 			.ToArray();
+
+
 		
 		if (!PlatformEnvironment.IsProd && type == "ldr_lmt_preseason_20230209")
 		{
+			Enrollment test = _collection
+				.Find(enrollment => enrollment.AccountID == "6372be1259c472bca7e60149" && enrollment.LeaderboardType == type)
+				.FirstOrDefault();
 			int enrollmentCount = _collection
 				.Find(enrollment => enrollment.LeaderboardType == type)
 				.Project(Builders<Enrollment>.Projection.Expression(enrollment => enrollment.AccountID))
@@ -221,7 +226,8 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 				EnrollmentsInType = enrollmentCount,
 				PlayersInTier = tierCount,
 				PlayersActiveInTier = activeCount,
-				CandidatesResult = output
+				CandidatesResult = output,
+				TestAccEnrollment = test
 			});
 		}
 
