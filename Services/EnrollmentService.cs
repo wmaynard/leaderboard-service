@@ -78,20 +78,29 @@ public class EnrollmentService : PlatformMongoService<Enrollment>
 		.UpdateOne(
 			filter: Builders<Enrollment>.Filter.Eq(db => db.Id, enrollment.Id),
 			update: Builders<Enrollment>.Update.Set(db => db.ActiveTier, activeTier));
-	
-	public void FlagAsActive(Enrollment enrollment, bool usesSeasons) => _collection
-			.UpdateOne(
-				filter: Builders<Enrollment>.Filter.Eq(db => db.Id, enrollment.Id),
-				update: usesSeasons
-					? Builders<Enrollment>.Update
-						.Set(db => db.IsActive, true)
-						.Set(db => db.IsActiveInSeason, true)
-					: Builders<Enrollment>.Update.Set(db => db.IsActive, true)
-				// ,options: new FindOneAndUpdateOptions<Enrollment>()
-				// {
-				// 	ReturnDocument = ReturnDocument.After
-				// }
-			);
+
+	// TD-16450: Seasonal rewards were not being sent when and only when a player was only scoring once
+	// per rollover.  There was a collision in PATCH /score where this method would accurately update
+	// the enrollment to be active for the season, but the endpoint had a later enrollment update that
+	// would override the active flag.  However, on subsequent scoring events, the endpoint would exit early
+	// and flag the player as active before the second enrollment update.
+	public void FlagAsActive(Enrollment enrollment, Leaderboard shard) => _collection
+		.FindOneAndUpdate(
+			filter: Builders<Enrollment>.Filter.Eq(db => db.Id, enrollment.Id),
+			update: Builders<Enrollment>.Update
+				.Set(db => db.IsActive, true)
+				.Set(db => db.IsActiveInSeason, shard.SeasonsEnabled)
+				.Set(db => db.CurrentLeaderboardID, shard.Id)
+				.Set(db => db.ActiveTier,
+					enrollment.Status == Enrollment.PromotionStatus.Acknowledged && enrollment.ActiveTier != enrollment.Tier
+						? enrollment.Tier
+						: enrollment.ActiveTier
+				),
+			options: new FindOneAndUpdateOptions<Enrollment>
+			{
+				ReturnDocument = ReturnDocument.After
+			}
+		);
 	
 	public Enrollment[] FlagAsInactive(string[] accountIds, string leaderboardType) => SetActiveFlag(accountIds, leaderboardType, active: false);
 	private Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true)

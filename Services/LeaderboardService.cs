@@ -389,9 +389,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		if (score < 0) // No need to go down this path if the score can't decrease.
 			FloorScores(output, session);
 
-		if (score > 0)
-			_enrollmentService.FlagAsActive(enrollment, output.SeasonsEnabled);
-
 		return output;
 	}
 
