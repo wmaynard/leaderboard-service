@@ -353,4 +353,24 @@ public class AdminController : PlatformController
 
 		return Ok();
 	}
+
+	/// <summary>
+	/// Used to expose top shard data, originally intended for a community / Discord embedded page.
+	/// </summary>
+	/// <returns>The top shard for a given leaderboard type.</returns>
+	[HttpGet, Route("topShard")]
+	public ActionResult GetTopShardScores()
+	{
+		// TODO: Global leaderboards need restructuring.  This will need to be updated later when this is addressed for scalability!
+		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		int limit = Require<int>("limit");
+
+		Leaderboard leaderboard = _leaderboardService.FindBaseLeaderboard(type, limit);
+		leaderboard.Scores = leaderboard.CalculateRanks()
+			.OrderBy(entry => entry.Rank)
+			.Take(limit)
+			.ToList();
+
+		return Ok(leaderboard);
+	}
 }

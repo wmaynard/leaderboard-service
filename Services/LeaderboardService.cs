@@ -805,4 +805,15 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		return leaderboard;
 	}
+
+	public Leaderboard FindBaseLeaderboard(string type, int limit) => _collection
+		.Find(Builders<Leaderboard>.Filter.And(
+			Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
+			Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.ShardID, null)
+		))
+		// .Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Scores))
+		.FirstOrDefault();
+	// .OrderByDescending(entry => entry.Score)
+	// .Take(limit)
+	// .ToList();
 }
