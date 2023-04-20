@@ -19,6 +19,7 @@ public class Leaderboard : PlatformCollectionDocument
 {
 	private const int MAX_PLAYERS_PER_SHARD = 200;
 	internal const string GROUP_SHARD = "Shard Lookup";
+	internal const string GROUP_ROLLOVER = "RolloverType_StartTime";
 	
 	internal const string DB_KEY_DESCRIPTION = "desc";
 	internal const string DB_KEY_ID = "_id";
@@ -75,6 +76,7 @@ public class Leaderboard : PlatformCollectionDocument
 	
 	[BsonIgnore]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ROLLOVER_TYPE_STRING), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	[CompoundIndex(GROUP_ROLLOVER, 1)]
 	public string RolloverTypeString => RolloverType.ToString();
 	
 	[BsonIgnore]
@@ -127,6 +129,7 @@ public class Leaderboard : PlatformCollectionDocument
 	
 	[BsonElement(DB_KEY_START_TIME)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_START_TIME), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+	[CompoundIndex(GROUP_ROLLOVER, priority: 2)]
 	public long StartTime { get; set; }
 	
 	[BsonElement(DB_KEY_SCORES), BsonIgnoreIfNull]

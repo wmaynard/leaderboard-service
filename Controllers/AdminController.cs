@@ -373,4 +373,40 @@ public class AdminController : PlatformController
 
 		return Ok(leaderboard);
 	}
+
+	[HttpGet, Route("rolloversRemaining")]
+	public ActionResult GetLeaderboardDetails()
+	{
+		RumbleJson[] output = _leaderboardService
+			.GetRolloversRemaining()
+			.DistinctBy(leaderboard => leaderboard.Type)
+			.Select(leaderboard => new RumbleJson
+			{
+				{ Leaderboard.FRIENDLY_KEY_TYPE, leaderboard.Type },
+				{ Leaderboard.FRIENDLY_KEY_SEASON_ROLLOVERS, leaderboard.RolloversInSeason },
+				{ Leaderboard.FRIENDLY_KEY_SEASON_COUNTDOWN, leaderboard.RolloversRemaining }
+			})
+			.ToArray();
+		return Ok(new RumbleJson
+		{
+			{ "leaderboards", output }
+		});
+	}
+
+	[HttpPatch, Route("startTime")]
+	public ActionResult UpdateLeaderboardStartTime()
+	{
+		if (PlatformEnvironment.IsProd)
+			throw new EnvironmentPermissionsException();
+		
+		long startTime = Require<long>(Leaderboard.FRIENDLY_KEY_START_TIME);
+		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+
+		long affected = _leaderboardService.UpdateStartTime(type, startTime);
+
+		return Ok(new RumbleJson
+		{
+			{ "affectedShards", affected }
+		});
+	}
 }

@@ -282,8 +282,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		FilterDefinition<Leaderboard> filter = builder.And(
 			builder.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
 			builder.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
-			builder.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID),
-			builder.Lte(leaderboard => leaderboard.StartTime, Timestamp.UnixTime)
+			builder.ElemMatch(leaderboard => leaderboard.Scores, entry => entry.AccountID == enrollment.AccountID)
 		);
 
 		List<bool> locks = _collection
@@ -292,7 +291,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			.ToList();
 
 		if (locks.Any(isResetting => isResetting))
-			throw new PlatformException("A leaderboard is locked; try again later.");
+			throw new PlatformException("A leaderboard is locked; try again later.", code: ErrorCode.LeaderboardUnavailable);
 	}
 
 	public Leaderboard SetScore(Enrollment enrollment, long score, bool isIncrement = false)
@@ -431,7 +430,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	// TODO: This really needs an out struct[].
 	public void BeginRollover(RolloverType type, out RumbleJson[] leaderboards) => leaderboards = _collection
-		.Find(leaderboard => leaderboard.RolloverType == type)
+		.Find(Builders<Leaderboard>.Filter.And(
+			Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.RolloverType, type),
+			Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.StartTime, Timestamp.UnixTime)
+		))
 		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
 		{
 			{ Leaderboard.DB_KEY_ID, leaderboard.Id },
@@ -816,4 +818,21 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	// .OrderByDescending(entry => entry.Score)
 	// .Take(limit)
 	// .ToList();
+
+	public Leaderboard[] GetRolloversRemaining() => _collection
+		.Find(leaderboard => leaderboard.RolloversInSeason > 0)
+		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new Leaderboard
+		{
+			Type = leaderboard.Type,
+			RolloversRemaining = leaderboard.RolloversRemaining,
+			RolloversInSeason = leaderboard.RolloversInSeason
+		}))
+		.ToList()
+		.ToArray();
+
+	public long UpdateStartTime(string type, long timestamp) => _collection
+		.UpdateMany(
+			filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
+			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.StartTime, timestamp)
+		).ModifiedCount;
 }
