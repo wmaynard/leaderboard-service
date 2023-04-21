@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -91,22 +92,26 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 				.Request(url)
 				.AddAuthorization(adminToken)
 				.SetPayload(new MailboxMessage(history.AccountId, toSend).Payload)
-				.OnSuccess(action: (sender, apiResponse) =>
+				.OnSuccess(_ =>
 				{
 					successes.Add(history.Id);
 					Log.Local(Owner.Will, $"Sent {toSend.Length} rewards to {history.AccountId}");
 				})
-				.OnFailure(action: (sender, apiResponse) =>
-				{
-					Log.Error(Owner.Will, "Unable to send leaderboard rewards.", data: new
+				.OnFailure(response => _apiService.Alert(
+					title: "Unable to send leaderboard rewards.",
+					message: "Mail service returned a bad response when trying to send rewards to a player.",
+					countRequired: 1,
+					timeframe: 30_000,
+					owner: Owner.Will,
+					impact: ImpactType.ServicePartiallyUsable,
+					data: new RumbleJson
 					{
-						mailResponse = apiResponse,
-						accountId = history.AccountId,
-						historyId = history.Id,
-						url = url
-					});
-				})
-				.Post(out RumbleJson response, out int code);
+						{ "accountId", history.AccountId },
+						{ "response", response.AsRumbleJson },
+						{ "attemptedRewards", toSend }
+					}
+				))
+				.Post();
 		}
 
 		long sent = MarkAsSent(successes);

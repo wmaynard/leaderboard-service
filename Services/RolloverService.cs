@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Models;
@@ -32,6 +33,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
     private readonly EnrollmentService _enrollment;
     private readonly LeaderboardService _leaderboard;
     private readonly RewardsService _rewardService;
+    private readonly ApiService _api;
     
     private int HourlyResetMinute { get; set; }
     private TimeSpan DailyResetTime { get; set; }
@@ -63,11 +65,12 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         set => Set(LAST_MONTHLY_SETTING, value);
     }
     
-    public RolloverService(ArchiveService archive, DynamicConfig config, EnrollmentService enrollment, LeaderboardService leaderboard, RewardsService rewards) 
+    public RolloverService(ArchiveService archive, DynamicConfig config, EnrollmentService enrollment, LeaderboardService leaderboard, RewardsService rewards, ApiService api) 
         : base(collection: "rollover", primaryNodeTaskCount: 5, secondaryNodeTaskCount: 0)
     {
         // _config = config;
         _archive = archive;
+        _api = api;
         _config = config;
         _enrollment = enrollment;
         _leaderboard = leaderboard;
@@ -181,17 +184,28 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
                 {
                     RolloverData = data
                 }, exception: e);
+
                 message = e.Message;
             }
         } while (!success && ++errors < 10);
 
         if (!success)
-            await SlackDiagnostics
-                .Log(title: $"Leaderboard rollover failed! ({data.LeaderboardId})", message: message)
-                .AddMessage($"The rollover was retried {errors} times, but could not be completed.")
-                .DirectMessage(Owner.Will);
+            _api.Alert(
+                title: "Leaderboard rollover failed",
+                message: $"{data.LeaderboardId} rollover was unable to succeed after multiple attempts.",
+                countRequired: 1,
+                timeframe: 30_000,
+                owner: Owner.Will,
+                impact: ImpactType.ServicePartiallyUsable,
+                data: new RumbleJson
+                {
+                    { "taskData", data },
+                    { "lastErrorMessage", message },
+                    { "errorCount", errors }
+                }
+            );
     }
-    
+
     private bool PastResetTime(DateTime utc) => DailyResetTime.CompareTo(utc.TimeOfDay) <= 0;
     private void UpdateLocalConfig()
     {
