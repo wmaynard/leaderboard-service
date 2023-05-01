@@ -571,9 +571,10 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id, leaderboard.Id);
 
-		bool promotionEnabled = !leaderboard.SeasonsEnabled || (leaderboard.SeasonsEnabled && leaderboard.RolloversRemaining > 1);
-
-		if (promotionEnabled)
+		// TD-16684: Prior to this ticket, promotion was only enabled if not using seasons, or if the season had at least one rollover remaining.
+		// Consequently, players would miss out on the final promotion of the season.  This was built to specification via a Meet call, but
+		// later was decided to be undesirable, as players felt the final week of a season was worthless.
+		if (leaderboard.MaxTier > 0)
 		{
 			if (promotionPlayers.Length + demotionPlayers.Length > 0)
 				Log.Local(Owner.Will, $"ID: {leaderboard.Id} Demotion: {demotionPlayers.Length} Promotion: {promotionPlayers.Length}", emphasis: Log.LogType.WARN);
