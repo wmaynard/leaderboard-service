@@ -58,14 +58,12 @@ build_app:
     - dotnet build --no-restore --configuration Release
     - CURRENTVERSION="$(dotnet ./bin/Release/net6.0/leaderboard-service.dll -version | cut -d':' -f2)"
     - git tag $CURRENTVERSION; git push https://$BOT_USER:${BOT_PAT}@gitlab.cdrentertainment.com/platform-services/$CI_PROJECT_NAME.git --tags
-    - echo "$CURRENTVERSION"
-    - wget https://github.com/aquasecurity/trivy/releases/download/v0.27.1/trivy_0.27.1_Linux-64bit.tar.gz
-    - tar -zxvf trivy*
-    - chmod +x $CI_PROJECT_DIR/trivy
-    - ./trivy --cache-dir $CI_PROJECT_DIR/.trivycache fs --severity HIGH,CRITICAL --security-checks vuln .
+    - echo "CURRENTVERSION=$CURRENTVERSION" >> .env
   artifacts:
     paths:
       - bin/Release/net6.0/*
+    reports:
+      dotenv: .env
   rules:
     - if: $CI_COMMIT_TAG
       when: never
@@ -106,9 +104,10 @@ build_image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
+    - echo "$CURRENTVERSION"
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:latest
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CI_COMMIT_SHA --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG:$CURRENTVERSION
   rules:
     - if: '$BUILD_DISABLED'
       when: never
