@@ -125,6 +125,16 @@ public class AdminController : PlatformController
 
 		return Ok();
 	}
+
+	[HttpPatch, Route("confiscate"), IgnorePerformance]
+	public ActionResult Confiscate()
+	{
+		// Intended for use with local development; with the way rollover service works, only a primary node can
+		// create rollover tasks.  This endpoint forces the responding container to become the primary node.
+		_rolloverService.Confiscate();
+
+		return Ok();
+	}
 	
 	// TODO: Remove NoAuth on 12/17
 	[HttpPost, Route("rollover"), IgnorePerformance, NoAuth]

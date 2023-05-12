@@ -136,12 +136,28 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
 
     protected override void PrimaryNodeWork()
     {
+#if DEBUG
+        Log.Local(Owner.Will, "Primary node active.");
+#endif
         UpdateLocalConfig();
         DateTime now = DateTime.UtcNow;
 		
-        // Log.Local(Owner.Will, $"LastDailyRollover: {LastDailyRollover} | {LastDailyRollover.Day}");
+        // Check hourly leaderboards
+        if (PastHourlyResetTime(now))
+        {
+            LastHourlyRollover = new DateTime(
+                year: now.Year,
+                month: now.Month,
+                day: now.Day,
+                hour: now.Hour,
+                minute: HourlyResetMinute,
+                second: 0
+            );
+            CreateRolloverTasks(RolloverType.Hourly);
+        }
+        
         // Check daily leaderboards
-        if (LastDailyRollover.Day != now.Day && PastResetTime(now))
+        if (LastDailyRollover.Day != now.Day && PastDailyResetTime(now))
         {
             LastDailyRollover = now;
             CreateRolloverTasks(RolloverType.Daily);
@@ -149,14 +165,14 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
 		
         // Check weekly leaderboards
         bool isRolloverDay = (int)now.DayOfWeek == WeeklyResetDay;
-        if (isRolloverDay && now.Subtract(LastWeeklyRollover).TotalDays > 1 && PastResetTime(now))
+        if (isRolloverDay && now.Subtract(LastWeeklyRollover).TotalDays > 1 && PastDailyResetTime(now))
         {
             LastWeeklyRollover = now;
             CreateRolloverTasks(RolloverType.Weekly);
         }
 
         // Check monthly leaderboards
-        if (LastMonthlyRollover.Month != now.Month && LastMonthlyRollover.Day < now.Day && PastResetTime(now))
+        if (LastMonthlyRollover.Month != now.Month && LastMonthlyRollover.Day < now.Day && PastDailyResetTime(now))
         {
             LastMonthlyRollover = now;
             CreateRolloverTasks(RolloverType.Monthly);
@@ -206,7 +222,24 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             );
     }
 
-    private bool PastResetTime(DateTime utc) => DailyResetTime.CompareTo(utc.TimeOfDay) <= 0;
+    private bool PastHourlyResetTime(DateTime utc)
+    {
+        if (HourlyResetMinute > 59)
+        {
+            Log.Error(Owner.Will, "HourlyResetMinute is set to an invalid value in Dynamic Config; it must be 0-59", data: new
+            {
+                CurrentValue = HourlyResetMinute,
+                Impact = "Hourly rollover cannot take place"
+            });
+            return false;
+        }
+        
+        Log.Local(Owner.Will, LastHourlyRollover.ToString());
+
+        return utc.Subtract(LastHourlyRollover).TotalMinutes > 60;
+    }
+
+    private bool PastDailyResetTime(DateTime utc) => DailyResetTime.CompareTo(utc.TimeOfDay) <= 0;
     private void UpdateLocalConfig()
     {
         HourlyResetMinute = _config?.Optional<int?>(CONFIG_HOURLY_SETTING) ?? 0;
