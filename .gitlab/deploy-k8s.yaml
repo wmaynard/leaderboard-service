@@ -62,18 +62,18 @@ stage-a:
 #     name: stage-a
 #     url: https://stage-a.nonprod.tower.cdrentertainment.com/
 
-# stage-b:
-#   extends: .auto-deploy
-#   needs: ["dev"]
-#   stage: staging
-#   variables:
-#     KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
-#     KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-b"
-#   tags:
-#     - cluster
-#   environment:
-#     name: stage-b
-#     url: https://stage-b.nonprod.tower.cdrentertainment.com/
+stage-b:
+  extends: .auto-deploy
+  needs: ["dev"]
+  stage: staging
+  variables:
+    KUBE_INGRESS_BASE_DOMAIN: nonprod.tower.cdrentertainment.com
+    KUBE_NAMESPACE: "leaderboard-service-v2-25-stage-b"
+  tags:
+    - cluster
+  environment:
+    name: stage-b
+    url: https://stage-b.nonprod.tower.cdrentertainment.com/
 
 # stage-c:
 #   extends: .auto-deploy
