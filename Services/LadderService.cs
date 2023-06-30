@@ -15,11 +15,11 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class LadderService : MinqService<LadderInfo>
 {
-    public static long StepSize => Math.Max(DynamicConfig.Instance?.Optional("ladderStepSize", 100) ?? 100, 10);
-    public static int TopPlayerCount => Math.Max(0, Math.Min(DynamicConfig.Instance?.Optional("ladderTopPlayerCount", 100) ?? 100, 1_000));
-    public static long FallbackMaxPoints => Math.Max(DynamicConfig.Instance?.Optional("ladderResetMaxScore", 0) ?? 0, 0);
-    public static long FinalStep => Math.Max(DynamicConfig.Instance?.Optional("ladderFinalStep", 10) ?? 10, 0);
-    public static int CacheDuration => Math.Min(0, DynamicConfig.Instance?.Optional("ladderCacheDuration", 300) ?? 300);
+    public static long StepSize => Math.Max(10, DynamicConfig.Instance?.Optional("ladderStepSize", 100) ?? 100);
+    public static int TopPlayerCount => Math.Min(0, Math.Max(1_000, DynamicConfig.Instance?.Optional("ladderTopPlayerCount", 100) ?? 100));
+    public static long FallbackMaxPoints => Math.Max(0, DynamicConfig.Instance?.Optional("ladderResetMaxScore", 0) ?? 0);
+    public static long FinalStep => Math.Max(0, DynamicConfig.Instance?.Optional("ladderFinalStep", 10) ?? 10);
+    public static int CacheDuration => Math.Max(0, DynamicConfig.Instance?.Optional("ladderCacheDuration", 300) ?? 300);
     
     public LadderService() : base("ladder")
     {
