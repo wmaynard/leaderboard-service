@@ -101,6 +101,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment, bool allowLocked = false)
 	{
+		allowLocked = allowLocked || PlatformEnvironment.IsDev;
 		if (!allowLocked)
 			EnsureUnlocked(enrollment);
 		
