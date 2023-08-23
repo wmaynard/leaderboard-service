@@ -125,7 +125,7 @@ build_image:
   needs: ["build_app"]
   allow_failure: false
   image:
-    name: gcr.io/kaniko-project/executor:debug
+    name: gcr.io/kaniko-project/executor:v1.13.0-debug
     entrypoint: [""]
   script:
     - echo "$CURRENTVERSION"
