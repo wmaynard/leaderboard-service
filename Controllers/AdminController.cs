@@ -29,6 +29,7 @@ public class AdminController : PlatformController
 	private readonly RewardsService _rewardsService;
 	private readonly RolloverService _rolloverService;
 	private readonly ArchiveService _archiveService;
+	private readonly LadderService _ladderService;
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
 
@@ -417,6 +418,18 @@ public class AdminController : PlatformController
 		return Ok(new RumbleJson
 		{
 			{ "affectedShards", affected }
+		});
+	}
+
+	[HttpPatch, Route("ladder/score")]
+	public ActionResult AddLadderScore()
+	{
+		long score = Require<long>("score");
+		string accountId = Require<string>("accountId");
+		
+		return Ok(new RumbleJson
+		{
+			{ "player", _ladderService.AddScore(accountId, score) }
 		});
 	}
 }

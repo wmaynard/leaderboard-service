@@ -102,6 +102,14 @@ public class LadderService : MinqService<LadderInfo>
     
     public LadderInfo AddScore(string accountId, long score)
     {
+        return mongo
+            .Where(query => query.EqualTo(info => info.AccountId, accountId))
+            .Upsert(query => query.Increment(info => info.Score, score));
+        
+        // On 2023.09.08, design decided to remove the breakpoint functionality in favor of Platform just naively tracking points.
+        // Consequently this method now just becomes a simple addition with no logic in it.  However, it was mentioned that
+        // we may want to bring this functionality back, so we'll leave this block commented out for the time being.
+        
         // Special rules for Ladder scores:
         // Each "step" of the ladder has to be hit to go past it.  If we have steps every 100 points:
         //     * You have 89 points.  You score 20 points.  Your result is 100.
@@ -109,47 +117,47 @@ public class LadderService : MinqService<LadderInfo>
         //     * You have 107 points.  You lose 15 points.  Your result is 100.
         //     * You have 100 points.  You lose 15 points.  Your result is 85.
         // Beyond the top step, this logic does not apply.
-        LadderInfo record = mongo
-            .WithTransaction(out Transaction transaction)
-            .Where(query => query.EqualTo(info => info.AccountId, accountId))
-            .Upsert(query => query.SetOnInsert(info => info.CreatedOn, Timestamp.UnixTime));
-        
-        if (FinalStep == 0)        // Steps are disabled
-            record.Score += score;
-        else                       // Apply the Ladder step logic
-        {
-            int step = (int)(record.Score / StepSize);
-            long floor = record.Score % StepSize == 0
-                ? (step - 1) * StepSize
-                : step * StepSize;
-            long ceiling = (step + 1) * StepSize;
-            
-            if (step >= FinalStep)
-                record.Score = Math.Max(floor, record.Score + score);
-            else
-            {
-                // Apply the step floor / ceiling
-                long newScore = Math.Min(Math.Max(floor, record.Score + score), ceiling);
-                
-                // Apply a floor of 0
-                record.Score = Math.Max(0, newScore);
-            }
-        }
-
-        record = mongo
-            .WithTransaction(transaction)
-            .Where(query => query.EqualTo(info => info.AccountId, accountId))
-            .Upsert(query => query
-                .Set(info => info.Score, record.Score)
-                .Maximum(info => info.MaxScore, record.Score)
-                .Set(info => info.Timestamp, score > 0 
-                    ? Timestamp.UnixTime
-                    : Timestamp.UnixTime - 5 // Edge case offset; when two players tie, this places the winner in a higher rank than the loser.
-                )
-            );
-        
-        transaction.Commit();
-
-        return record;
+        // LadderInfo record = mongo
+        //     .WithTransaction(out Transaction transaction)
+        //     .Where(query => query.EqualTo(info => info.AccountId, accountId))
+        //     .Upsert(query => query.SetOnInsert(info => info.CreatedOn, Timestamp.UnixTime));
+        //
+        // if (FinalStep == 0)        // Steps are disabled
+        //     record.Score += score;
+        // else                       // Apply the Ladder step logic
+        // {
+        //     int step = (int)(record.Score / StepSize);
+        //     long floor = record.Score % StepSize == 0
+        //         ? (step - 1) * StepSize
+        //         : step * StepSize;
+        //     long ceiling = (step + 1) * StepSize;
+        //     
+        //     if (step >= FinalStep)
+        //         record.Score = Math.Max(floor, record.Score + score);
+        //     else
+        //     {
+        //         // Apply the step floor / ceiling
+        //         long newScore = Math.Min(Math.Max(floor, record.Score + score), ceiling);
+        //         
+        //         // Apply a floor of 0
+        //         record.Score = Math.Max(0, newScore);
+        //     }
+        // }
+        //
+        // record = mongo
+        //     .WithTransaction(transaction)
+        //     .Where(query => query.EqualTo(info => info.AccountId, accountId))
+        //     .Upsert(query => query
+        //         .Set(info => info.Score, record.Score)
+        //         .Maximum(info => info.MaxScore, record.Score)
+        //         .Set(info => info.Timestamp, score > 0 
+        //             ? Timestamp.UnixTime
+        //             : Timestamp.UnixTime - 5 // Edge case offset; when two players tie, this places the winner in a higher rank than the loser.
+        //         )
+        //     );
+        //
+        // transaction.Commit();
+        //
+        // return record;
     }
 }
