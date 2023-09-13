@@ -99,17 +99,34 @@ public class LadderService : MinqService<LadderInfo>
         
         return output;
     }
+
+    public LadderInfo[] GetPlayerScores(string[] accountIds) => mongo
+        .Where(query => query.ContainedIn(info => info.AccountId, accountIds))
+        .ToArray();
     
     public LadderInfo AddScore(string accountId, long score)
     {
-        return mongo
+        LadderInfo output = mongo
+            .WithTransaction(out Transaction transaction)
             .Where(query => query.EqualTo(info => info.AccountId, accountId))
-            .Upsert(query => query.Increment(info => info.Score, score));
-        
+            .Upsert(query => query
+                .Increment(info => info.Score, score)
+                .SetToCurrentTimestamp(info => info.Timestamp)
+                .SetOnInsert(info => info.CreatedOn, Timestamp.UnixTime)
+            );
+
+        if (score > 0)
+            mongo
+                .WithTransaction(transaction)
+                .Update(query => query.Maximum(info => info.MaxScore, output.Score));
+
+        transaction.Commit();
+        return output;
+
         // On 2023.09.08, design decided to remove the breakpoint functionality in favor of Platform just naively tracking points.
         // Consequently this method now just becomes a simple addition with no logic in it.  However, it was mentioned that
         // we may want to bring this functionality back, so we'll leave this block commented out for the time being.
-        
+
         // Special rules for Ladder scores:
         // Each "step" of the ladder has to be hit to go past it.  If we have steps every 100 points:
         //     * You have 89 points.  You score 20 points.  Your result is 100.

@@ -30,7 +30,7 @@ public class LadderController : PlatformController
 
     [HttpGet, Route("ranking")]
     public ActionResult GetLadderRanking() => Ok(new RumbleJson
-        {
-            { "players", _ladder.GetRankings(Token.AccountId) }
-        });
+    {
+        { "players", _ladder.GetRankings(Token.AccountId) }
+    });
 }

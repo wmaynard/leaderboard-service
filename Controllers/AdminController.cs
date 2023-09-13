@@ -432,4 +432,20 @@ public class AdminController : PlatformController
 			{ "player", _ladderService.AddScore(accountId, score) }
 		});
 	}
+
+	[HttpGet, Route("ladder/scores")]
+	public ActionResult GetLadderScoresForPlayers()
+	{
+		string accounts = Require<string>("accountIds");
+
+		if (string.IsNullOrWhiteSpace(accounts))
+			throw new PlatformException("No accountIds provided.");
+
+		string[] accountIds = accounts.Split(',');
+
+		return Ok(new RumbleJson
+		{
+			{"players", _ladderService.GetPlayerScores(accountIds)}
+		});
+	}
 }
