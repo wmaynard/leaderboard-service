@@ -123,7 +123,7 @@ public class LadderService : MinqService<LadderInfo>
         if (score < 0 && output.Score < 0)
             mongo
                 .WithTransaction(transaction)
-                .Update(query => query.Maximum(info => info.MaxScore, 0));
+                .Update(query => query.Maximum(info => info.Score, 0));
 
         transaction.Commit();
         return output;
