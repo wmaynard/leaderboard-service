@@ -115,15 +115,21 @@ public class LadderService : MinqService<LadderInfo>
                 .SetOnInsert(info => info.CreatedOn, Timestamp.UnixTime)
             );
 
-        if (score > 0)
-            mongo
-                .WithTransaction(transaction)
-                .Update(query => query.Maximum(info => info.MaxScore, output.Score));
-
-        if (score < 0 && output.Score < 0)
-            mongo
-                .WithTransaction(transaction)
-                .Update(query => query.Maximum(info => info.Score, 0));
+        switch (score)
+        {
+            case > 0:
+                output = mongo
+                    .WithTransaction(transaction)
+                    .Where(query => query.EqualTo(info => info.AccountId, accountId))
+                    .Upsert(query => query.Maximum(info => info.MaxScore, output.Score));
+                break;
+            case < 0 when output.Score < 0:
+                output = mongo
+                    .WithTransaction(transaction)
+                    .Where(query => query.EqualTo(info => info.AccountId, accountId))
+                    .Upsert(query => query.Maximum(info => info.Score, 0));
+                break;
+        }
 
         transaction.Commit();
         return output;
