@@ -85,6 +85,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
 					.Set(leaderboard => leaderboard.Title, template.Title)
+					.Set(leaderboard => leaderboard.StartTime, template.StartTime)
+					.Set(leaderboard => leaderboard.EndTime, template.EndTime)
 			).ModifiedCount
 			: _collection.UpdateMany(
 				filter: leaderboard => leaderboard.Type == template.Type,
@@ -96,6 +98,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
 					.Set(leaderboard => leaderboard.Title, template.Title)
+					.Set(leaderboard => leaderboard.StartTime, template.StartTime)
+					.Set(leaderboard => leaderboard.EndTime, template.EndTime)
 			).ModifiedCount;
 	}
 
