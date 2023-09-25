@@ -74,14 +74,10 @@ public class AdminController : PlatformController
 	}
 
 	[HttpGet, Route("shardStats")]
-	public ActionResult GetShardStats()
+	public ActionResult GetShardStats() => Ok(new RumbleJson
 	{
-		ShardStat[] stats = _leaderboardService.ProjectShardStats();
-		return Ok(new RumbleJson
-		{
-			{ "stats", stats }
-		});
-	}
+		{ "stats", _leaderboardService.ProjectShardStats() }
+	});
 
 	[HttpPatch, Route("scores")]
 	public ActionResult SetScoresManually()

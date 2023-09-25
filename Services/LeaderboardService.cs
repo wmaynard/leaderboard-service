@@ -42,7 +42,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		{
 			Type = leaderboard.Type,
 			PlayerCount = leaderboard.Scores.Count,
-			Tier = leaderboard.Tier
+			Tier = leaderboard.Tier,
+			RolloversRemaining = leaderboard.RolloversRemaining
 		}))
 		.ToList()
 		.GroupBy(obj => new
@@ -57,7 +58,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			PlayerCounts = group
 				.Select(g => (long)g.PlayerCount)
 				.OrderByDescending(_ => _)
-				.ToArray()
+				.ToArray(),
+			RolloversRemaining = group.First().RolloversRemaining
 		})
 		.OrderBy(stat => stat.LeaderboardId)
 		.ThenBy(stat => stat.Tier)

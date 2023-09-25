@@ -229,6 +229,7 @@ public class Leaderboard : PlatformCollectionDocument
 		Test(condition: (TierRules?.Length ?? 0) >= TierCount, error: $"Must have at least {FRIENDLY_KEY_TIER_COUNT} tier rules defined.", ref errors);
 		Test(condition: RolloversInSeason != 0, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be non-zero; use -1 if not using Seasons.", ref errors);
 		Test(condition: RolloversInSeason < 0 || RolloversInSeason > TierCount, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be greater than {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
+		Test(condition: StartTime <= 0, error: $"{FRIENDLY_KEY_START_TIME} must be greater than 0.", ref errors);
 
 		foreach (TierRules rules in TierRules)
 		{
