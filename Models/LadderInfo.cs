@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Data;
@@ -22,20 +23,29 @@ public class LadderInfo : PlatformCollectionDocument
     [BsonElement(Entry.DB_KEY_LAST_UPDATED)]
     [JsonPropertyName(Entry.FRIENDLY_KEY_LAST_UDPATED)]
     public long Timestamp { get; set; }
-
-    [BsonIgnore]
-    [JsonPropertyName("stepScore")]
-    public long StepScore => Score % LadderService.StepSize;
-    
-    [BsonIgnore]
-    [JsonPropertyName("step")]
-    public int Step => (int)(Score / LadderService.StepSize);
     
     [BsonIgnore]
     [JsonPropertyName(Entry.FRIENDLY_KEY_RANK), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public long Rank { get; set; }
-    
-    [BsonElement("created")]
-    [JsonIgnore]
-    public long CreatedOn { get; set; }
+
+    public LadderHistory CreateHistory(LadderSeasonDefinition definition)
+    {
+        return new LadderHistory
+        {
+            Score = Score,
+            MaxScore = MaxScore,
+            AccountId = AccountId,
+            SeasonDefinition = definition,
+            LastUpdated = Timestamp
+        };
+    }
+}
+
+public class LadderHistory : PlatformCollectionDocument
+{
+    public long Score { get; set; }
+    public long MaxScore { get; set; }
+    public string AccountId { get; set; }
+    public long LastUpdated { get; set; }
+    public LadderSeasonDefinition SeasonDefinition { get; set; }
 }

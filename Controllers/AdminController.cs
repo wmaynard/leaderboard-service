@@ -30,6 +30,7 @@ public class AdminController : PlatformController
 	private readonly RolloverService _rolloverService;
 	private readonly ArchiveService _archiveService;
 	private readonly LadderService _ladderService;
+	private readonly LadderDefinitionService _seasons;
 	// private readonly ResetService _resetService;
 #pragma warning restore CS0649
 
@@ -444,4 +445,8 @@ public class AdminController : PlatformController
 			{"players", _ladderService.GetPlayerScores(accountIds)}
 		});
 	}
+	
+
+	[HttpPost, Route("ladder/seasons")]
+	public ActionResult DefineSeasons() => Ok(_seasons.Define(Require<LadderSeasonDefinition[]>("seasons")));
 }

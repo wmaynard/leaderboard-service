@@ -35,6 +35,8 @@ public class Reward : PlatformDataModel
 	public const string FRIENDLY_KEY_VISIBLE_FROM = "visibleFrom";
 	public const string FRIENDLY_KEY_EXPIRATION = "expiration";
 	public const string FRIENDLY_KEY_ATTACHMENTS = "attachments";
+	public const string FRIENDLY_KEY_MINIMUM_RANK = "minimumRank";
+	public const string FRIENDLY_KEY_MINIMUM_PERCENT = "minimumPercentile";
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_DATA = "data";
 	
@@ -83,8 +85,11 @@ public class Reward : PlatformDataModel
 	public long Expiration { get; set; }
 	
 	[BsonElement(DB_KEY_MINIMUM_RANK)]
+	[JsonPropertyName(FRIENDLY_KEY_MINIMUM_RANK)]
 	public int MinimumRank { get; set; }
+	
 	[BsonElement(DB_KEY_MINIMUM_RANK_PERCENT)]
+	[JsonPropertyName(FRIENDLY_KEY_MINIMUM_PERCENT)]
 	public int MinimumPercentile { get; set; }
 	// public long TimeAwarded { get; set; }
 	// public string LeaderboardId { get; set; }

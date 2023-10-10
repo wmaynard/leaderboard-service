@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
+using Rumble.Platform.LeaderboardService.Models;
 using Rumble.Platform.LeaderboardService.Services;
 
 namespace Rumble.Platform.LeaderboardService.Controllers;
@@ -12,6 +13,8 @@ public class LadderController : PlatformController
 {
     #pragma warning disable
     private readonly LadderService _ladder;
+    private readonly LadderDefinitionService _seasons;
+    private readonly LadderHistoryService _history;
     #pragma warning restore
 
 
@@ -33,4 +36,7 @@ public class LadderController : PlatformController
     {
         { "players", _ladder.GetRankings(Token.AccountId) }
     });
+
+    [HttpGet, Route("history")]
+    public ActionResult GetLadderHistory() => Ok(_history.GetHistoricalSeasons(Token.AccountId));
 }

@@ -137,7 +137,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
     protected override void PrimaryNodeWork()
     {
 #if DEBUG
-        Log.Local(Owner.Will, "Primary node active.");
+        Log.Verbose(Owner.Will, "Primary node active.");
 #endif
         UpdateLocalConfig();
         DateTime now = DateTime.UtcNow;
@@ -234,7 +234,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             return false;
         }
         
-        Log.Local(Owner.Will, LastHourlyRollover.ToString());
+        Log.Verbose(Owner.Will, LastHourlyRollover.ToString());
 
         return utc.Subtract(LastHourlyRollover).TotalMinutes > 60;
     }
