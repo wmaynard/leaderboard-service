@@ -282,14 +282,13 @@ public class Leaderboard : PlatformCollectionDocument
 		int[] tiers = TierRules.Any() 
 			? TierRules.Select(rules => rules.Tier).Distinct().OrderBy(_ => _).ToArray()
 			: Array.Empty<int>();
-		
-		if (dbTiers.Any())
-		{
-			if (dbTiers.Length > tiers.Length)
-				errors.Add("There are more tiers than tier rules; this is not allowed as it would prevent proper rollover behavior.");
-			int[] missing = dbTiers.Where(tier => !tiers.Contains(tier)).ToArray();
-			if (missing.Any())
-				errors.Add("Platform has defined tiers that don't have corresponding TierRules.");
-		}
+
+		if (!dbTiers.Any())
+			return;
+		if (dbTiers.Length > tiers.Length)
+			errors.Add("There are more tiers than tier rules; this is not allowed as it would prevent proper rollover behavior.");
+		int[] missing = dbTiers.Where(tier => !tiers.Contains(tier)).ToArray();
+		if (missing.Any())
+			errors.Add("Platform has defined tiers that don't have corresponding TierRules.");
 	}
 }

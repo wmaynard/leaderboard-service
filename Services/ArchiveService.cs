@@ -17,7 +17,7 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 
 	public void Stash(Leaderboard leaderboard, out Leaderboard archive)
 	{
-		leaderboard.EndTime = Timestamp.UnixTimeMS;
+		leaderboard.EndTime = Timestamp.UnixTimeMs;
 		Leaderboard copy = leaderboard.Copy();
 		copy.ChangeId();
 		Update(copy, createIfNotFound: true);

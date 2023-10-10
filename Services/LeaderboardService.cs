@@ -147,7 +147,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		
 		// This adds a timestamp to nonzero scores; it doesn't overwrite the above incrementation.
 		if (score != 0)
-			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
+			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMs);
 		
 		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
 		{
@@ -192,7 +192,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		{
 			AccountID = enrollment.AccountID,
 			Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
-			LastUpdated = Timestamp.UnixTimeMS
+			LastUpdated = Timestamp.UnixTimeMs
 		});
 		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
 		{
@@ -310,7 +310,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update
 			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score)
-			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMS);
+			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMs);
 
 		if (session == null)
 			return _collection.FindOneAndUpdate<Leaderboard>(
@@ -436,18 +436,29 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	}
 
 	// TODO: This really needs an out struct[].
-	public void BeginRollover(RolloverType type, out RumbleJson[] leaderboards) => leaderboards = _collection
-		.Find(Builders<Leaderboard>.Filter.And(
+	public void BeginRollover(RolloverType type, out RumbleJson[] leaderboards)
+	{
+		leaderboards = Array.Empty<RumbleJson>();
+		
+		FilterDefinition<Leaderboard> filter = Builders<Leaderboard>.Filter.And(
 			Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.RolloverType, type),
 			Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.StartTime, Timestamp.UnixTime)
-		))
-		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
-		{
-			{ Leaderboard.DB_KEY_ID, leaderboard.Id },
-			{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
-		}))
-		.ToList()
-		.ToArray();
+		);
+		long count = _collection.CountDocuments(filter);
+		
+		if (count == 0)
+			return;
+		
+		leaderboards = _collection
+			.Find(filter)
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
+			{
+				{ Leaderboard.DB_KEY_ID, leaderboard.Id },
+				{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
+			}))
+			.ToList()
+			.ToArray();
+	} 
 
 	private async Task<Leaderboard> Close(string id) => await SetRolloverFlag(id, isResetting: true);
 
