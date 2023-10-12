@@ -133,14 +133,17 @@ public class LadderService : MinqService<LadderInfo>
         if (output.Length == accountIds.Length)
             return output;
 
-        string[] missing = accountIds.Except(output.Select(info => info.AccountId)).ToArray();
-        mongo
-            .Where(query => query.ContainedIn(info => info.AccountId, missing))
-            .UpsertMany(query => query.SetOnInsert(info => info.Score, 0));
-        
-        return mongo
-            .Where(query => query.ContainedIn(info => info.AccountId, accountIds))
+        LadderInfo[] toCreate = accountIds
+            .Except(output.Select(info => info.AccountId))
+            .Select(id => new LadderInfo
+            {
+                AccountId = id,
+                CreatedOn = Timestamp.UnixTime
+            })
             .ToArray();
+        
+        mongo.Insert(toCreate);
+        return output.Concat(toCreate).ToArray();
     }
     
     public LadderInfo AddScore(string accountId, long score)

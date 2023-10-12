@@ -242,3 +242,33 @@ HTTP 200
 ```
 
 The full season definition is stored and returned with each record.  It's the same model that's used in the creation of the season definition.
+
+### Retrieving Multiple Accounts' Scores
+
+Requires an admin token, and creates records if they are not found.
+
+```
+GET /admin/ladder/scores?accountIds=deadbeefdeadbeefdeadbeef,6375681659c472bca7dabc40
+
+HTTP 200
+{
+    "players": [
+        {
+            "accountId": "deadbeefdeadbeefdeadbeef",
+            "score": 0,
+            "maxScore": 0,
+            "lastUpdated": 0,
+            "id": "6527b227604f8fcda11d67b3",
+            "createdOn": 1697100327
+        },
+        {
+            "accountId": "6375681659c472bca7dabc40",
+            "score": 50,
+            "maxScore": 75,
+            "lastUpdated": 1697100327,
+            "id": "6527b227604f8fcda11d67b4",
+            "createdOn": 1697100327
+        }
+    ]
+}
+```
