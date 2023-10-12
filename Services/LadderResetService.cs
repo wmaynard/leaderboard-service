@@ -19,10 +19,11 @@ namespace Rumble.Platform.LeaderboardService.Services;
 public class LadderResetService : QueueService<LadderResetService.LadderResetData>
 {
     private string KEY_TIMESTAMPS = "ladderResetTimestamps";
+    private const int FIVE_MINUTES = 5 * 60 * 1_000; 
 
     private SeasonDefinitionService _seasons;
 
-    public LadderResetService(SeasonDefinitionService seasons) : base("ladderResets", intervalMs: 10_000)
+    public LadderResetService(SeasonDefinitionService seasons) : base("ladderResets", intervalMs: FIVE_MINUTES)
         => _seasons = seasons;
     
     protected override void PrimaryNodeWork()
@@ -32,7 +33,10 @@ public class LadderResetService : QueueService<LadderResetService.LadderResetDat
             LadderSeasonDefinition season = _seasons.GetCurrentSeason();
 
             if (season == null)
-                Log.Local(Owner.Will, "No current season!  Ladder cannot reset!  Ensure Design has defined a current season.");
+                Log.Warn(Owner.Will, "No current season!  Ladder cannot reset", data: new
+                {
+                    Help = "Ensure Design has defined a current season."
+                });
             else if (season.EndTime <= Timestamp.UnixTime)
                 _seasons.EndSeason(season);
         }
