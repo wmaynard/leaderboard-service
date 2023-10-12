@@ -124,9 +124,24 @@ public class LadderService : MinqService<LadderInfo>
         return output;
     }
 
-    public LadderInfo[] GetPlayerScores(string[] accountIds) => mongo
-        .Where(query => query.ContainedIn(info => info.AccountId, accountIds))
-        .ToArray();
+    public LadderInfo[] GetPlayerScores(string[] accountIds)
+    {
+        LadderInfo[] output = mongo
+            .Where(query => query.ContainedIn(info => info.AccountId, accountIds))
+            .ToArray();
+
+        if (output.Length == accountIds.Length)
+            return output;
+
+        string[] missing = accountIds.Except(output.Select(info => info.AccountId)).ToArray();
+        mongo
+            .Where(query => query.ContainedIn(info => info.AccountId, missing))
+            .UpsertMany(query => query.SetOnInsert(info => info.Score, 0));
+        
+        return mongo
+            .Where(query => query.ContainedIn(info => info.AccountId, accountIds))
+            .ToArray();
+    }
     
     public LadderInfo AddScore(string accountId, long score)
     {
