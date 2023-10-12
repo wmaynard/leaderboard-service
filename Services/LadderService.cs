@@ -13,86 +13,6 @@ using Rumble.Platform.LeaderboardService.Models;
 
 namespace Rumble.Platform.LeaderboardService.Services;
 
-public class LadderHistoryService : MinqService<LadderHistory>
-{
-    public LadderHistoryService() : base("ladderHistories") { }
-
-    public void CreateFromCurrentInfo(Transaction transaction, LadderInfo[] records, LadderSeasonDefinition season)
-    {
-        mongo
-            .WithTransaction(transaction)
-            .Insert(records
-                .Select(record => record.CreateHistory(season))
-                .ToArray()
-            );
-    }
-
-    public LadderHistory[] GetHistoricalSeasons(string accountId, int count = 5) => mongo
-        .Where(query => query.EqualTo(history => history.AccountId, accountId))
-        .Sort(sort => sort.OrderByDescending(history => history.CreatedOn))
-        .Limit(count)
-        .ToArray();
-
-    public long ClearHistories(Transaction transaction, LadderSeasonDefinition season) => mongo
-        .WithTransaction(transaction)
-        .Where(query => query.EqualTo(history => history.SeasonDefinition.SeasonId, season.SeasonId))
-        .Delete();
-
-    public void GrantRewards(LadderSeasonDefinition season)
-    {
-        const int MAX_REWARD_COUNT = 10_000;
-        int rewardMax = 0;
-
-        object logData = new
-        {
-            SeasonDefinition = season
-        };
-
-        if (!(season?.Rewards?.Any() ?? false) 
-            || (rewardMax = season.Rewards.MaxBy(reward => reward.MinimumRank).MinimumRank) == 0
-        )
-        {
-            Log.Warn(Owner.Will, "No rewards found for season, cannot issue any to players", logData);
-            return;
-        }
-
-        if (rewardMax == 0)
-        {
-            Log.Warn(Owner.Will, "No rewards found for season, cannot issue any to players", logData);
-            return;
-        }
-
-        RewardsService _rewardService = Require<RewardsService>();
-        
-        LadderHistory[] histories = mongo
-            .Where(query => query
-                .EqualTo(history => history.SeasonDefinition.SeasonId, season.SeasonId)
-                .GreaterThan(history => history.MaxScore, 0)
-            )
-            .Sort(sort => sort.OrderByDescending(history => history.Score))
-            .Limit(Math.Min(rewardMax, MAX_REWARD_COUNT))
-            .ToArray();
-
-        if (!histories.Any())
-        {
-            Log.Warn(Owner.Will, "No player scores found for season, cannot issue rewards", logData);
-            return;
-        }
-
-        int processed = 0;
-        foreach (Reward reward in season.Rewards.OrderBy(r => r.MinimumRank))
-        {
-            string[] eligible = histories
-                .Skip(processed)
-                .Take(reward.MinimumRank - processed) // TODO: Does this fail when there aren't enough histories available?
-                .Select(history => history.AccountId)
-                .ToArray();
-            _rewardService.Grant(reward, eligible);
-            processed += reward.MinimumRank;
-        }
-    }
-}
-
 public class LadderService : MinqService<LadderInfo>
 {
     public static int TopPlayerCount => Math.Min(0, Math.Max(1_000, DynamicConfig.Instance?.Optional("ladderTopPlayerCount", 100) ?? 100));
@@ -115,20 +35,21 @@ public class LadderService : MinqService<LadderInfo>
         
         mongo
             .WithTransaction(transaction)
-            .All()
+            .Where(query => query.GreaterThanOrEqualTo(history => history.MaxScore, 0))
             .Process(batchSize: 10_000, onBatch: batchData =>
             {
                 historyService.CreateFromCurrentInfo(transaction, batchData.Results, season);
                 affected += batchData.Results.Length;
             });
 
-        mongo
-            .WithTransaction(transaction)
-            .Where(query => query.LessThan(info => info.Score, season.FallbackScore))
-            .Update(query => query
-                .Set(info => info.Score, 0)
-                .Set(info => info.MaxScore, 0)
-            );
+        if (season.FallbackScore > 0)
+            mongo
+                .WithTransaction(transaction)
+                .Where(query => query.LessThan(info => info.Score, season.FallbackScore))
+                .Update(query => query
+                    .Set(info => info.Score, 0)
+                    .Set(info => info.MaxScore, 0)
+                );
 
         mongo
             .WithTransaction(transaction)

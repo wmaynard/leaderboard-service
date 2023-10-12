@@ -8,6 +8,9 @@ namespace Rumble.Platform.LeaderboardService.Models;
 
 public class LadderInfo : PlatformCollectionDocument
 {
+    public const string DB_KEY_MAX_SCORE = "max";
+    public const string FRIENDLY_KEY_MAX_SCORE = "maxScore";
+    
     [BsonElement(Entry.DB_KEY_ACCOUNT_ID)]
     [JsonPropertyName(Entry.FRIENDLY_KEY_ACCOUNT_ID)]
     public string AccountId { get; set; }
@@ -16,8 +19,8 @@ public class LadderInfo : PlatformCollectionDocument
     [JsonPropertyName(Entry.FRIENDLY_KEY_SCORE)]
     public long Score { get; set; }
 
-    [BsonElement("max")]
-    [JsonPropertyName("maxScore")]
+    [BsonElement(DB_KEY_MAX_SCORE)]
+    [JsonPropertyName(FRIENDLY_KEY_MAX_SCORE)]
     public long MaxScore { get; set; }
     
     [BsonElement(Entry.DB_KEY_LAST_UPDATED)]
@@ -41,11 +44,3 @@ public class LadderInfo : PlatformCollectionDocument
     }
 }
 
-public class LadderHistory : PlatformCollectionDocument
-{
-    public long Score { get; set; }
-    public long MaxScore { get; set; }
-    public string AccountId { get; set; }
-    public long LastUpdated { get; set; }
-    public LadderSeasonDefinition SeasonDefinition { get; set; }
-}

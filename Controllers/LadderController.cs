@@ -13,7 +13,7 @@ public class LadderController : PlatformController
 {
     #pragma warning disable
     private readonly LadderService _ladder;
-    private readonly LadderDefinitionService _seasons;
+    private readonly SeasonDefinitionService _seasons;
     private readonly LadderHistoryService _history;
     #pragma warning restore
 
@@ -38,5 +38,13 @@ public class LadderController : PlatformController
     });
 
     [HttpGet, Route("history")]
-    public ActionResult GetLadderHistory() => Ok(_history.GetHistoricalSeasons(Token.AccountId));
+    public ActionResult GetLadderHistory()
+    {
+        int count = Math.Max(Optional<int>("count"), 1);
+        
+        return Ok(new RumbleJson
+        {
+            { "history", _history.GetHistoricalSeasons(Token.AccountId, count) }
+        });
+    }
 }

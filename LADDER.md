@@ -133,16 +133,112 @@ This is where caching can help.  We can run our query, make our transformation, 
 
 Note that Memcached is a better long-term solution, but isn't yet available in platform-common due to dependency conflicts.
 
-### Defining The End of Season (AKA ladder resets)
+## Ladder Seasons
 
-The game server doesn't have an event that fires when a season ends.  Consequently, we needed a way to know when seasons ended so that we could globally drop scores as necessary.
+Ladder seasons can be defined by using the endpoint `POST /leaderboard/admin/seasons`.  Seasons have the following rules:
 
-Ladder achieves this through a Dynamic Config field, `ladderResetTimestamps`.  This should be a CSV field of UNIX timestamps - preferably in ascending order just for clarity.  When the Ladder service detects that one of these timestamps is in the past, it will reset all the player scores, then update the DC field to remove past timestamps.
+1. A Season has a **Fallback Score**.  Anyone under this value has their score dropped to 0.  Anyone above has their score reset to the fallback score.
+2. Only one season can be active at a time.  This is dictated by its **End Time**.  Platform does not use the definitions provided for any logic outside of what happens when a season passes its end time.  In other words, there's no logic for a "start time".
+3. If no season is active, logs will be sent - noisily - to draw attention to the problem.  It is assumed though not required that Ladder is operating with an active season at all times.
+4. A season can contain rewards.  Rewards can only go out to a certain number of top players.
 
-If you have access to platform-common-1.3.67+, you can use the following code example to load resets in:
+### When A Season Ends
+
+1. All historical records with a matching season ID are deleted.  Players can only have one historical record per season.  In practice, this should not delete any records - but is a safeguard to make sure the database is clean.
+2. All players with a **Seasonal Max Score** over 0 have a historical record of their season stats created in a separate collection.  Players with a max score of 0 are considered to be inactive, and as such do not generate data.
+3. All players below the **Fallback Score** have their Score / Max set to 0.
+4. All players above the **Fallback Score** have their Score / Max set to the fallback value.
+5. Rewards, if any are defined, are granted to relevant players.
+   1. Rewards are first granted within the leaderboard-service database and marked as unsent.
+   2. Unsent rewards are periodically checked / delivery attempts made on a timer.  Consequently, rewards may not be instant; the more players we have, the longer this process will take.
+   3. When leaderboard-service receives a 200 status code from mail-service, the rewards for that particular player are marked as sent.
+
+**No changes can be made to seasons that have ended.**
+
+### Defining a Season
+
+Using the admin endpoint, send an array of Seasons.  Each season has:
+
+| Field        | Description                                                                                                                                                                                                                                                          | Required       |
+|:-------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------|
+| endTime      | A Unix timestamp when the season will end.  Note that the season will not end _exactly_ at this time, since the service is just checking to see if the current timestamp is after the end time occasionally, so there may be a few minutes of delay.                 | Yes (non-zero) |
+| nextSeasonId | A string identifier for the following season.  This is not used by the service but is provided in case we want it for tracking, or decide to make use of it in the future.                                                                                           | No             |
+| rewards      | A list of rewards that go out to top players when a season ends.  The original specification was only for the top 100 players, but the service actually supports up to the top 10,000.  Uses the same model as Leaderboards rewards, though some fields are unused.* | No             |
+| seasonId     | A unique string identifier for the given season.                                                                                                                                                                                                                     | Yes            |
+
+For rewards, only `minimumRank` is honored for criteria in deciding reward eligibility.
+
+Request example:
 
 ```
-DynamicConfig.Instance?.Update(Audience.LeaderboardService, "ladderResetTimestamps", "1688119417,1688120417,1688121417");
+POST /leaderboard/admin/ladder/seasons
+{
+    "seasons": [
+        {
+            "seasonId": "foo",
+            "nextSeasonId": "bar",
+            "endTime": 1696926645,
+            "rewards": [
+                {
+                    "subject": "placeholder",
+                    "body": "placeholder",
+                    "banner": "placeholder",
+                    "icon": "placeholder",
+                    "internalNote": "ldr_pvp_season_01 reward",
+                    "minimumRank": 10,
+                    "attachments": [
+                        {
+                            "type": "Currency",
+                            "rewardId": "pvp_shop_currency",
+                            "quantity": 10
+                        },
+                        ...
+                    ]
+                },
+                ...
+            ]
+        },
+        {
+            "seasonId": "bar",
+            "nextSeasonId": "yetAnotherSeason",
+            "endTime": 1697026645,
+            "rewards": []
+        }
+    ]
+}
 ```
 
-Note that with enough time, this field will eventually be empty, and resets will never happen.  For a long-term solution, this will need to be updated on a regular basis or projected far into the future to work without intervention.
+#### Important note: Dynamic Config was previously used to define season behavior.  This is no longer the case.
+
+### When Seasons are Defined
+
+1. Seasons that have already ended but are re-sent or changed are ignored.  You cannot change a season that has ended.  _Best practice: do not send seasons that are old to keep the request size down._
+2. **All currently open seasons are deleted**.  This does not alter current player scores.
+3. Create new season definitions for remaining data.
+
+**CAUTION:** if you send an update request that changes an active season to have an `endTime` that's in the past, this will **immediately cause a season reset.**  This may be intentional to end a season immediately with a release.  There is no validation or warning on this to support a design decision to end a season early, and this is independent of environment.  A push to A1 will affect A2 and vice versa, so an internal build will impact live players.
+
+### Retrieving Historical Season Data
+
+Historical season data is tracked for up to 3 months.
+
+```
+GET /leaderboard/ladder/history?count=5
+
+HTTP 200
+{
+    "history": [
+        {
+            "score": 50,
+            "maxScore": 50,
+            "accountId": "638a57843090a47d42265b65",
+            "lastUpdated": 1697097084,
+            "season": { ... },
+            "id": "6527a5957005a2920158db14",
+            "createdOn": 1697097109
+        }
+    ]
+}
+```
+
+The full season definition is stored and returned with each record.  It's the same model that's used in the creation of the season definition.
