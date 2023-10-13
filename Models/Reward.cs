@@ -91,6 +91,9 @@ public class Reward : PlatformDataModel
 	[BsonElement(DB_KEY_MINIMUM_RANK_PERCENT)]
 	[JsonPropertyName(FRIENDLY_KEY_MINIMUM_PERCENT)]
 	public int MinimumPercentile { get; set; }
+	
+	[BsonElement("awarded")]
+	public long AwardedOn { get; set; }
 	// public long TimeAwarded { get; set; }
 	// public string LeaderboardId { get; set; }
 	

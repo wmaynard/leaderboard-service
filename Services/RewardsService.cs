@@ -33,6 +33,8 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 		if (reward == null || !accountIds.Any())
 			return 0;
 
+		reward.AwardedOn = Timestamp.UnixTime;
+
 		return _collection.UpdateMany( // TODO: Session?
 			filter: Builders<RewardHistory>.Filter.In(history => history.AccountId, accountIds),
 			update: Builders<RewardHistory>.Update.AddToSet(history => history.Rewards, reward),
