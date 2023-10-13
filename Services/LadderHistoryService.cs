@@ -83,7 +83,15 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
                 .Take(reward.MinimumRank - processed) // TODO: Does this fail when there aren't enough histories available?
                 .Select(history => history.AccountId)
                 .ToArray();
-            _rewardService.Grant(reward, eligible);
+            
+            long granted = _rewardService.Grant(reward, eligible);
+            Log.Info(Owner.Will, "Granted season rewards to players", data: new
+            {
+                Reward = reward,
+                AccountIds = eligible,
+                Count = eligible.Length,
+                GrantedCount = granted
+            });
             processed += reward.MinimumRank;
         }
     }

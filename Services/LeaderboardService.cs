@@ -702,8 +702,21 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 							{ "leaderboardSeasonalMaxTier", tier },
 							{ "leaderboardSeasonalResetTier", board.TierRules[tier].MaxTierOnSeasonReset }
 						};
-						if (_rewardService.Grant(prize, accounts) > 0)
-							Log.Local(Owner.Will, $"Granted season rewards to {accounts.Length} players.");
+						long granted = _rewardService.Grant(prize, accounts);
+						if (granted > 0 && granted == accounts.Length)
+							Log.Info(Owner.Will, $"Granted season rewards to players.", data: new
+							{
+								AccountIds = accounts,
+								GrantedCount = granted,
+								Count = accounts.Length
+							});
+						else if (granted > 0)
+							Log.Error(Owner.Will, "Granted season rewards to some players but not all", data: new
+							{
+								AccountIds = accounts,
+								GrantedCount = granted,
+								Count = accounts.Length
+							});
 						rewardData[$"tier_{tier}"] = accounts.Length;
 					}
 					catch (Exception e)

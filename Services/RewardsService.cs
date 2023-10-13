@@ -62,6 +62,12 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 			if (!toSend.Any())
 				continue;
 			
+			Log.Info(Owner.Will, "Found undelivered rewards to send for a player", data: new
+			{
+				AccountId = history.AccountId,
+				Rewards = toSend
+			});
+			
 			// Prepare the rewards to send.  Mailbox requires a recipient accountId and fields for expiration / visibleFrom.
 			foreach (Reward reward in toSend)
 			{
@@ -93,25 +99,41 @@ public class RewardsService : PlatformMongoService<RewardHistory>
 				.Request(url)
 				.AddAuthorization(adminToken)
 				.SetPayload(new MailboxMessage(history.AccountId, toSend).Payload)
-				.OnSuccess(_ =>
+				.OnSuccess(response =>
 				{
 					successes.Add(history.Id);
-					Log.Local(Owner.Will, $"Sent {toSend.Length} rewards to {history.AccountId}");
+					if (!PlatformEnvironment.IsProd)
+						Log.Local(Owner.Will, $"Sent {toSend.Length} rewards to {history.AccountId}");
+					else
+						Log.Info(Owner.Will, "Sent rewards to a player, successful mail response.", data: new
+						{
+							Response = response,
+							Count = toSend.Length,
+							AccountId = history.AccountId
+						});
 				})
-				.OnFailure(response => _apiService.Alert(
-					title: "Unable to send leaderboard rewards.",
-					message: "Mail service returned a bad response when trying to send rewards to a player.",
-					countRequired: 1,
-					timeframe: 30_000,
-					owner: Owner.Will,
-					impact: ImpactType.ServicePartiallyUsable,
-					data: new RumbleJson
+				.OnFailure(response =>
+				{
+					Log.Error(Owner.Will, "Failed to send rewards to a player", data: new
 					{
-						{ "accountId", history.AccountId },
-						{ "response", response.AsRumbleJson },
-						{ "attemptedRewards", toSend }
-					}
-				))
+						Response = response,
+						AccountId = history.AccountId
+					});
+					_apiService.Alert(
+						title: "Unable to send leaderboard rewards.",
+						message: "Mail service returned a bad response when trying to send rewards to a player.",
+						countRequired: 1,
+						timeframe: 30_000,
+						owner: Owner.Will,
+						impact: ImpactType.ServicePartiallyUsable,
+						data: new RumbleJson
+						{
+							{"accountId", history.AccountId},
+							{"response", response.AsRumbleJson},
+							{"attemptedRewards", toSend}
+						}
+					);
+				})
 				.Post();
 		}
 
