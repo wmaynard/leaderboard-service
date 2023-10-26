@@ -10,7 +10,7 @@ using Rumble.Platform.Data;
 
 namespace Rumble.Platform.LeaderboardService.Models;
 
-public class Reward : PlatformDataModel
+public class Reward : PlatformCollectionDocument
 {
 	internal const string DB_KEY_SUBJECT = "sub";
 	internal const string DB_KEY_BODY = "msg";
@@ -40,9 +40,9 @@ public class Reward : PlatformDataModel
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_DATA = "data";
 	
-	[BsonIgnore]
+	[BsonElement(TokenInfo.DB_KEY_ACCOUNT_ID), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_RECIPIENT), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public string Recipient { get; set; }
+	public string AccountId { get; set; }
 	
 	[BsonElement(DB_KEY_DATA), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_DATA), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -92,6 +92,10 @@ public class Reward : PlatformDataModel
 	[JsonPropertyName(FRIENDLY_KEY_MINIMUM_PERCENT)]
 	public int MinimumPercentile { get; set; }
 	
+	// [BsonElement("tasked")]
+	// [JsonIgnore]
+	// public bool TaskCreated { get; set; }
+	
 	[BsonElement("awarded")]
 	public long AwardedOn { get; set; }
 	// public long TimeAwarded { get; set; }
@@ -99,8 +103,13 @@ public class Reward : PlatformDataModel
 	
 	[BsonElement(DB_KEY_STATUS)]
 	internal Status SentStatus { get; set; }
-		
-	internal enum Status { NotSent, Sent }
+
+	internal enum Status
+	{
+		NotSent = 0, 
+		Tasked = 1, 
+		Sent = 200
+	}
 	
 	[BsonIgnore]
 	[JsonIgnore]

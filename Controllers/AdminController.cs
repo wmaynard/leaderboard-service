@@ -116,14 +116,6 @@ public class AdminController : PlatformController
 		});
 	}
 
-	[HttpPost, Route("sendRewards")]
-	public ActionResult SendRewards()
-	{
-		_rewardsService.SendRewards();
-
-		return Ok();
-	}
-
 	[HttpPatch, Route("confiscate"), IgnorePerformance]
 	public ActionResult Confiscate()
 	{
@@ -163,7 +155,7 @@ public class AdminController : PlatformController
 			.Log(
 				title: $"{PlatformEnvironment.Deployment} rollover manually triggered",
 				message: $"{Token.ScreenName} manually triggered the leaderboards rollover.")
-			.Attach(name: "Token information", content: Token.JSON)
+			.Attach(name: "Token information", content: Token.ToJson())
 			.Send()
 			.Wait();
 		return Ok();

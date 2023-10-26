@@ -177,8 +177,6 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
             LastMonthlyRollover = now;
             CreateRolloverTasks(RolloverType.Monthly);
         }
-        
-        _rewardService.SendRewards(); // TODO: Create tasks for this
     }
 
     protected override async void ProcessTask(RolloverData data)
