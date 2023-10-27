@@ -1,4 +1,5 @@
 using System.Linq;
+using RCL.Logging;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Services;
@@ -7,9 +8,10 @@ using Rumble.Platform.LeaderboardService.Models;
 
 namespace Rumble.Platform.LeaderboardService.Services;
 
-public class RewardsService : MinqService<Reward>
+public class RewardsService : MinqTimerService<Reward>
 {
-	public RewardsService() : base("grants") { }
+	private const double TWELVE_HOURS_MS = 43_200_000;
+	public RewardsService() : base("grants", interval: TWELVE_HOURS_MS) { }
 
 	public long Grant(Reward reward, params string[] accountIds)
 	{
@@ -62,4 +64,16 @@ public class RewardsService : MinqService<Reward>
 
 		return output;
 	}
+
+	protected override void OnElapsed() => mongo
+		.Where(query => query
+			.EqualTo(reward => reward.SentStatus, Reward.Status.Sent)
+			.LessThanOrEqualTo(reward => reward.AwardedOn, Timestamp.SixMonthsAgo)
+		)
+		.OnRecordsAffected(result => Log.Info(Owner.Will, "Reward grants older than six months deleted", data: new
+		{
+			Help = "Only successfully sent rewards were affected",
+			Affected = result.Affected
+		}))
+		.Delete();
 }
