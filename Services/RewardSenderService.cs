@@ -31,10 +31,7 @@ public class RewardSenderService : QueueService<RewardSenderService.RewardData>
     {
         Reward[] unsent = _rewards.GetUntaskedRewards(out Transaction transaction);
         if (!unsent.Any())
-        {
-            Log.Local(Owner.Will, "No rewards found that need to be sent out.", emphasis: Log.LogType.VERBOSE);
             return;
-        }
 
         try
         {
@@ -168,7 +165,6 @@ public class RewardSenderService : QueueService<RewardSenderService.RewardData>
             {
                 try
                 {
-                    Log.Local(Owner.Will, $"Marking messages as sent: {string.Join(',', message.RewardIds)}", emphasis: Log.LogType.WARN);
                     _rewards.MarkAsSent(message.RewardIds);
                     string accountId = message
                        .Payload
@@ -176,7 +172,7 @@ public class RewardSenderService : QueueService<RewardSenderService.RewardData>
                        ?.FirstOrDefault()
                        ?? "(UNKNOWN)";
                     if (!PlatformEnvironment.IsProd)
-                        Log.Local(Owner.Will, $"Sent {message.RewardIds.Length} rewards to {accountId}");
+                        Log.Local(Owner.Will, $"Sent {message.RewardIds.Length} rewards to {accountId}", emphasis: Log.LogType.WARN);
                     else
                         Log.Info(Owner.Will, "Sent rewards to a player, successful mail response.", data: new
                         {
