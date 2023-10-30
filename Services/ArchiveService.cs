@@ -17,7 +17,7 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 
 	public void Stash(Leaderboard leaderboard, out Leaderboard archive)
 	{
-		leaderboard.EndTime = Timestamp.UnixTimeMs;
+		leaderboard.EndTime = TimestampMs.Now;
 		Leaderboard copy = leaderboard.Copy();
 		copy.ChangeId();
 		Update(copy, createIfNotFound: true);
@@ -47,7 +47,7 @@ public class ArchiveService : PlatformMongoService<Leaderboard>
 	{
 		long seconds = 60 * 60 * 24 * days;
 		long affected = _collection
-			.DeleteMany(archive => archive.EndTime < Timestamp.UnixTime - seconds)
+			.DeleteMany(archive => archive.EndTime < Timestamp.Now - seconds)
 			.DeletedCount;
 		
 		if (affected > 0)

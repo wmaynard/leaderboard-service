@@ -15,7 +15,7 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class LadderService : MinqService<LadderInfo>
 {
-    public static int TopPlayerCount => Math.Min(0, Math.Max(1_000, DynamicConfig.Instance?.Optional("ladderTopPlayerCount", 100) ?? 100));
+    public static int TopPlayerCount => Math.Max(0, Math.Min(1_000, DynamicConfig.Instance?.Optional("ladderTopPlayerCount", 100) ?? 100));
     public static int CacheDuration => Math.Max(0, DynamicConfig.Instance?.Optional("ladderCacheDuration", 300) ?? 300);
     
     public LadderService() : base("ladder")
@@ -77,12 +77,12 @@ public class LadderService : MinqService<LadderInfo>
                 .Insert(new LadderInfo
                 {
                     AccountId = rando.Next(0, int.MaxValue).ToString().PadLeft(24, '0'),
-                    CreatedOn = Timestamp.UnixTime - rando.Next(0, 60 * 60 * 24 * 30),
+                    CreatedOn = Timestamp.Now - rando.Next(0, 60 * 60 * 24 * 30),
                     Score = score,
                     MaxScore = rando.Next(0, 100) < 95
                         ? score
                         : score + rando.Next(1, 200),
-                    Timestamp = Timestamp.UnixTime - rando.Next(0, 60 * 60)
+                    Timestamp = Timestamp.Now - rando.Next(0, 60 * 60)
                 });
             return true;
         }
@@ -113,12 +113,21 @@ public class LadderService : MinqService<LadderInfo>
         
         LadderInfo player = mongo
             .Where(query => query.EqualTo(info => info.AccountId, accountId))
-            .Upsert(query => query.SetOnInsert(info => info.CreatedOn, Timestamp.UnixTime));
+            .Upsert(query => query
+                .SetOnInsert(info => info.CreatedOn, Timestamp.Now)
+                .SetOnInsert(info => info.Timestamp, Timestamp.Now)
+            );
 
         player.Rank = mongo
             .Count(query => query
-                .GreaterThan(info => info.Score, player.Score)
-            );
+                .Or(or => or
+                    .GreaterThan(info => info.Score, player.Score)
+                    .And(and => and
+                        .EqualTo(info => info.Score, player.Score)
+                        .LessThan(info => info.Timestamp, player.Timestamp)
+                    )
+                )
+            ) + 1;
         output.Add(player);
         
         return output;
@@ -138,7 +147,7 @@ public class LadderService : MinqService<LadderInfo>
             .Select(id => new LadderInfo
             {
                 AccountId = id,
-                CreatedOn = Timestamp.UnixTime
+                CreatedOn = Timestamp.Now
             })
             .ToArray();
         
@@ -154,7 +163,7 @@ public class LadderService : MinqService<LadderInfo>
             .Upsert(query => query
                 .Increment(info => info.Score, score)
                 .SetToCurrentTimestamp(info => info.Timestamp)
-                .SetOnInsert(info => info.CreatedOn, Timestamp.UnixTime)
+                .SetOnInsert(info => info.CreatedOn, Timestamp.Now)
             );
 
         switch (score)

@@ -147,7 +147,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		
 		// This adds a timestamp to nonzero scores; it doesn't overwrite the above incrementation.
 		if (score != 0)
-			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMs);
+			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", TimestampMs.Now);
 		
 		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
 		{
@@ -192,7 +192,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		{
 			AccountID = enrollment.AccountID,
 			Score = Math.Max(score, 0), // Ensure the user's score is at least 0.
-			LastUpdated = Timestamp.UnixTimeMs
+			LastUpdated = TimestampMs.Now
 		});
 		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
 		{
@@ -235,7 +235,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		template.Scores = new List<Entry> { new Entry
 		{
 			AccountID = enrollment.AccountID,
-			LastUpdated = Timestamp.UnixTime,
+			LastUpdated = Timestamp.Now,
 			Score = score
 		}};
 		template.ShardID = ObjectId.GenerateNewId().ToString();
@@ -294,7 +294,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		List<bool> locks = _collection
 			.Find(filter: filter)
-			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.IsResetting || leaderboard.StartTime > Timestamp.UnixTime))
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.IsResetting || leaderboard.StartTime > Timestamp.Now))
 			.ToList();
 
 		if (locks.Any(isResetting => isResetting))
@@ -310,7 +310,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update
 			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score)
-			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", Timestamp.UnixTimeMs);
+			.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", TimestampMs.Now);
 
 		if (session == null)
 			return _collection.FindOneAndUpdate<Leaderboard>(
@@ -442,7 +442,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		
 		FilterDefinition<Leaderboard> filter = Builders<Leaderboard>.Filter.And(
 			Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.RolloverType, type),
-			Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.StartTime, Timestamp.UnixTime)
+			Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.StartTime, Timestamp.Now)
 		);
 		long count = _collection.CountDocuments(filter);
 		
@@ -511,7 +511,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	private bool LeaderboardIsActive(string leaderboardType) => _collection
 		.CountDocuments(
-			filter: Builders<Leaderboard>.Filter.Lte(field: leaderboard => leaderboard.StartTime, Timestamp.UnixTime)
+			filter: Builders<Leaderboard>.Filter.Lte(field: leaderboard => leaderboard.StartTime, Timestamp.Now)
 		) != 0;
 
 	public long DecreaseSeasonCounter(string type) => LeaderboardIsActive(type)

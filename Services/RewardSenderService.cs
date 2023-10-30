@@ -121,7 +121,7 @@ public class RewardSenderService : QueueService<RewardSenderService.RewardData>
             Reward[] toSend = group
                 .Select(reward =>
                 {
-                    reward.VisibleFrom = Timestamp.UnixTime;
+                    reward.VisibleFrom = Timestamp.Now;
                     if (reward.Expiration == default)
                         reward.Expiration = Timestamp.OneMonthFromNow;
 

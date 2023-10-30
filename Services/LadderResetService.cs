@@ -37,7 +37,7 @@ public class LadderResetService : QueueService<LadderResetService.LadderResetDat
                 {
                     Help = "Ensure Design has defined a current season."
                 });
-            else if (season.EndTime <= Timestamp.UnixTime)
+            else if (season.EndTime <= Timestamp.Now)
                 _seasons.EndSeason(season);
         }
         catch (Exception e)

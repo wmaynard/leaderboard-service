@@ -18,7 +18,7 @@ public class RewardsService : MinqTimerService<Reward>
 		if (reward == null || !accountIds.Any())
 			return 0;
 
-		reward.AwardedOn = Timestamp.UnixTime;
+		reward.AwardedOn = Timestamp.Now;
 		Reward[] toInsert = accountIds
 			.Select(account =>
 			{
