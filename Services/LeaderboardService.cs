@@ -448,15 +448,27 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		
 		if (count == 0)
 			return;
-		
+
+		// PLATF-6497: Something changed between 9/25 -> 10/13 that broke the projection here.  Projecting to a
+		// RumbleJson throws a bizarre error message:
+		//     One or more errors occurred. (When called from 'VisitListInit', rewriting a node of type
+		//     'System.Linq.Expressions.NewExpression' must return a non-null value of the same type. Alternatively,
+		//     override 'VisitListInit' and change it to not visit children of this type.)
+		// The modified method chaining is a kluge; the intent is to eventually replace this with MINQ and a proper
+		// fix, if needed, will come with that transition.
 		leaderboards = _collection
 			.Find(filter)
-			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new RumbleJson
+			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new Leaderboard
 			{
-				{ Leaderboard.DB_KEY_ID, leaderboard.Id },
-				{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
+				ShardID = leaderboard.Id,
+				Type = leaderboard.Type
 			}))
 			.ToList()
+			.Select(leaderboard => new RumbleJson
+			{
+				{ Leaderboard.DB_KEY_ID, leaderboard.ShardID },
+				{ Leaderboard.DB_KEY_TYPE, leaderboard.Type }
+			})
 			.ToArray();
 	} 
 
