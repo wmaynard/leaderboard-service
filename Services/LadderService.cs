@@ -98,7 +98,7 @@ public class LadderService : MinqService<LadderInfo>
     public List<LadderInfo> GetRankings(string accountId = null)
     {
         List<LadderInfo> output = mongo
-            .Where(query => query.NotEqualTo(info => info.AccountId, null))
+            .All()
             .Limit(TopPlayerCount)
             .Sort(sort => sort
                 .OrderByDescending(info => info.Score)
