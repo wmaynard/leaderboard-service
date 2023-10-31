@@ -49,6 +49,7 @@ public class LadderService : MinqService<LadderInfo>
                 .Update(query => query
                     .Set(info => info.Score, 0)
                     .Set(info => info.MaxScore, 0)
+                    .Set(info => info.PreviousScoreChange, 0)
                 );
 
         mongo
@@ -57,6 +58,7 @@ public class LadderService : MinqService<LadderInfo>
             .Update(query => query
                 .Set(info => info.Score, season.FallbackScore)
                 .Set(info => info.MaxScore, season.FallbackScore)
+                .Set(info => info.PreviousScoreChange, 0)
             );
         
         return affected;
@@ -162,6 +164,7 @@ public class LadderService : MinqService<LadderInfo>
             .Where(query => query.EqualTo(info => info.AccountId, accountId))
             .Upsert(query => query
                 .Increment(info => info.Score, score)
+                .Set(info => info.PreviousScoreChange, score)
                 .SetToCurrentTimestamp(info => info.Timestamp)
                 .SetOnInsert(info => info.CreatedOn, Timestamp.Now)
             );

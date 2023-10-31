@@ -27,20 +27,21 @@ public class LadderInfo : PlatformCollectionDocument
     [JsonPropertyName(Entry.FRIENDLY_KEY_LAST_UDPATED)]
     public long Timestamp { get; set; }
     
+    [BsonElement("delta"), BsonIgnoreIfDefault]
+    [JsonPropertyName("previousChange")]
+    public long PreviousScoreChange { get; set; }
+    
     [BsonIgnore]
     [JsonPropertyName(Entry.FRIENDLY_KEY_RANK), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public long Rank { get; set; }
 
-    public LadderHistory CreateHistory(LadderSeasonDefinition definition)
+    public LadderHistory CreateHistory(LadderSeasonDefinition definition) => new()
     {
-        return new LadderHistory
-        {
-            Score = Score,
-            MaxScore = MaxScore,
-            AccountId = AccountId,
-            SeasonDefinition = definition,
-            LastUpdated = Timestamp
-        };
-    }
+        Score = Score,
+        MaxScore = MaxScore,
+        AccountId = AccountId,
+        SeasonDefinition = definition,
+        LastUpdated = Timestamp
+    };
 }
 

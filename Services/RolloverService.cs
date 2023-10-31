@@ -81,13 +81,15 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
     {
         // _leaderboard.BeginRollover(rolloverType, out string[] ids, out string[] types);
         _leaderboard.BeginRollover(rolloverType, out RumbleJson[] data);
-
-        foreach (RumbleJson json in data)
-            CreateTask(new RolloverData
+        
+        CreateTasks(data
+            .Select(json => new RolloverData
             {
                 LeaderboardId = json.Require<string>(Leaderboard.DB_KEY_ID),
                 LeaderboardType = json.Require<string>(Leaderboard.DB_KEY_TYPE)
-            });
+            })
+            .ToArray()
+        );
     }
 
     public void ManualRollover()
