@@ -312,6 +312,7 @@ public class AdminController : PlatformController
 		enrollment.Tier = newTier;
 		enrollment.SeasonalMaxTier = Math.Max(enrollment.Tier, newTier);
 		enrollment.IsActive = score > 0;
+		enrollment.IsActiveInSeason = score > 0;
 		enrollment.Status = Enrollment.PromotionStatus.Acknowledged;
 
 		_enrollmentService.Update(enrollment);

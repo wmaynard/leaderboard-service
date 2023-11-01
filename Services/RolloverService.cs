@@ -159,7 +159,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         }
         
         // Check daily leaderboards
-        if (LastDailyRollover.Day != now.Day && PastDailyResetTime(now))
+        if (now.Subtract(LastDailyRollover).TotalHours > 12 && PastDailyResetTime(now))
         {
             LastDailyRollover = now;
             CreateRolloverTasks(RolloverType.Daily);
