@@ -76,4 +76,28 @@ public static class StartupTests
         
         seasons.EndSeason(season);
     }
+
+    public static void TestLadderScoring()
+    {
+	    
+	    string token = ApiService
+		    .Instance
+		    .GenerateToken("aaaabbbbccccddddeeeeffff", "DeadBeef", "deadbeef@gmail.com", 6666);
+	    ApiService
+		    .Instance
+		    .Request("http://localhost:5091/leaderboard/score")
+		    .AddAuthorization(token)
+		    .SetPayload(new RumbleJson
+		    {
+			    { "score", 20 },
+			    { "leaderboardId", "ldr_season_003_20230921" }
+		    })
+		    .Patch();
+			
+			
+			
+	    PlatformService.Require<RolloverService>().WipeDatabase();
+
+
+    }
 }
