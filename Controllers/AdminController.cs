@@ -438,6 +438,25 @@ public class AdminController : PlatformController
 			{"players", _ladderService.GetPlayerScores(accountIds)}
 		});
 	}
+
+	[HttpPost, Route("ladder/seasonRollover")]
+	public ActionResult EndCurrentSeason()
+	{
+		if (PlatformEnvironment.IsProd)
+			throw new PlatformException("Someone tried to use a QA endpoint to end the ladder season in prod.  This is not allowed.");
+		
+		LadderSeasonDefinition upcoming = _seasons.GetCurrentSeason();
+		if (upcoming == null)
+			throw new PlatformException("Tried to test the end of a season, but there are no other seasons to copy details from.");
+		
+		LadderSeasonDefinition toEnd = upcoming.Copy();
+		toEnd.ChangeId();
+		toEnd.SeasonId = $"QA_{Timestamp.Now}_{upcoming.SeasonId}";
+		toEnd.EndTime = Timestamp.Now;
+		_seasons.Insert(toEnd);
+
+		return Ok(toEnd);
+	}
 	
 
 	[HttpPost, Route("ladder/seasons")]

@@ -19,7 +19,12 @@ namespace Rumble.Platform.LeaderboardService.Services;
 public class LadderResetService : QueueService<LadderResetService.LadderResetData>
 {
     private string KEY_TIMESTAMPS = "ladderResetTimestamps";
-    private const int FIVE_MINUTES = 5 * 60 * 1_000; 
+    
+    #if DEBUG
+    private const int FIVE_MINUTES = 5_000;
+    #else
+    private const int FIVE_MINUTES = 5 * 60 * 1_000;
+    #endif
 
     private SeasonDefinitionService _seasons;
 
