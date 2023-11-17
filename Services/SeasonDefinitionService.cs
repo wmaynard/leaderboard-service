@@ -43,6 +43,8 @@ public class SeasonDefinitionService : MinqService<LadderSeasonDefinition>
             {
                 SeasonIds = string.Join(',', ended)
             });
+            if (!seasons.Any())
+                throw new PlatformException("No new or modified seasons found that have not ended; cannot define seasons.");
         }
 
         // Delete all seasons that have NOT ended.

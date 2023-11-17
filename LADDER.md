@@ -272,3 +272,33 @@ HTTP 200
     ]
 }
 ```
+
+### QA: Forcing a Rollover for Testing
+
+A ladder season rollover needs to accomplish the following:
+
+1. Lower scores below the fallback threshold to zero.
+2. Lower scores above the threshold to that threshold.
+3. Issue rewards to top players if rewards have been defined.
+4. Create a historical record storing the playerss scores / max scores in the freshly-ended season.
+
+A season rollover triggers whenever the **next season definition** has a timestamp in the past.  This is checked every 5 minutes by a background process in leaderboard-service.  Platform only cares about this timestamp and nothing else.  
+
+Client time offsets can't affect global scores.  Consequently, the way to test a ladder season involves:
+
+1. Creating a season definition identical to the upcoming season
+2. Setting changing the season ID to something unique
+3. Setting the end time to the current timestamp
+
+After this definition is created and committed to the database, a rollover will be triggered on the next pass of the background process.
+
+This is what happens when the following endpoint is hit:
+
+```
+POST /admin/ladder/seasonRollover
+{
+    // empty request body, no details needed
+}
+```
+
+This endpoint clones the next upcoming season with an ID of `QA_{timestamp}_{original season ID}` with the end time set to the current timestamp.  This is done to ensure that QA can trigger a season end at any time, and any number of times, without affecting the actual seasons.  It cannot be used in production environments, but will effectively trigger a full ladder season reset within 5 minutes when hit.
