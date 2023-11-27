@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
@@ -94,10 +95,20 @@ public class SeasonDefinitionService : MinqService<LadderSeasonDefinition>
             .ExactId(season.Id)
             .Update(query => query.Set(definition => definition.Ended, true));
 
-        Require<LadderHistoryService>().ClearHistories(transaction, season);
-        Require<LadderService>().ResetScores(transaction, season);
-        Require<LadderHistoryService>().GrantRewards(season);
-        
-        Commit(transaction);
+        try
+        {
+            Require<LadderHistoryService>().ClearHistories(transaction, season);
+            Require<LadderService>().ResetScores(transaction, season);
+            Require<LadderHistoryService>().GrantRewards(transaction, season);
+            Commit(transaction);
+        }
+        catch (Exception e)
+        {
+            Log.Critical(Owner.Will, "Failed season rollover!  Transaction will be aborted.  This requires investigation.", data: new
+            {
+                SeasonId = season.Id
+            }, exception: e);
+            Abort(transaction);
+        }
     }
 }

@@ -34,7 +34,7 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
         .Where(query => query.EqualTo(history => history.SeasonDefinition.SeasonId, season.SeasonId))
         .Delete();
 
-    public void GrantRewards(LadderSeasonDefinition season)
+    public void GrantRewards(Transaction transaction, LadderSeasonDefinition season)
     {
         const int MAX_REWARD_COUNT = 10_000;
         int rewardMax = 0;
@@ -61,6 +61,7 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
         RewardsService _rewardService = Require<RewardsService>();
         
         LadderHistory[] histories = mongo
+            .WithTransaction(transaction)
             .Where(query => query
                 .EqualTo(history => history.SeasonDefinition.SeasonId, season.SeasonId)
                 .GreaterThan(history => history.MaxScore, 0)
@@ -85,13 +86,14 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
                 .ToArray();
             
             long granted = _rewardService.Grant(reward, eligible);
-            Log.Info(Owner.Will, "Granted season rewards to players", data: new
-            {
-                Reward = reward,
-                AccountIds = eligible,
-                Count = eligible.Length,
-                GrantedCount = granted
-            });
+            if (granted > 0)
+                Log.Info(Owner.Will, "Granted season rewards to players", data: new
+                {
+                    Reward = reward,
+                    AccountIds = eligible,
+                    Count = eligible.Length,
+                    GrantedCount = granted
+                });
             processed += reward.MinimumRank;
         }
     }
