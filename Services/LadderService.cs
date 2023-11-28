@@ -42,10 +42,14 @@ public class LadderService : MinqService<LadderInfo>
                 affected += batchData.Results.Length;
             });
 
-        if (season.FallbackScore > 0)
+        // We can either use DC to determine the fallback score - or we can use the season's definition.
+        // TODO: Update documentation for ladder management here
+        int fallbackScore = DynamicConfig.Instance?.Optional<int?>("ladderResetMaxScore") ?? season.FallbackScore;
+
+        if (fallbackScore > 0)
             mongo
                 .WithTransaction(transaction)
-                .Where(query => query.LessThan(info => info.Score, season.FallbackScore))
+                .Where(query => query.LessThan(info => info.Score, fallbackScore))
                 .Update(query => query
                     .Set(info => info.Score, 0)
                     .Set(info => info.MaxScore, 0)
@@ -54,7 +58,7 @@ public class LadderService : MinqService<LadderInfo>
 
         mongo
             .WithTransaction(transaction)
-            .Where(query => query.GreaterThanOrEqualTo(info => info.Score, season.FallbackScore))
+            .Where(query => query.GreaterThanOrEqualTo(info => info.Score, fallbackScore))
             .Update(query => query
                 .Set(info => info.Score, season.FallbackScore)
                 .Set(info => info.MaxScore, season.FallbackScore)
