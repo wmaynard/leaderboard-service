@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.LeaderboardService.Models;
@@ -101,6 +102,10 @@ public class SeasonDefinitionService : MinqService<LadderSeasonDefinition>
             Require<LadderService>().ResetScores(transaction, season);
             Require<LadderHistoryService>().GrantRewards(transaction, season);
             Commit(transaction);
+            SlackDiagnostics
+                .Log($"Ladder season ended: {season.SeasonId}", $"```{season.ToJson()}```")
+                .Send()
+                .Wait();
         }
         catch (Exception e)
         {

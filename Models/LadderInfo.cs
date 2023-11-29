@@ -34,6 +34,10 @@ public class LadderInfo : PlatformCollectionDocument
     [BsonIgnore]
     [JsonPropertyName(Entry.FRIENDLY_KEY_RANK), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public long Rank { get; set; }
+    
+    [BsonElement("active")]
+    [JsonIgnore]
+    public bool IsActive { get; set; }
 
     public LadderHistory CreateHistory(LadderSeasonDefinition definition) => new()
     {

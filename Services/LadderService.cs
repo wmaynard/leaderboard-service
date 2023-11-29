@@ -32,7 +32,32 @@ public class LadderService : MinqService<LadderInfo>
     {
         LadderHistoryService historyService = Require<LadderHistoryService>();
         long affected = 0;
+
+        // If any accounts were inactive, nuke their existing data.
+        long inactive = mongo
+            .WithTransaction(transaction)
+            .Where(query => query
+                .GreaterThan(history => history.Score, 0)
+                .EqualTo(history => history.IsActive, false)
+            )
+            .Update(update => update
+                .Set(history => history.Score, 0)
+                .Set(history => history.MaxScore, 0)
+                .Set(history => history.PreviousScoreChange, 0)
+            );
         
+        if (inactive > 0)
+            Log.Info(Owner.Will, "Inactive ladder players found; scores reset to 0.", data: new
+            {
+                SeasonId = season.Id,
+                SeasonName = season.SeasonId,
+                InactiveCount = inactive
+            });
+        
+        // Create our ladder history documents.
+        // CAUTION: With enough records, there's a chance this segment of code could take longer than 30s to process,
+        // which would cause the transaction to timeout and fail.  If this happens we may need to split this into multiple
+        // transactions or write a custom aggregation pipeline.  MINQ does not currently support aggregations.
         mongo
             .WithTransaction(transaction)
             .Where(query => query.GreaterThanOrEqualTo(history => history.MaxScore, 0))
@@ -46,6 +71,7 @@ public class LadderService : MinqService<LadderInfo>
         // TODO: Update documentation for ladder management here
         int fallbackScore = DynamicConfig.Instance?.Optional<int?>("ladderResetMaxScore") ?? season.FallbackScore;
 
+        // Reset players with points below the fallback score to 0.
         if (fallbackScore > 0)
             mongo
                 .WithTransaction(transaction)
@@ -56,13 +82,15 @@ public class LadderService : MinqService<LadderInfo>
                     .Set(info => info.PreviousScoreChange, 0)
                 );
 
+        // Reset players with enough points to the fallback score.
         mongo
             .WithTransaction(transaction)
             .Where(query => query.GreaterThanOrEqualTo(info => info.Score, fallbackScore))
             .Update(query => query
-                .Set(info => info.Score, season.FallbackScore)
-                .Set(info => info.MaxScore, season.FallbackScore)
+                .Set(info => info.Score, fallbackScore)
+                .Set(info => info.MaxScore, fallbackScore)
                 .Set(info => info.PreviousScoreChange, 0)
+                .Set(info => info.IsActive, false)
             );
         
         return affected;
@@ -77,7 +105,7 @@ public class LadderService : MinqService<LadderInfo>
         }
         try
         {
-            Random rando = new Random();
+            Random rando = new();
             int score = rando.Next(0, 4000);
             mongo
                 .Insert(new LadderInfo
@@ -169,6 +197,7 @@ public class LadderService : MinqService<LadderInfo>
             .Upsert(query => query
                 .Increment(info => info.Score, score)
                 .Set(info => info.PreviousScoreChange, score)
+                .Set(info => info.IsActive, true)
                 .SetToCurrentTimestamp(info => info.Timestamp)
                 .SetOnInsert(info => info.CreatedOn, Timestamp.Now)
             );
@@ -179,13 +208,19 @@ public class LadderService : MinqService<LadderInfo>
                 output = mongo
                     .WithTransaction(transaction)
                     .Where(query => query.EqualTo(info => info.AccountId, accountId))
-                    .Upsert(query => query.Maximum(info => info.MaxScore, output.Score));
+                    .Upsert(query => query
+                        .Maximum(info => info.MaxScore, output.Score)
+                        .Set(info => info.IsActive, true)
+                    );
                 break;
             case < 0 when output.Score < 0:
                 output = mongo
                     .WithTransaction(transaction)
                     .Where(query => query.EqualTo(info => info.AccountId, accountId))
-                    .Upsert(query => query.Maximum(info => info.Score, 0));
+                    .Upsert(query => query
+                        .Maximum(info => info.Score, 0)
+                        .Set(info => info.IsActive, true)
+                    );
                 break;
         }
 
