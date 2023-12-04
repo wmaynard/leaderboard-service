@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Models;
@@ -32,10 +35,17 @@ public class LadderController : PlatformController
     }
 
     [HttpGet, Route("ranking")]
-    public ActionResult GetLadderRanking() => Ok(new RumbleJson
+    public ActionResult GetLadderRanking()
     {
-        { "players", _ladder.GetRankings(Token.AccountId) }
-    });
+        List<LadderInfo> scores = _ladder.GetRankings(Token.AccountId);
+        long cacheExpiration = Math.Max(scores.Min(score => score.CachedUntil), Timestamp.Now);
+        
+        return Ok(new RumbleJson
+        {
+            { "players", scores },
+            { "cacheExpiration", cacheExpiration }
+        });
+    }
 
     [HttpGet, Route("history")]
     public ActionResult GetLadderHistory()
