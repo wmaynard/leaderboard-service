@@ -57,7 +57,7 @@ public class AdminController : PlatformController
 				continue;
 			}
 
-			List<string> ids = new List<string>();
+			List<string> ids = new ();
 			int currentTier = 0;
 			do
 			{
@@ -86,7 +86,7 @@ public class AdminController : PlatformController
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 		Entry[] entries = Require<Entry[]>("scores");
 
-		List<string> failed = new List<string>();
+		List<string> failed = new();
 		
 		foreach (Entry entry in entries)
 		{
@@ -185,12 +185,12 @@ public class AdminController : PlatformController
 		if (min >= max)
 			throw new PlatformException("Minimum score must be less than the maximum score.", code: ErrorCode.InvalidRequestData);
 		
-		Random rando = new Random();
+		Random rando = new();
 
 		int successes = 0;
 		int failures = 0;
 
-		List<string> ids = new List<string>();
+		List<string> ids = new();
 		
 		while (count-- > 0)
 			try
@@ -241,7 +241,7 @@ public class AdminController : PlatformController
 				throw;
 			}
 
-		List<Leaderboard> leaderboards = new List<Leaderboard>();
+		List<Leaderboard> leaderboards = new();
 		
 		foreach (string id in ids.Distinct())
 			leaderboards.Add(_leaderboardService.Find(id));
@@ -435,7 +435,8 @@ public class AdminController : PlatformController
 
 		return Ok(new RumbleJson
 		{
-			{"players", _ladderService.GetPlayerScores(accountIds)}
+			{ "players", _ladderService.GetPlayerScores(accountIds) },
+			{ "populationStats", _ladderService.GetPopulationStats() }
 		});
 	}
 

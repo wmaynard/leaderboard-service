@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using RCL.Logging;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Minq;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.LeaderboardService.Models;
 
@@ -47,12 +50,6 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
         if (!(season?.Rewards?.Any() ?? false) 
             || (rewardMax = season.Rewards.MaxBy(reward => reward.MinimumRank).MinimumRank) == 0
         )
-        {
-            Log.Warn(Owner.Will, "No rewards found for season, cannot issue any to players", logData);
-            return;
-        }
-
-        if (rewardMax == 0)
         {
             Log.Warn(Owner.Will, "No rewards found for season, cannot issue any to players", logData);
             return;
@@ -108,5 +105,36 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
             {
                 Count = affected
             });
+    }
+
+    public void ReGrantRewards(string seasonId, long minimumTimestamp)
+    {
+        LadderHistory[] top100 = mongo
+            .Where(query => query
+                .EqualTo(history => history.SeasonDefinition.SeasonId, seasonId)
+                .GreaterThanOrEqualTo(history => history.CreatedOn, minimumTimestamp)
+            )
+            .Sort(sort => sort.OrderByDescending(history => history.Score))
+            .Limit(100)
+            .ToArray();
+
+        List<Reward> rewards = new();
+        RewardsService _rewards = Require<RewardsService>();
+        for (int i = 0; i < top100.Length; i++)
+        {
+            int rank = i + 1;
+
+            LadderHistory history = top100[i];
+            Reward reward = history.SeasonDefinition.Rewards
+                .Where(reward => reward.MinimumRank >= rank)
+                .MinBy(reward => reward.MinimumRank);
+
+            reward.AccountId = history.AccountId;
+            rewards.Add(reward.Copy());
+        }
+        
+        _rewards.Insert(rewards.ToArray());
+        Log.Local(Owner.Will, $"REGRANTED {rewards.Count} SEASON REWARDS", emphasis: Log.LogType.CRITICAL);
+        Console.WriteLine($"REGRANTED {rewards.Count} SEASON REWARDS");
     }
 }

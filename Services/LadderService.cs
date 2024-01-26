@@ -15,6 +15,7 @@ namespace Rumble.Platform.LeaderboardService.Services;
 
 public class LadderService : MinqService<LadderInfo>
 {
+    private const string CACHE_KEY_POPULATION_STATS = "populationStats";
     public static int TopPlayerCount => Math.Max(0, Math.Min(1_000, DynamicConfig.Instance?.Optional("ladderTopPlayerCount", 100) ?? 100));
     public static int CacheDuration => Math.Max(0, DynamicConfig.Instance?.Optional("ladderCacheDuration", 300) ?? 300);
     
@@ -280,5 +281,41 @@ public class LadderService : MinqService<LadderInfo>
         // transaction.Commit();
         //
         // return record;
+    }
+
+    public PopulationStats GetPopulationStats()
+    {
+        PopulationStats output = new();
+        if (Optional<CacheService>()?.HasValue(CACHE_KEY_POPULATION_STATS, out output) ?? false)
+            return output;
+        
+        long[] scores = mongo
+            .Where(query => query.EqualTo(info => info.IsActive, true))
+            .Project(info => info.Score);
+
+        switch (scores.Length)
+        {
+            case 0:
+                break;
+            case 1:
+                output.ActivePlayers = 1;
+                output.MeanScore = scores.First();
+                output.SumOfSquares = Math.Pow(scores.First(), 2);
+                output.StandardDeviation = 0;
+                output.TotalScore = scores.First();
+                break;
+            default:
+                output.ActivePlayers = scores.Length;
+                output.MeanScore = scores.Average();
+                output.SumOfSquares = scores.Select(score => Math.Pow(score - output.MeanScore, 2)).Sum();
+                output.Variance = output.SumOfSquares / (output.ActivePlayers - 1);
+                output.StandardDeviation = Math.Sqrt(output.Variance);
+                output.TotalScore = scores.Sum();
+                break;
+        }
+        
+        Optional<CacheService>().Store(CACHE_KEY_POPULATION_STATS, output, IntervalMs.TwoHours);
+
+        return output;
     }
 }
