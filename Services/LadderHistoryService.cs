@@ -107,7 +107,7 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
             });
     }
 
-    public void ReGrantRewards(string seasonId, long minimumTimestamp)
+    public void ReGrantRewards(string seasonId, long minimumTimestamp, bool onlyIfMissing = true)
     {
         LadderHistory[] top100 = mongo
             .Where(query => query
@@ -132,9 +132,26 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
             reward.AccountId = history.AccountId;
             rewards.Add(reward.Copy());
         }
+
+        if (onlyIfMissing)
+        {
+            string[] accounts = _rewards.GetAccountIdsFromRewardNotes(rewards.Select(reward => reward.InternalNote).ToArray());
+            Reward[] missing = rewards
+                .Where(reward => !accounts.Contains(reward.AccountId))
+                .ToArray();
+            if (missing.Any())
+                _rewards.Insert(missing);
+            Log.Local(Owner.Will, $"REGRANTED {missing.Length} SEASON REWARDS", emphasis: Log.LogType.CRITICAL);
+            Console.WriteLine($"REGRANTED {missing.Length} SEASON REWARDS");
+        }
+        else
+        {
+            _rewards.Insert(rewards.ToArray());
+
         
-        _rewards.Insert(rewards.ToArray());
-        Log.Local(Owner.Will, $"REGRANTED {rewards.Count} SEASON REWARDS", emphasis: Log.LogType.CRITICAL);
-        Console.WriteLine($"REGRANTED {rewards.Count} SEASON REWARDS");
+            Log.Local(Owner.Will, $"REGRANTED {rewards.Count} SEASON REWARDS", emphasis: Log.LogType.CRITICAL);
+            Console.WriteLine($"REGRANTED {rewards.Count} SEASON REWARDS");
+        }
+
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using MongoDB.Bson;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
@@ -449,6 +450,31 @@ public class AdminController : PlatformController
 		LadderSeasonDefinition upcoming = _seasons.GetCurrentSeason();
 		if (upcoming == null)
 			throw new PlatformException("Tried to test the end of a season, but there are no other seasons to copy details from.");
+
+		if (Optional<bool>("addNewMockScores"))
+		{
+			Random rando = new();
+			List<LadderInfo> newLadderEntries = new();
+
+			int toInsert = rando.Next(50_000, 75_000);
+			for (int i = 0; i < toInsert; i++)
+			{
+				int score = rando.Next(1000, 1400);
+				newLadderEntries.Add(new LadderInfo
+				{
+					AccountId = ObjectId.GenerateNewId().ToString(),
+					CreatedOn = Timestamp.OneDayAgo,
+					IsActive = true,
+					MaxScore = score,
+					PreviousScoreChange = score,
+					Score = score,
+					Timestamp = Timestamp.Now
+				});
+			}
+			_ladderService.Insert(newLadderEntries.ToArray());
+		}
+		if (Optional<bool>("mockScores"))
+			_ladderService.UpdateLadderScoresAtRandom(25);
 		
 		LadderSeasonDefinition toEnd = upcoming.Copy();
 		toEnd.ChangeId();

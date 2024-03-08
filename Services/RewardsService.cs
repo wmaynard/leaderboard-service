@@ -76,4 +76,8 @@ public class RewardsService : MinqTimerService<Reward>
 			Affected = result.Affected
 		}))
 		.Delete();
+
+	public string[] GetAccountIdsFromRewardNotes(string[] notes) => mongo
+		.Where(query => query.ContainedIn(reward => reward.InternalNote, notes))
+		.Project(reward => reward.AccountId);
 }

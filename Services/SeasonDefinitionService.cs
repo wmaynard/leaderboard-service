@@ -91,19 +91,35 @@ public class SeasonDefinitionService : MinqService<LadderSeasonDefinition>
         if (season == null)
             throw new PlatformException("Cannot end a null season definition");
         
+        Log.Local(Owner.Will, "Setting season as ended.");
         mongo
             .WithTransaction(out Transaction transaction)
             .ExactId(season.Id)
             .Update(query => query.Set(definition => definition.Ended, true));
 
+        long start = Timestamp.Now;
         try
         {
+            Log.Local(Owner.Will, $"Clearing histories with the season ID {season.SeasonId}");
             Require<LadderHistoryService>().ClearHistories(transaction, season);
+            Log.Local(Owner.Will, "Resetting scores for season");
             Require<LadderService>().ResetScores(transaction, season);
+            Log.Local(Owner.Will, "Granting rewards for season");
             Require<LadderHistoryService>().GrantRewards(transaction, season);
+            
+            Log.Local(Owner.Will, "Committing transaction");
             Commit(transaction);
-            SlackDiagnostics
-                .Log($"Ladder season ended: {season.SeasonId}", $"```{season.ToJson()}```")
+
+            long secondsTaken = Timestamp.Now - start;
+            SlackDiagnostics message = SlackDiagnostics
+                .Log($"Ladder season ended: {season.SeasonId}", $"```{season.ToJson()}```");
+
+            if (secondsTaken > 20)
+                message
+                    .Tag(Owner.Will)
+                    .AddMessage($"Reset took {secondsTaken} seconds!  This is edging close to the transactional limit.");
+            
+            message
                 .Send()
                 .Wait();
         }
@@ -111,7 +127,8 @@ public class SeasonDefinitionService : MinqService<LadderSeasonDefinition>
         {
             Log.Critical(Owner.Will, "Failed season rollover!  Transaction will be aborted.  This requires investigation.", data: new
             {
-                SeasonId = season.Id
+                SeasonId = season.Id,
+                TimeTaken = Timestamp.Now - start
             }, exception: e);
             Abort(transaction);
         }

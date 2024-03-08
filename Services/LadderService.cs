@@ -35,6 +35,7 @@ public class LadderService : MinqService<LadderInfo>
         long affected = 0;
 
         // If any accounts were inactive, nuke their existing data.
+        Log.Local(Owner.Will, "Updating all inactive players to 0");
         long inactive = mongo
             .WithTransaction(transaction)
             .Where(query => query
@@ -55,15 +56,17 @@ public class LadderService : MinqService<LadderInfo>
                 InactiveCount = inactive
             });
         
+        Log.Local(Owner.Will, "Batching all scores greater than 0");
         // Create our ladder history documents.
         // CAUTION: With enough records, there's a chance this segment of code could take longer than 30s to process,
         // which would cause the transaction to timeout and fail.  If this happens we may need to split this into multiple
         // transactions or write a custom aggregation pipeline.  MINQ does not currently support aggregations.
         mongo
             .WithTransaction(transaction)
-            .Where(query => query.GreaterThanOrEqualTo(history => history.MaxScore, 0))
+            .Where(query => query.GreaterThan(history => history.MaxScore, 0))
             .Process(batchSize: 10_000, onBatch: batchData =>
             {
+                Log.Local(Owner.Will, $"Batching up {batchData.Results.Length} results and creating histories");
                 historyService.CreateFromCurrentInfo(transaction, batchData.Results, season);
                 affected += batchData.Results.Length;
             });
@@ -72,6 +75,7 @@ public class LadderService : MinqService<LadderInfo>
         // TODO: Update documentation for ladder management here
         int fallbackScore = DynamicConfig.Instance?.Optional<int?>("ladderResetMaxScore") ?? season.FallbackScore;
 
+        Log.Local(Owner.Will, "Settings scores below fallback to 0");
         // Reset players with points below the fallback score to 0.
         if (fallbackScore > 0)
             mongo
@@ -84,6 +88,7 @@ public class LadderService : MinqService<LadderInfo>
                 );
 
         // Reset players with enough points to the fallback score.
+        Log.Local(Owner.Will, "Reset players above fallback to fallback score");
         mongo
             .WithTransaction(transaction)
             .Where(query => query.GreaterThanOrEqualTo(info => info.Score, fallbackScore))
@@ -317,5 +322,33 @@ public class LadderService : MinqService<LadderInfo>
         Optional<CacheService>().Store(CACHE_KEY_POPULATION_STATS, output, IntervalMs.TwoHours);
 
         return output;
+    }
+
+    public void UpdateLadderScoresAtRandom(int cycles)
+    {
+        if (PlatformEnvironment.IsProd)
+            return;
+
+        Random rando = new();
+
+        for (int i = 0; i < cycles; i++)
+        {
+            int increment = rando.Next(1, 2500);
+            int limit = rando.Next(100, 100_000);
+
+            string[] ids = mongo
+                .All()
+                .Limit(limit)
+                .Sort(sort => sort.OrderByDescending(info => info.CreatedOn))
+                .Project(info => info.AccountId);
+            
+            long affected = mongo
+                .Where(query => query.ContainedIn(info => info.AccountId, ids))
+                .Update(update => update
+                    .Increment(info => info.Score, increment)
+                    .Set(info => info.IsActive, true)
+                );
+            Log.Local(Owner.Will, $"Added {increment} points to {affected} records");
+        }
     }
 }
