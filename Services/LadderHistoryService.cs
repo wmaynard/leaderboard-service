@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using RCL.Logging;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Interop;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -22,12 +23,23 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
         int includeInTransaction = season.Rewards.MaxBy(reward => reward.MinimumRank).MinimumRank;
         LadderInfo[] recipients = records.Take(includeInTransaction).ToArray();
         
+        if (!recipients.Any())
+            return;
+        
         mongo
             .WithTransaction(transaction)
             .Insert(recipients
                 .Select(record => record.CreateHistory(season))
                 .ToArray()
             );
+        SlackDiagnostics
+            .Log($"Ladder rollover recipients | {season.SeasonId}", "See attachment for rollover data.")
+            .Attach("data.csv", string.Join("\n", recipients
+                .OrderByDescending(info => info.Score)
+                .Select(info => $"{info.AccountId},{info.Score}{ (info.MaxScore > info.Score ? $" ({info.MaxScore})" : "")}")
+            ))
+            .Send()
+            .Wait();
         Task.Run(() =>
         {
             try
