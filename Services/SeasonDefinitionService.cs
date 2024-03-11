@@ -92,8 +92,9 @@ public class SeasonDefinitionService : MinqService<LadderSeasonDefinition>
             throw new PlatformException("Cannot end a null season definition");
         
         Log.Local(Owner.Will, "Setting season as ended.");
+        Transaction transaction = null;
         mongo
-            .WithTransaction(out Transaction transaction)
+            // .WithTransaction(out Transaction transaction)
             .ExactId(season.Id)
             .Update(query => query.Set(definition => definition.Ended, true));
 

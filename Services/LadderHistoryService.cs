@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using RCL.Logging;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Minq;
@@ -18,12 +19,35 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
 
     public void CreateFromCurrentInfo(Transaction transaction, LadderInfo[] records, LadderSeasonDefinition season)
     {
+        int includeInTransaction = season.Rewards.MaxBy(reward => reward.MinimumRank).MinimumRank;
+        LadderInfo[] recipients = records.Take(includeInTransaction).ToArray();
+        
         mongo
             .WithTransaction(transaction)
-            .Insert(records
+            .Insert(recipients
                 .Select(record => record.CreateHistory(season))
                 .ToArray()
             );
+        Task.Run(() =>
+        {
+            try
+            {
+                LadderInfo[] others = records.Skip(includeInTransaction).ToArray();
+                if (others.Any())
+                    mongo
+                        .Insert(others
+                            .Select(record => record.CreateHistory(season))
+                            .ToArray()
+                        );
+            }
+            catch (Exception e)
+            {
+                Log.Error(Owner.Will, "Unable to insert ladder history records for players who didn't receive rewards", data: new
+                {
+                    Help = "This does not affect histories for players who were eligible for rollover rewards but limits the ability to undo a rollover for other players."
+                }, exception: e);
+            }
+        });
     }
 
     public LadderHistory[] GetHistoricalSeasons(string accountId, int count = 5) => mongo

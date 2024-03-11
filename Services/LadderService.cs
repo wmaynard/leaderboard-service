@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Minq;
@@ -61,15 +62,31 @@ public class LadderService : MinqService<LadderInfo>
         // CAUTION: With enough records, there's a chance this segment of code could take longer than 30s to process,
         // which would cause the transaction to timeout and fail.  If this happens we may need to split this into multiple
         // transactions or write a custom aggregation pipeline.  MINQ does not currently support aggregations.
-        mongo
+        // mongo
+        //     .WithTransaction(transaction)
+        //     .Where(query => query.GreaterThan(history => history.MaxScore, 0))
+        //     .Process(batchSize: 10_000, onBatch: batchData =>
+        //     {
+        //         Log.Local(Owner.Will, $"Batching up {batchData.Results.Length} results and creating histories");
+        //         historyService.CreateFromCurrentInfo(transaction, batchData.Results, season);
+        //         affected += batchData.Results.Length;
+        //     });
+
+        LadderInfo[] all = mongo
             .WithTransaction(transaction)
             .Where(query => query.GreaterThan(history => history.MaxScore, 0))
-            .Process(batchSize: 10_000, onBatch: batchData =>
-            {
-                Log.Local(Owner.Will, $"Batching up {batchData.Results.Length} results and creating histories");
-                historyService.CreateFromCurrentInfo(transaction, batchData.Results, season);
-                affected += batchData.Results.Length;
-            });
+            .Sort(sort => sort
+                .OrderByDescending(info => info.Score)
+                .ThenBy(info => info.Timestamp)
+                .ThenBy(info => info.Id)
+            )
+            .ToArray();
+        historyService.CreateFromCurrentInfo(transaction, all, season);
+            
+
+        
+        
+        
 
         // We can either use DC to determine the fallback score - or we can use the season's definition.
         // TODO: Update documentation for ladder management here
@@ -98,6 +115,8 @@ public class LadderService : MinqService<LadderInfo>
                 .Set(info => info.PreviousScoreChange, 0)
                 .Set(info => info.IsActive, false)
             );
+        
+        Log.Local(Owner.Will, "Done resetting scores.");
         
         return affected;
     }
