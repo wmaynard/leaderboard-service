@@ -83,9 +83,7 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
             SeasonDefinition = season
         };
 
-        if (!(season?.Rewards?.Any() ?? false) 
-            || (rewardMax = season.Rewards.MaxBy(reward => reward.MinimumRank).MinimumRank) == 0
-        )
+        if (!(season?.Rewards?.Any() ?? false) || (rewardMax = season.Rewards.MaxBy(reward => reward.MinimumRank).MinimumRank) == 0)
         {
             Log.Warn(Owner.Will, "No rewards found for season, cannot issue any to players", logData);
             return;
@@ -99,36 +97,31 @@ public class LadderHistoryService : MinqTimerService<LadderHistory>
                 .EqualTo(history => history.SeasonDefinition.SeasonId, season.SeasonId)
                 .GreaterThan(history => history.MaxScore, 0)
             )
-            .Sort(sort => sort.OrderByDescending(history => history.Score))
+            .Sort(sort => sort
+                .OrderByDescending(history => history.Score)
+                .ThenBy(history => history.LastUpdated)
+            )
             .Limit(Math.Min(rewardMax, MAX_REWARD_COUNT))
             .ToArray();
-
+        
         if (!histories.Any())
         {
             Log.Warn(Owner.Will, "No player scores found for season, cannot issue rewards", logData);
             return;
         }
 
-        int processed = 0;
-        foreach (Reward reward in season.Rewards.OrderBy(r => r.MinimumRank))
-        {
-            string[] eligible = histories
-                .Skip(processed)
-                .Take(reward.MinimumRank - processed) // TODO: Does this fail when there aren't enough histories available?
-                .Select(history => history.AccountId)
-                .ToArray();
-            
-            long granted = _rewardService.Grant(reward, eligible);
-            if (granted > 0)
-                Log.Info(Owner.Will, "Granted season rewards to players", data: new
-                {
-                    Reward = reward,
-                    AccountIds = eligible,
-                    Count = eligible.Length,
-                    GrantedCount = granted
-                });
-            processed += reward.MinimumRank;
-        }
+        // PLATF-6682 | Fix reward grants for ladder rollover
+        // Before we had a bad skip/take that was responsible for dropping rewards for ranks 3-6, 11-17, & 31-47.
+        for (int i = 0; i < histories.Length; i++)
+            histories[i].Rank = i + 1;
+        
+        foreach (LadderHistory history in histories)
+            history.Reward = season
+                .Rewards
+                .OrderBy(reward => reward.MinimumRank)
+                .FirstOrDefault(reward => history.Rank <= reward.MinimumRank);
+        foreach (IGrouping<Reward, LadderHistory> group in histories.GroupBy(history => history.Reward))
+            _rewardService.Grant(group.Key, group.Select(history => history.AccountId).ToArray());
     }
 
     protected override void OnElapsed()

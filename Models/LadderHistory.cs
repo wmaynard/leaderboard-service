@@ -26,4 +26,12 @@ public class LadderHistory : PlatformCollectionDocument
     [BsonElement("season")]
     [JsonPropertyName("season")]
     public LadderSeasonDefinition SeasonDefinition { get; set; }
+    
+    [BsonIgnore]
+    [JsonIgnore]
+    public int Rank { get; set; }
+    
+    [BsonIgnore]
+    [JsonIgnore]
+    public Reward Reward { get; set; }
 }
