@@ -4,3 +4,4 @@ environment.json
 design_doc.txt
 uploads
 .DS_Store
+*.mmdb

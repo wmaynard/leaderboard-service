@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using MongoDB.Bson;
@@ -171,7 +172,7 @@ public class AdminController : PlatformController
 	public ActionResult AddFakeUserScores()
 	{
 		if (PlatformEnvironment.IsProd)
-			throw new PlatformException("Not allowed on prod.", code: ErrorCode.Unauthorized); // TODO: Create error code
+			throw new PlatformException("Not allowed on prod.", code: ErrorCode.Unauthorized);
 		const int MAX_USERS = 1_000;
 		
 		int count = Require<int>("userCount");
@@ -192,55 +193,55 @@ public class AdminController : PlatformController
 		int failures = 0;
 
 		List<string> ids = new();
-		
+
+		Task[] tasks = new Task[count];
 		while (count-- > 0)
-			try
+			tasks[count] = Task.Run(() =>
 			{
-				if (count % 10 == 0)
-					Log.Local(Owner.Will, $"{count} scores remaining.");
-				
-				_apiService
-					.Request(PlatformEnvironment.Url("/player/v2/launch"))
-					.SetPayload(new RumbleJson
-					{
-						{ "installId", $"locust-leaderboard-{count}" }
-					})
-					.OnSuccess(response =>
-					{
-						string token = response.AsRumbleJson.Require<string>("accessToken");
-						
-						_apiService
-#if DEBUG
-							.Request(PlatformEnvironment.Url("http://localhost:5091/leaderboard/score"))
-#else
-							.Request(PlatformEnvironment.Url("/leaderboard/score"))
-#endif
-							.AddAuthorization(token)
-							.SetPayload(new RumbleJson
-							{
-								{ "score", rando.Next(min, max) },
-								{ "leaderboardId", type }
-							})
-							.OnSuccess(secondResponse =>
-							{
-								string id = secondResponse.AsRumbleJson.Optional<Leaderboard>("leaderboard")?.Id;
-								if (id != null)
-									ids.Add(id);
-								successes++;
-							})
-							.OnFailure(secondResponse => failures++)
-							.Patch();
-						
-						successes++;
-					})
-					.OnFailure(response => failures++)
-					.Post();
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e);
-				throw;
-			}
+				try
+				{
+					Log.Local(Owner.Will, "Getting token");
+					// TD-19907: Previously this was incorrectly pointed at /launch, which has was deprecated and
+					// subsequently removed.
+					string token = _apiService.GenerateToken(
+						accountId: ObjectId.GenerateNewId().ToString(),
+						screenname: $"MockLeader {rando.Next(0, 10_000)}",
+						email: "",
+						discriminator: 0,
+						audiences: Audience.LeaderboardService
+					);
+					Log.Local(Owner.Will, "Adding score");
+					_apiService
+						.Request(PlatformEnvironment.IsLocal
+							? "http://localhost:5091/leaderboard/score"  
+							: "/leaderboard/score"
+						)
+						.AddAuthorization(token)
+						.SetPayload(new RumbleJson
+						{
+							{"score", rando.Next(min, max)},
+							{"leaderboardId", type}
+						})
+						.OnSuccess(response =>
+						{
+							string id = response.Optional<Leaderboard>("leaderboard")?.Id;
+							if (!string.IsNullOrWhiteSpace(id))
+								ids.Add(id);
+							successes++;
+						})
+						.OnFailure(response => failures++)
+						.Patch();
+					
+					Log.Local(Owner.Will, "Done");
+				}
+				catch (Exception e)
+				{
+					Log.Local(Owner.Will, "Could not run mock score task.", emphasis: Log.LogType.ERROR);
+				}
+			});
+
+		Task.WaitAll(tasks);
+			
 
 		List<Leaderboard> leaderboards = new();
 		
