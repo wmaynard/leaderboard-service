@@ -86,6 +86,10 @@ public class Enrollment : PlatformCollectionDocument
 	[BsonElement(DB_KEY_SEASON_FINAL_TIER), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_FINAL_TIER), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	public int SeasonFinalTier { get; set; }
+	
+	[BsonElement("updated")]
+	[JsonIgnore]
+	public long UpdatedOn { get; set; }
 
 	public Enrollment()
 	{

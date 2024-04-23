@@ -92,7 +92,7 @@ public class AdminController : PlatformController
 		
 		foreach (Entry entry in entries)
 		{
-			Enrollment enrollment = _enrollmentService.FindOne(enrollment => enrollment.AccountID == entry.AccountID && enrollment.LeaderboardType == type);
+			Enrollment enrollment = _enrollmentService.Find(entry.AccountID, type).FirstOrDefault();
 			Leaderboard leaderboard = _leaderboardService.SetScore(enrollment, entry.Score);
 			
 			if (leaderboard == null)
@@ -337,10 +337,10 @@ public class AdminController : PlatformController
 
 		RumbleJson output = new RumbleJson();
 		if (active != null)
-			output["setAsActive"] = _enrollmentService.SetCurrentlyActive(accountIds, type, (bool)active);
+			output["setAsActive"] = _enrollmentService.SetCurrentlyActive(accountIds, (bool)active);
 
 		if (seasonActive != null)
-			output["setAsActiveInSeason"] = _enrollmentService.SetActiveInSeason(accountIds, type, (bool)seasonActive);
+			output["setAsActiveInSeason"] = _enrollmentService.SetActiveInSeason(accountIds, (bool)seasonActive);
 
 		return Ok(output);
 	}

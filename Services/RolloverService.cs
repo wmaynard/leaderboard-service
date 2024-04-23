@@ -218,7 +218,8 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
                     { "taskData", data },
                     { "lastErrorMessage", message },
                     { "errorCount", errors }
-                }
+                },
+                confluenceLink: "https://rumblegames.atlassian.net/wiki/spaces/TH/pages/3558014977/leaderboard-service+Leaderboard+rollover+failed"
             );
     }
 
