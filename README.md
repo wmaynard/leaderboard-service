@@ -18,25 +18,25 @@ By default, the service returns both top and nearby ranks.  While some game lead
 
 # Glossary
 
-| Term               | Definition                                                                                                                                                                                                                                    |
-|:-------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| AccountId / aid    | The MongoDB identifier for an account.                                                                                                                                                                                                        |
-| Archive            | A stored state of a completed leaderboard.  When a leaderboard completes its rollover, a full copy of it is kept as an Archive.                                                                                                               |
-| Demotion           | If a user underperformed in a leaderboard, they move down in tier, which yields lesser rewards.                                                                                                                                               |
-| Enrollment         | A service record of a player's exploits within the leaderboard system, containing information about their tier and times participated.                                                                                                        |
-| Global Leaderboard | A leaderboard containing every active player in the game.                                                                                                                                                                                     |
-| Minimum Percentile | For reward distribution.  A value of 0% means all players receive the reward.  A value of 95% in a leaderboard of 300 players means the top 15 receive the reward.                                                                            |
-| Nearby Rank        | Ranks close to the player in either direction.                                                                                                                                                                                                |
-| Promotion          | If a user excelled in a leaderboard, they move up in tier, yielding greater rewards.                                                                                                                                                          |
-| Rank               | The relative position of a player in the leaderboard.  If three players have the same score, they share the same rank, and the rank below them skips two.                                                                                     |
-| Reward             | Items to send to players meeting the reward rules.  Rewards are distributed via mailbox-service and contain all information necessary, including subject and message body, to send to mailbox.                                                |
-| Rollover           | A time that a leaderboard locks down, distributes rewards, archives itself, and resets its scores.                                                                                                                                            |
-| Rules              | A generic term for how a leaderboard governs itself.  Can refer to either reward distribution or rollover type.                                                                                                                               |
-| Score              | An arbitrary numeric value indicating a player's progress.  Like in an arcade machine, scores should be varied enough that ties are rare.                                                                                                     |
-| Season             | A period of time, defined as a number of rollovers.  At the end of a season, a supplemental reward is sent to players for reaching a specific tier.  Players are then possibly demoted to a lower tier to encourage climbing the ranks again. |
-| Shard              | A subset of a leaderboard's players.  Shards are useful for driving competition and seeing immediate results.  Sharded leaderboards operate the same as regular ones, but limited in player count.                                            |
-| Tier               | A subset of a leaderboard type, ideally grouping players of similar skill together.  Higher tiers yield better rewards.                                                                                                                       |
-| Winner             | A player who received at least one reward from a leaderboard's rollover.                                                                                                                                                                      |
+| Term               | Definition                                                                                                                                                                                                                                                                             |
+|:-------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| AccountId / aid    | The MongoDB identifier for an account.                                                                                                                                                                                                                                                 |
+| Archive            | A stored state of a completed leaderboard.  When a leaderboard completes its rollover, a full copy of it is kept as an Archive.                                                                                                                                                        |
+| Demotion           | If a user underperformed in a leaderboard, they move down in tier, which yields lesser rewards.                                                                                                                                                                                        |
+| Enrollment         | A service record of a player's exploits within the leaderboard system, containing information about their tier and times participated.                                                                                                                                                 |
+| Global Leaderboard | A leaderboard containing every active player in the game.                                                                                                                                                                                                                              |
+| Minimum Percentile | For reward distribution.  A value of 0% means all players receive the reward.  A value of 95% in a leaderboard of 300 players means the top 15 receive the reward.                                                                                                                     |
+| Nearby Rank        | Ranks close to the player in either direction.                                                                                                                                                                                                                                         |
+| Promotion          | If a user excelled in a leaderboard, they move up in tier, yielding greater rewards.                                                                                                                                                                                                   |
+| Rank               | The relative position of a player in the leaderboard.  If three players have the same score, they share the same rank, and the rank below them skips two.                                                                                                                              |
+| Reward             | Items to send to players meeting the reward rules.  Rewards are distributed via mailbox-service and contain all information necessary, including subject and message body, to send to mailbox.                                                                                         |
+| Rollover           | A time that a leaderboard locks down, distributes rewards, archives itself, and resets its scores.                                                                                                                                                                                     |
+| Rules              | A generic term for how a leaderboard governs itself.  Can refer to either reward distribution or rollover type.                                                                                                                                                                        |
+| Score              | An arbitrary numeric value indicating a player's progress.  Like in an arcade machine, scores should be varied enough that ties are rare.                                                                                                                                              |
+| Season             | A period of time, defined as a number of rollovers.  At the end of a season, a supplemental reward is sent to players for reaching a specific tier.  Players are then possibly demoted to a lower tier to encourage climbing the ranks again.                                          |
+| Shard              | A subset of a leaderboard's players.  Shards are useful for driving competition and seeing immediate results.  Sharded leaderboards operate the same as regular ones, but limited in player count.  Shards can also be "Guild Shards", accessible only to members of a specific guild. |
+| Tier               | A subset of a leaderboard type, ideally grouping players of similar skill together.  Higher tiers yield better rewards.                                                                                                                                                                |
+| Winner             | A player who received at least one reward from a leaderboard's rollover.                                                                                                                                                                                                               |
 
 # environment.json
 
@@ -146,13 +146,15 @@ Player authorization tokens are required.
 
 | Method | Endpoint        | Description                                                                                                            | Required Fields            | Optional Fields |
 |-------:|:----------------|:-----------------------------------------------------------------------------------------------------------------------|:---------------------------|:----------------|
-| DELETE | `/notification` | Acknowlegdes receipt of the `promotionStatus` after rollover.                                                          | `leaderboardId`            ||
-|    GET | `/rankings`     | Returns ranked and ordered information for a specific leaderboard ID.  Response includes top scores and nearby scores. | `leaderboardId`<br>`score` ||
-|  PATCH | `/score`        | Adds or subtracts a value to the player's score.  While this value can be negative, scores are floored at 0.           | `leaderboardId`            ||
+| DELETE | `/notification` | Acknowlegdes receipt of the `promotionStatus` after rollover.                                                          | `leaderboardId`            |                 |
+|    GET | `/rankings`     | Returns ranked and ordered information for a specific leaderboard ID.  Response includes top scores and nearby scores. | `leaderboardId`<br>`score` |                 |
+|  PATCH | `/score`        | Adds or subtracts a value to the player's score.  While this value can be negative, scores are floored at 0.           | `leaderboardId`            |                 |
 
 <hr />
 
-`GET /rankings?leaderboardId=pvp_daily`
+`GET /rankings?leaderboardId=pvp_daily&guildId=deadbeefdeadbeefdeadbeef`
+
+`guildId` is optional.
 
 Response:
 
@@ -171,39 +173,49 @@ Response:
         "seasonEnded": false,                            // Also cleared by DELETE /notification
         "id": "634705e83343959668563dcb"
     },
-    "leaderboard": {
-        "rolloversInSeason": 7,
-        "rolloversRemaining": 7,
-        "shardId": "deadbeefdeadbeefdeadbeef",
-        "tier": 1,
-        "leaderboardId": "ldr_pvp_daily",
-        "allScores": [                                   // only shows up on small leaderboards 
-            {
-                "rank": 1,
-                "accountId": "62e841925030343c6079e78d",
-                "score": 0,
-                "lastUpdated": 1665599430549
-            }
-        ],
-        "nearbyScores": [
-            {
-                "rank": 1,
-                "accountId": "62e841925030343c6079e78d",
-                "score": 0,
-                "lastUpdated": 1665599430549
-            }
-        ],
-        "topScores": [
-            {
-                "rank": 1,
-                "accountId": "62e841925030343c6079e78d",
-                "score": 0,
-                "lastUpdated": 1665599430549
-            }
-        ]
-    }
+    "leaderboards": [
+      {
+          "rolloversInSeason": 7,
+          "rolloversRemaining": 7,
+          "shardId": "deadbeefdeadbeefdeadbeef",
+          "tier": 1,
+          "leaderboardId": "ldr_pvp_daily",
+          "guildId": null,
+          "allScores": [                                   // only shows up on small leaderboards 
+              {
+                  "rank": 1,
+                  "accountId": "62e841925030343c6079e78d",
+                  "score": 0,
+                  "lastUpdated": 1665599430549
+              }
+          ],
+          "nearbyScores": [
+              {
+                  "rank": 1,
+                  "accountId": "62e841925030343c6079e78d",
+                  "score": 0,
+                  "lastUpdated": 1665599430549
+              }
+          ],
+          "topScores": [
+              {
+                  "rank": 1,
+                  "accountId": "62e841925030343c6079e78d",
+                  "score": 0,
+                  "lastUpdated": 1665599430549
+              }
+          ]
+      },
+      ...
+    ]
 }
 ```
+
+#### Important: With the addition of Guild Shard support, the response has changed!
+
+The response originally contained a key, `leaderboard`, as it would always only return one shard.  However, Guild Shards use the same tech.  Consequently, this key has now become an array of shards instead.
+
+If there is no guild shard, or if the player is not currently in the guild, only the standard shard will be returned.
 
 #### UI Notifications
 
@@ -224,13 +236,29 @@ Body:
 ```
 {
     "score": 55,
-    "leaderboardId": "pvp_daily"
+    "leaderboardId": "pvp_daily",
+    "guildId": "deadbeefdeadbeefdeadbeef" // optional
 }
 ```
 
 Response:
 
 **No Content**
+
+### Scoring points on a Guild Shard
+
+Guild shards are automatically spawned off of a base shard definition as necessary.  For example, let's say we want to have a Public Gold Blitz shard and a Guild Gold Blitz shard.
+
+The `gold_blitz` leaderboard has already been defined.  For simplicity's sake, it has no tiers and no season.  There is no special leaderboard ID you need to know to access the guild shard; it's the same between the public and guild shards.  What you do need, however, is to send your guild ID with the request.
+
+If there is no `guildId` provided, Platform looks up the player's appropriate shard for scoring as normal.
+
+If a `guildId` **is** provided:
+
+* Platform tries to find the guild's shard for the `gold_blitz` event.  If it does not yet exist, it will be created.
+* Platform uses the player's token to fetch guild information.  **If this request fails, the score request fails.**
+  * This is indicative of the player being kicked out of or leaving their guild, thus is ineligible for participation in the guild shard.
+* Platform adds the player's score to the guild shard.
 
 <hr />
 

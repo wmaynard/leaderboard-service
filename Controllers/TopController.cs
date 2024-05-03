@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
@@ -71,15 +72,22 @@ public class TopController : PlatformController
 	public ActionResult GetRankings()
 	{
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		string guildId = Optional<string>("guildId");
 		
 		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
-		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score: 0, false);
-		// Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
+		Leaderboard[] shards = _leaderboardService.GetShards(enrollment);
+		if (!shards.Any())
+			shards = new[] { _leaderboardService.AddScore(enrollment, score: 0, false) };
+
+		if (!string.IsNullOrWhiteSpace(guildId))
+			shards = shards
+				.Where(shard => string.IsNullOrWhiteSpace(shard.GuildId) || shard.GuildId == guildId)
+				.ToArray();
 
 		RumbleJson output = new()
 		{
 			{ "enrollment", enrollment },
-			{ "leaderboard", leaderboard.GenerateScoreResponse(Token.AccountId) }
+			{ "leaderboards", shards.Select(shard => shard.GenerateScoreResponse(Token.AccountId)).Where(json => json != null) }
 		};
 		
 		return Ok(output);

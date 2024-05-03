@@ -93,7 +93,7 @@ public class Reward : PlatformCollectionDocument
 	public int MinimumPercentile { get; set; }
 	
 	[BsonElement("guild")]
-	[JsonPropertyName("guildOnly")]
+	[JsonPropertyName("guildReward")]
 	public bool ForGuild { get; set; }
 	
 	// [BsonElement("tasked")]

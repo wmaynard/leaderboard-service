@@ -444,6 +444,15 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	/// <returns>A leaderboard if it was successful; otherwise an UnknownLeaderboardException will be thrown.</returns>
 	public Leaderboard AddScore(Enrollment enrollment, int score, bool useGuild) => AddScore(enrollment, score, withRetry: true, useGuild: useGuild);
 
+	public Leaderboard[] GetShards(Enrollment enrollment) => _collection
+		.Find(
+			Builders<Leaderboard>.Filter.And(
+				Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
+				Builders<Leaderboard>.Filter.ElemMatch(leaderboard => leaderboard.Scores, Builders<Entry>.Filter.Eq(entry => entry.AccountID, enrollment.AccountID))
+		))
+		.ToList()
+		.ToArray();
+
 	public string[] ListLeaderboardTypes() => _collection
 		.Find(leaderboard => true)
 		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Type))

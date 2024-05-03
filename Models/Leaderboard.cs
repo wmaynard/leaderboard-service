@@ -54,6 +54,7 @@ public class Leaderboard : PlatformCollectionDocument
 	public const string FRIENDLY_KEY_TIME_ENDED = "lastRollover";
 	public const string FRIENDLY_KEY_TITLE = "title";
 	public const string FRIENDLY_KEY_TYPE = "leaderboardId";
+	public const string FRIENDLY_KEY_GUILD_ID = "guildId";
 
 	public const int PAGE_SIZE = 50;
 	
@@ -143,7 +144,7 @@ public class Leaderboard : PlatformCollectionDocument
 	public bool IsResetting { get; set; }
 	
 	[BsonElement("guild")]
-	[JsonPropertyName("guildId")]
+	[JsonPropertyName(FRIENDLY_KEY_GUILD_ID)]
 	public string GuildId { get; set; }
 
 	[BsonIgnore]
@@ -226,6 +227,8 @@ public class Leaderboard : PlatformCollectionDocument
 	public RumbleJson GenerateScoreResponse(string accountId)
 	{
 		List<Entry> sorted = CalculateRanks();
+		if (sorted.All(entry => entry.AccountID != accountId))
+			return null;
 
 		int playerIndex = -1;
 		for (int i = 0; i < sorted.Count; i++)
@@ -255,6 +258,7 @@ public class Leaderboard : PlatformCollectionDocument
 			{ FRIENDLY_KEY_SHARD_ID, ShardID ?? Id },
 			{ FRIENDLY_KEY_TIER, Tier },
 			{ FRIENDLY_KEY_TYPE, Type },
+			{ FRIENDLY_KEY_GUILD_ID, GuildId },
 			{ "allScores", sorted.Count < MAX_PLAYERS_PER_SHARD ? sorted : null },
 			{ "nearbyScores", nearbyScores },
 			{ "topScores", topScores }

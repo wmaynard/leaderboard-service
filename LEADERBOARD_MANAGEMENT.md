@@ -65,6 +65,21 @@ Leaderboards are passed as an array of objects.  Here's our sample request so fa
 ]
 ```
 
+### Guild Shards
+
+Guild shards require no special updates to work.  When a score request comes in for a guild, and the requesting player is verified as a member of said guild, Platform will either find the relevant guild shard and record the player's score, or if said shard does not exist, it will be created.
+
+By default, guild shards have no rewards.  Guild Shard Rewards require separate reward definitions.  For further information, refer to the section **Guild Shard Rewards** further below.
+
+Guild shards behave slightly differently than normal shards in the following ways:
+
+* The guild roster is not maintained on the Leaderboards side for performance reasons.  If someone leaves the guild while a leaderboard is active, leaderboards still holds onto their records until rollover.
+  * This means that if someone leaves a guild and later rejoins, their contributions to that leaderboard remain intact.  Changing this behavior requires further enhancements and interdependencies requires additional work on both Guilds and Leaderboards, but is possible.  Pros: if someone is wrongfully kicked and invited back, they don't lose progress.  Cons: it's a potential vector for players to game with guild-hopping in **other systems**.  No one will receive two guild rewards from a leaderboard shard.
+* During rollover, leaderboards fetches roster information from Guilds.  Only members who are currently in the guild at rollover are eligible for the shard's rewards.
+  * People may leave or be kicked out of the guild before rollover.  These scores are still tracked, but ignored for reward calculation.
+  * If guild information isn't available at all, it's assumed that the guild has disbanded, and no rewards are granted.
+* Like normal shards, guild shards are first archived, then destroyed when rollover completes.  A new shard will be generated when needed.
+
 ## Introduction to Tier Rules
 
 Every tier has a set of rules associated with it.  These rules determine what happens at rollover.  Every tier requires its own rules, and these rules need to be defined with our update request.  The `tierRules` of our request body is an array of objects containing:
@@ -143,6 +158,7 @@ In addition to the rank and percentages, each reward must contain the following 
         "internalNote": "ldr_pvp_weekly_v1 reward",
         "minimumRank": 1,
         "minimumPercentile": -1,
+        "guildReward": false,
         "attachments": [
             {
                 "Type": "currency",
@@ -159,6 +175,14 @@ In addition to the rank and percentages, each reward must contain the following 
     ...
 ]
 ```
+
+### Guild Shard Rewards
+
+Because Guild Shards are spawned off of the base definition shard, rewards for guild shards must also be defined in this array.  Per design, guild rewards need to be different from standard rewards; all other shard behavior remains the same.
+
+Guild shards only pull rewards that are designed for guilds.  To define a guild shard reward, set `guildReward` to true.  This field is optional and will default to false.
+
+If you have no rewards with `guildReward` set, the guild shard will still work; however, no rewards will be issued on rollover.
 
 ### Season Rewards
 
