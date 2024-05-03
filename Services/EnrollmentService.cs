@@ -29,12 +29,20 @@ public class EnrollmentService : MinqService<Enrollment>
 		})
 		.Project(enrollment => enrollment.AccountID);
 
-	public Enrollment FindOrCreate(string accountId, string leaderboardType) => mongo
+	public Enrollment FindOrCreate(string accountId, string leaderboardType, string guildId = null) => mongo
 		.Where(query => query
 			.EqualTo(enrollment => enrollment.AccountID, accountId)
 			.EqualTo(enrollment => enrollment.LeaderboardType, leaderboardType)
 		)
-		.Upsert(update => update.SetToCurrentTimestamp(enrollment => enrollment.UpdatedOn));
+		.Upsert(update =>
+		{
+			update
+				.SetToCurrentTimestamp(enrollment => enrollment.UpdatedOn)
+				.SetOnInsert(enrollment => enrollment.Tier, 0);
+				
+			if (!string.IsNullOrWhiteSpace(guildId))
+				update.Set(enrollment => enrollment.GuildId, guildId);
+		});
 
 	public void LinkArchive(IEnumerable<string> accountIds, string leaderboardType, string archiveId, string leaderboardId) => mongo
 		.Where(query => query

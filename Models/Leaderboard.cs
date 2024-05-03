@@ -7,10 +7,12 @@ using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Exceptions;
+using Rumble.Platform.LeaderboardService.Interop;
 
 namespace Rumble.Platform.LeaderboardService.Models;
 
@@ -139,6 +141,10 @@ public class Leaderboard : PlatformCollectionDocument
 	[BsonElement(DB_KEY_RESETTING), BsonIgnoreIfDefault]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_RESETTING), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	public bool IsResetting { get; set; }
+	
+	[BsonElement("guild")]
+	[JsonPropertyName("guildId")]
+	public string GuildId { get; set; }
 
 	[BsonIgnore]
 	[JsonIgnore]
@@ -155,6 +161,8 @@ public class Leaderboard : PlatformCollectionDocument
 
 	internal List<Entry> CalculateRanks()
 	{
+		RemovePlayersNotInGuild();
+		
 		List<Entry> output = Scores
 			.OrderByDescending(entry => entry.Score)
 			.ThenBy(entry => entry.LastUpdated)
@@ -164,6 +172,55 @@ public class Leaderboard : PlatformCollectionDocument
 			entry.Rank = output.IndexOf(entry) + 1;
 
 		return output;
+	}
+	
+
+	private int RemovePlayersNotInGuild()
+	{
+		if (string.IsNullOrWhiteSpace(GuildId))
+			return 0;
+
+		int originalCount = Scores.Count;
+		Guild guild = null;
+		ApiService
+			.Instance
+			.Request("http://localhost:5101/guild/admin")
+			.AddAuthorization(DynamicConfig.Instance.AdminToken)
+			.AddParameter("guildId", GuildId)
+			.OnSuccess(response =>
+			{
+				guild = response.Require<Guild>("guild");
+			})
+			.OnFailure(_ => Log.Error(Owner.Will, "Unable to fetch guild information for leaderboard rollover; it's possible the guild disbanded.", data: new
+			{
+				GuildId = GuildId,
+				ShardId = ShardID
+			}))
+			.Get();
+
+		// The request to get guild info failed; do not grant any rewards as they are invalid.
+		if (guild == null)
+		{
+			Scores = new();
+			return 0;
+		}
+		
+		Scores = Scores
+			.Where(entry => guild.Members.Any(member => member.AccountId == entry.AccountID))
+			.ToList();
+
+		int removed = originalCount - Scores.Count;
+		
+		if (originalCount > 0)
+			Log.Info(Owner.Will, "Guild shard ignored at least one score during rollover; the guild roster likely changed.", data: new
+			{
+				TotalScoreCount = originalCount,
+				Removed = removed,
+				ShardId = ShardID,
+				GuildId = guild.Id
+			});
+
+		return 0;
 	}
 
 	public RumbleJson GenerateScoreResponse(string accountId)
@@ -191,7 +248,7 @@ public class Leaderboard : PlatformCollectionDocument
 				AccountId = accountId
 			});
 
-		RumbleJson output = new RumbleJson
+		RumbleJson output = new ()
 		{
 			{ FRIENDLY_KEY_SEASON_ROLLOVERS, RolloversInSeason },
 			{ FRIENDLY_KEY_SEASON_COUNTDOWN, RolloversRemaining },

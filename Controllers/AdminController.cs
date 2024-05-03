@@ -319,7 +319,7 @@ public class AdminController : PlatformController
 
 		_enrollmentService.Update(enrollment);
 		_leaderboardService.RemovePlayer(accountId, type);
-		_leaderboardService.AddScore(enrollment, score);
+		_leaderboardService.AddScore(enrollment, score, false);
 
 		return Ok();
 	}

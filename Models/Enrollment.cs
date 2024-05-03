@@ -90,11 +90,16 @@ public class Enrollment : PlatformCollectionDocument
 	[BsonElement("updated")]
 	[JsonIgnore]
 	public long UpdatedOn { get; set; }
+	
+	[BsonElement("guild")]
+	[JsonInclude, JsonPropertyName("guildId")]
+	public string GuildId { get; set; }
 
 	public Enrollment()
 	{
 		PastLeaderboardIDs = new List<string>();
 		Status = PromotionStatus.Acknowledged;
+		Tier = 0;
 	} 
 	
 	public enum PromotionStatus { Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2 }

@@ -3,10 +3,13 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Exceptions;
+using Rumble.Platform.LeaderboardService.Interop;
 using Rumble.Platform.LeaderboardService.Models;
 using Rumble.Platform.LeaderboardService.Services;
 
@@ -30,13 +33,35 @@ public class TopController : PlatformController
 		if (score == 0)
 			return Ok();
 
-		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
-		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score);
+		string guildId = Optional<string>("guildId");
+		bool useGuild = !string.IsNullOrWhiteSpace(guildId) && guildId.CanBeMongoId();
+		
+		if (useGuild && !IsInGuild(Token.Authorization, guildId))
+			throw new PlatformException("Attempted to score on guild leaderboard shard but not in specified guild.");
+
+		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type, guildId);
+		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score, useGuild);
 
 		if (enrollment.CurrentLeaderboardID != leaderboard.Id)
 			_enrollmentService.FlagAsActive(enrollment, leaderboard);
 
 		return Ok();
+	}
+
+	private bool IsInGuild(string token, string guildId)
+	{
+		bool output = true;
+		_apiService
+			.Request("http://localhost:5101/guild")
+			.AddAuthorization(token)
+			.OnSuccess(response =>
+			{
+				output = guildId == response.Optional<Guild>("guild")?.Id;
+			})
+			.OnFailure(_ => output = false)
+			.Get();
+
+		return output;
 	}
 
 	// TODO: Move to admin controller
@@ -48,10 +73,10 @@ public class TopController : PlatformController
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 		
 		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
-		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score: 0);
+		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score: 0, false);
 		// Leaderboard board = _leaderboardService.Find(Token.AccountId, type);
 
-		RumbleJson output = new RumbleJson
+		RumbleJson output = new()
 		{
 			{ "enrollment", enrollment },
 			{ "leaderboard", leaderboard.GenerateScoreResponse(Token.AccountId) }

@@ -69,8 +69,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 
 	internal long Count(string type) => _collection.CountDocuments(filter: leaderboard => leaderboard.Type == type);
 
-	public Leaderboard Find(string accountId, string type) => AddScore(_enrollmentService.FindOrCreate(accountId, type), 0);
-
 	public long UpdateLeaderboardType(Leaderboard template)
 	{
 		StartTransactionIfRequested(out IClientSessionHandle session);
@@ -105,22 +103,33 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			).ModifiedCount;
 	}
 
-	private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment, bool allowLocked = false)
+	private FilterDefinition<Leaderboard> CreateFilter(Enrollment enrollment, bool useGuild = false, bool allowLocked = false)
 	{
 		allowLocked = allowLocked || PlatformEnvironment.IsDev;
 		if (!allowLocked)
 			EnsureUnlocked(enrollment);
 		
 		FilterDefinitionBuilder<Leaderboard> filter = Builders<Leaderboard>.Filter;
-		return filter.And(
+
+		List<FilterDefinition<Leaderboard>> filters = new()
+		{
 			filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
 			filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
 			filter.ElemMatch(
-				field: leaderboard => leaderboard.Scores, 
+				field: leaderboard => leaderboard.Scores,
 				filter: entry => entry.AccountID == enrollment.AccountID
 			)
-		); 
+		};
+		
+		if (useGuild && !string.IsNullOrWhiteSpace(enrollment.GuildId))
+			filters.Add(filter.Eq(leaderboard => leaderboard.GuildId, enrollment.GuildId));
+		else
+			filters.Add(filter.Eq(leaderboard => leaderboard.GuildId, null));
+		
+		return filter.And(filters); 
 	}
+	
+	
 
 	private FilterDefinition<Leaderboard> CreateShardFilter(Enrollment enrollment, int playersPerShard)
 	{
@@ -140,22 +149,22 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	/// <param name="score">Points that the user scored for the current leaderboard.</param>
 	/// <param name="session">A Mongo session to complete all transactions in.</param>
 	/// <returns>The leaderboard the user is in, if updated.  Otherwise returns null.</returns>
-	private Leaderboard AddToExistingScore(Enrollment enrollment, long score, IClientSessionHandle session = null)
+	private Leaderboard AddToExistingScore(Enrollment enrollment, long score, bool useGuild, IClientSessionHandle session = null)
 	{
-		FilterDefinition<Leaderboard> filter = CreateFilter(enrollment, allowLocked: false);
+		FilterDefinition<Leaderboard> filter = CreateFilter(enrollment, useGuild, allowLocked: false);
 		UpdateDefinition<Leaderboard> update = Builders<Leaderboard>.Update.Inc($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}", score);
 		
 		// This adds a timestamp to nonzero scores; it doesn't overwrite the above incrementation.
 		if (score != 0)
 			update = update.Set($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_LAST_UPDATED}", TimestampMs.Now);
 		
-		FindOneAndUpdateOptions<Leaderboard> options = new FindOneAndUpdateOptions<Leaderboard>
+		FindOneAndUpdateOptions<Leaderboard> options = new()
 		{
 			ReturnDocument = ReturnDocument.After,
 			IsUpsert = false
 		};
 
-		return session == null
+		Leaderboard output = session == null
 			? _collection.FindOneAndUpdate<Leaderboard>(
 				filter: filter,
 				update: update,
@@ -167,6 +176,34 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				update: update,
 				options: options
 			);
+
+		if (output == null && useGuild)
+		{
+			Leaderboard template = _collection.Find(
+					Builders<Leaderboard>.Filter.And(
+						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
+						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier)
+					)
+				)
+				.Limit(1)
+				.First();
+			template.ChangeId();
+			template.Scores = new()
+			{
+				new Entry
+				{
+					AccountID = enrollment.AccountID,
+					Score = 0
+				}
+			};
+			template.GuildId = enrollment.GuildId;
+			template.ShardID = ObjectId.GenerateNewId().ToString();
+			_collection.InsertOne(template);
+
+			return AddToExistingScore(enrollment, score, useGuild, session);
+		}
+
+		return output;
 	}
 	
 	/// <summary>
@@ -374,12 +411,13 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	/// <param name="enrollment">The player's enrollment information, indicating which leaderboard type and tier we should use.</param>
 	/// <param name="score">The amount of score to add to a player's record.</param>
 	/// <param name="withRetry">If true, will attempt to demote the player to an appropriate tier before throwing an exception.</param>
+	/// <param name="useGuild">If true, will attempt to return the shard for the guild.  If one is not found, it will be created.</param>
 	/// <returns>A leaderboard if it was successful; otherwise null.</returns
-	private Leaderboard AddScore(Enrollment enrollment, int score, bool withRetry)
+	private Leaderboard AddScore(Enrollment enrollment, int score, bool withRetry, bool useGuild = false)
 	{
 		StartTransactionIfRequested(out IClientSessionHandle session);
 
-		Leaderboard output = AddToExistingScore(enrollment, score, session);
+		Leaderboard output = AddToExistingScore(enrollment, score, useGuild, session);
 		// If output is null, it means nothing was found for the user, which also means this user doesn't yet have a record in the leaderboard.
 		output ??= AppendNewEntry(enrollment, score, session);
 		
@@ -404,7 +442,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	/// <param name="enrollment">The player's enrollment information, indicating which leaderboard type and tier we should use.</param>
 	/// <param name="score">The amount of score to add to a player's record.</param>
 	/// <returns>A leaderboard if it was successful; otherwise an UnknownLeaderboardException will be thrown.</returns>
-	public Leaderboard AddScore(Enrollment enrollment, int score) => AddScore(enrollment, score, withRetry: true);
+	public Leaderboard AddScore(Enrollment enrollment, int score, bool useGuild) => AddScore(enrollment, score, withRetry: true, useGuild: useGuild);
 
 	public string[] ListLeaderboardTypes() => _collection
 		.Find(leaderboard => true)
@@ -545,110 +583,97 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		// Unlike other methods here, we actually don't want to start a transaction here, since this gets called from
 		// the ResetService.  Use the one generated there instead.
 		List<Entry> ranks = leaderboard.CalculateRanks();
-		string[] promotionPlayers = ranks
-			.Where(entry => entry.Rank <= leaderboard.CurrentTierRules.PromotionRank && entry.Score > 0)
-			.Select(entry => entry.AccountID)
-			.ToArray();
-		string[] demotionPlayers = ranks
-			.Where(entry => entry.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1)
-			.Select(entry => entry.AccountID)
-			.ToArray();
 
-		Reward[] rewards = leaderboard.CurrentTierRewards
-			.OrderByDescending(reward => reward.MinimumPercentile)
-			.ThenByDescending(reward => reward.MinimumRank)
-			.ToArray();
-
-		int playerCount = leaderboard.Scores.Count;
-		int playersProcessed = 0;
-
-		_archiveService.Stash(leaderboard, out Leaderboard archive);
-		
-		for (int index = ranks.Count - 1; playersProcessed < playerCount && index >= 0; index--)
+		if (!leaderboard.Scores.Any())
+			Log.Warn(Owner.Will, "Leaderboard shard has no valid scores to grant rewards to; if this is a guild shard, the guild likely disbanded.", data: new
+			{
+				ShardId = leaderboard.ShardID
+			});
+		else
 		{
-			float percentile = 100f * (float)playersProcessed / (float)playerCount;
+			string[] promotionPlayers = ranks
+				.Where(entry => entry.Rank <= leaderboard.CurrentTierRules.PromotionRank && entry.Score > 0)
+				.Select(entry => entry.AccountID)
+				.ToArray();
+			string[] demotionPlayers = ranks
+				.Where(entry => entry.Rank >= leaderboard.CurrentTierRules.DemotionRank && leaderboard.CurrentTierRules.DemotionRank > -1)
+				.Select(entry => entry.AccountID)
+				.ToArray();
 
-			ranks[index].Prize = rewards
-				.Where(reward => reward.MinimumRank > 0 && ranks[index].Rank <= reward.MinimumRank)
-				.MinBy(reward => reward.MinimumRank)
-				.Copy();
+			bool useGuildRewards = !string.IsNullOrWhiteSpace(leaderboard.GuildId);
+			Reward[] rewards = leaderboard.CurrentTierRewards
+				.Where(reward => reward.ForGuild == useGuildRewards)
+				.OrderByDescending(reward => reward.MinimumPercentile)
+				.ThenByDescending(reward => reward.MinimumRank)
+				.ToArray();
 
-			ranks[index].Prize ??= rewards
-				.Where(reward => reward.MinimumPercentile >= 0 && percentile >= reward.MinimumPercentile)
-				.MaxBy(reward => reward.MinimumPercentile)
-				.Copy();
+			int playerCount = leaderboard.Scores.Count;
+			int playersProcessed = 0;
 
-			// TD-15557: Must null-check here; without it, a leaderboard with no / inadequate prize definitions
-			// causes rollover to fail.
-			// Add required fields for bulk sending and telemetry
-			// ranks[index].Prize.Recipient = ranks[index].AccountID;
-			if (ranks[index].Prize != null)
-				ranks[index].Prize.RankingData = new RumbleJson
+			_archiveService.Stash(leaderboard, out Leaderboard archive);
+
+			if (!useGuildRewards || rewards.Any())
+			{
+				for (int index = ranks.Count - 1; playersProcessed < playerCount && index >= 0; index--)
 				{
-					{ "rewardType", "standard" },
-					{ "leaderboardId", leaderboard.Type },
-					{ "leaderboardRank", ranks[index].Rank },
-					{ "leaderboardScore", ranks[index].Score },
-					{ "leaderboardTier", leaderboard.Tier },
-					{ "leaderboardArchiveId", archive.Id }
-				};
+					float percentile = 100f * (float) playersProcessed / (float) playerCount;
 
-			playersProcessed++;
-		}
+					ranks[index].Prize = rewards
+						.Where(reward => reward.MinimumRank > 0 && ranks[index].Rank <= reward.MinimumRank)
+						.MinBy(reward => reward.MinimumRank)
+						.Copy();
 
-		foreach (Entry entry in ranks.Where(e => e.Score > 0))
-			_rewardService.Grant(entry.Prize, accountIds: entry.AccountID);
+					ranks[index].Prize ??= rewards
+						.Where(reward => reward.MinimumPercentile >= 0 && percentile >= reward.MinimumPercentile)
+						.MaxBy(reward => reward.MinimumPercentile)
+						.Copy();
 
-		_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id, leaderboard.Id);
+					// TD-15557: Must null-check here; without it, a leaderboard with no / inadequate prize definitions
+					// causes rollover to fail.
+					// Add required fields for bulk sending and telemetry
+					// ranks[index].Prize.Recipient = ranks[index].AccountID;
+					if (ranks[index].Prize != null)
+						ranks[index].Prize.RankingData = new RumbleJson
+						{
+							{"rewardType", "standard"},
+							{"leaderboardId", leaderboard.Type},
+							{"leaderboardRank", ranks[index].Rank},
+							{"leaderboardScore", ranks[index].Score},
+							{"leaderboardTier", leaderboard.Tier},
+							{"leaderboardArchiveId", archive.Id}
+						};
 
-		// TD-16684: Prior to this ticket, promotion was only enabled if not using seasons, or if the season had at least one rollover remaining.
-		// Consequently, players would miss out on the final promotion of the season.  This was built to specification via a Meet call, but
-		// later was decided to be undesirable, as players felt the final week of a season was worthless.
-		if (leaderboard.MaxTier > 0)
-		{
-			if (promotionPlayers.Length + demotionPlayers.Length > 0)
-				Log.Local(Owner.Will, $"ID: {leaderboard.Id} Demotion: {demotionPlayers.Length} Promotion: {promotionPlayers.Length}", emphasis: Log.LogType.WARN);
-			if (leaderboard.Tier < leaderboard.MaxTier)
-				_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
-			if (leaderboard.Tier > 0)													// People can't get demoted below 0.
-				_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
-		}
+					playersProcessed++;
+				}
 
-		// TODO: Design needs to provide details on how this message should be formatted.
-		try
-		{
-			string first = ranks.First().AccountID;
+				foreach (Entry entry in ranks.Where(e => e.Score > 0))
+					_rewardService.Grant(entry.Prize, accountIds: entry.AccountID);
+			}
+
+			_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id, leaderboard.Id);
+
+			// TD-16684: Prior to this ticket, promotion was only enabled if not using seasons, or if the season had at least one rollover remaining.
+			// Consequently, players would miss out on the final promotion of the season.  This was built to specification via a Meet call, but
+			// later was decided to be undesirable, as players felt the final week of a season was worthless.
+			if (string.IsNullOrWhiteSpace(leaderboard.GuildId) && leaderboard.MaxTier > 0)
+			{
+				if (promotionPlayers.Length + demotionPlayers.Length > 0)
+					Log.Local(Owner.Will, $"ID: {leaderboard.Id} Demotion: {demotionPlayers.Length} Promotion: {promotionPlayers.Length}", emphasis: Log.LogType.WARN);
+				if (leaderboard.Tier < leaderboard.MaxTier)
+					_enrollmentService.PromotePlayers(promotionPlayers, leaderboard);		// Players above the minimum tier promotion rank get moved up.
+				if (leaderboard.Tier > 0)													// People can't get demoted below 0.
+					_enrollmentService.DemotePlayers(demotionPlayers, leaderboard);			// Players that were previously inactive need to be demoted one rank, if applicable.
+			}
+
+			// TODO: Design needs to provide details on how this message should be formatted.
 			#if DEBUG
-			_broadcastService.Announce(first, $"{first} placed first in Leaderboard {leaderboard.Type}!  This is a placeholder message.");
-			#endif
-		}
-		catch { }
-		
-		// Send the rollover Slack message
-		if (playerCount > 0)
-		{
 			try
 			{
-				// TODO: Once Portal has a Leaderboards UI, remove this.
-				
-				string attachment = string.Join(Environment.NewLine, ranks.Where(entry => entry.Prize != null && entry.Score > 0).Select(rank => rank.ToString()));
-				int rewardPlayerCount = ranks.Count(entry => entry.Prize != null && entry.Score > 0);
-				int noRewardPlayerCount = ranks.Count(entry => entry.Prize == null);
-
-				string message = $"Player ranks have been calculated.\n{rewardPlayerCount} player(s) received rewards.";
-
-				if (noRewardPlayerCount > 0)
-					message += $"\n{noRewardPlayerCount} player(s) did not receive rewards.";
-
-				await SlackDiagnostics
-					.Log(title: $"{leaderboard.Type} rollover triggered.", message)
-					.Attach(name: "Rankings", content: attachment)
-					.Send();
+				string first = ranks.First().AccountID;
+				_broadcastService.Announce(first, $"{first} placed first in Leaderboard {leaderboard.Type}!  This is a placeholder message.");
 			}
-			catch
-			{
-				Log.Error(Owner.Default, $"{leaderboard.Type} rollover information could not be sent to Slack.");
-			}
+			catch { }
+			#endif
 		}
 		
 		if (leaderboard.IsShard)
@@ -845,7 +870,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		if (PlatformEnvironment.IsProd)
 			throw new EnvironmentPermissionsException();
 	
-		Leaderboard leaderboard = _archiveService.Get(id);
+		Leaderboard leaderboard = _archiveService.FindById(id);
 		leaderboard.ChangeId();
 		_collection.InsertOne(leaderboard);
 

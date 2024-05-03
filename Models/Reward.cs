@@ -92,6 +92,10 @@ public class Reward : PlatformCollectionDocument
 	[JsonPropertyName(FRIENDLY_KEY_MINIMUM_PERCENT)]
 	public int MinimumPercentile { get; set; }
 	
+	[BsonElement("guild")]
+	[JsonPropertyName("guildOnly")]
+	public bool ForGuild { get; set; }
+	
 	// [BsonElement("tasked")]
 	// [JsonIgnore]
 	// public bool TaskCreated { get; set; }
