@@ -87,7 +87,10 @@ public class TopController : PlatformController
 		RumbleJson output = new()
 		{
 			{ "enrollment", enrollment },
-			{ "leaderboards", shards.Select(shard => shard.GenerateScoreResponse(Token.AccountId)).Where(json => json != null) }
+			{ "leaderboards", shards
+				.Select(shard => shard.GenerateScoreResponse(Token.AccountId))
+				.Where(json => json != null)
+			}
 		};
 		
 		return Ok(output);
