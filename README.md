@@ -154,68 +154,68 @@ Player authorization tokens are required.
 
 `GET /rankings?leaderboardId=pvp_daily&guildId=deadbeefdeadbeefdeadbeef`
 
-`guildId` is optional.
+`leaderboardId` accepts comma-separated values.  To fetch rankings of multiple leaderboards, concatenate string IDs with commas (consequently, commas are no longer potentially valid as leaderboardIds)
+`guildId` is optional.  When you specify a `guildId`, you will retrieve both the regular shard _and_ your guild's shard (provided you are a member of the guild).  If your guild does not have a shard, one will be created.  This process happens for all specified `leaderboardIds`.
+
+#### Important: With the addition of Guild Shard & Quest support, the response has changed!
+
+In the response, `enrollment` changed to `enrollments`, and is now an array instead of an object.  The same is true for `leaderboard` -> `leaderboards`.
 
 Response:
 
 ```
 {
-    "enrollment": {
-        "tier": 1,
-        "activeTier": 0,                                 // Indicates the last tier a user was in when DELETE /notification was called.
-        "seasonalMaxTier": -1,                           // Determines the season reward; highest tier a player hit in the season.
-        "isActive": false,
-        "archives": [
-            "6347060e3343959668563dd4",
-            "6347061b3343959668563de2"
-        ],
-        "promotionStatus": -1,                           // Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2
-        "seasonEnded": false,                            // Also cleared by DELETE /notification
-        "id": "634705e83343959668563dcb"
-    },
+    "enrollments": [
+        {
+            "tier": 1,
+            "activeTier": 0,                                 // Indicates the last tier a user was in when DELETE /notification was called.
+            "seasonalMaxTier": -1,                           // Determines the season reward; highest tier a player hit in the season.
+            "isActive": false,
+            "archives": [
+                "6347060e3343959668563dd4",
+                "6347061b3343959668563de2"
+            ],
+            "promotionStatus": -1,                           // Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2
+            "seasonEnded": false,                            // Also cleared by DELETE /notification
+            "id": "634705e83343959668563dcb"
+        },
+      ..
+    ]
     "leaderboards": [
-      {
-          "rolloversInSeason": 7,
-          "rolloversRemaining": 7,
-          "shardId": "deadbeefdeadbeefdeadbeef",
-          "tier": 1,
-          "leaderboardId": "ldr_pvp_daily",
-          "guildId": null,
-          "allScores": [                                   // only shows up on small leaderboards 
-              {
-                  "rank": 1,
-                  "accountId": "62e841925030343c6079e78d",
-                  "score": 0,
-                  "lastUpdated": 1665599430549
-              }
-          ],
-          "nearbyScores": [
-              {
-                  "rank": 1,
-                  "accountId": "62e841925030343c6079e78d",
-                  "score": 0,
-                  "lastUpdated": 1665599430549
-              }
-          ],
-          "topScores": [
-              {
-                  "rank": 1,
-                  "accountId": "62e841925030343c6079e78d",
-                  "score": 0,
-                  "lastUpdated": 1665599430549
-              }
-          ]
-      },
-      ...
+        {
+            "shardId": "deadbeefdeadbeefdeadbeef",
+            "tier": 1,
+            "leaderboardId": "ldr_pvp_daily",
+            "guildId": null,
+            "allScores": [                                   // only shows up on small leaderboards 
+                {
+                    "rank": 1,
+                    "accountId": "62e841925030343c6079e78d",
+                    "score": 0,
+                    "lastUpdated": 1665599430549
+                }
+            ],
+            "nearbyScores": [
+                {
+                    "rank": 1,
+                    "accountId": "62e841925030343c6079e78d",
+                    "score": 0,
+                    "lastUpdated": 1665599430549
+                }
+            ],
+            "topScores": [
+                {
+                    "rank": 1,
+                    "accountId": "62e841925030343c6079e78d",
+                    "score": 0,
+                    "lastUpdated": 1665599430549
+                }
+            ]
+        },
+        ...
     ]
 }
 ```
-
-#### Important: With the addition of Guild Shard support, the response has changed!
-
-The response originally contained a key, `leaderboard`, as it would always only return one shard.  However, Guild Shards use the same tech.  Consequently, this key has now become an array of shards instead.
-
-If there is no guild shard, or if the player is not currently in the guild, only the standard shard will be returned.
 
 #### UI Notifications
 
