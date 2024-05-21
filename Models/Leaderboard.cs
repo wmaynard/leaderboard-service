@@ -183,22 +183,25 @@ public class Leaderboard : PlatformCollectionDocument
 
 		int originalCount = Scores.Count;
 		Guild guild = null;
-		ApiService
-			.Instance
-			.Request("http://localhost:5101/guild/admin")
-			.AddAuthorization(DynamicConfig.Instance.AdminToken)
-			.AddParameter("guildId", GuildId)
-			.OnSuccess(response =>
-			{
-				guild = response.Require<Guild>("guild");
-			})
-			.OnFailure(_ => Log.Error(Owner.Will, "Unable to fetch guild information for leaderboard rollover; it's possible the guild disbanded.", data: new
-			{
-				GuildId = GuildId,
-				ShardId = ShardID
-			}))
-			.Get();
-
+		CacheService cache = PlatformService.Require<CacheService>();
+		if (!cache.HasValue($"guild-{GuildId}", out guild))
+			ApiService
+				.Instance
+				.Request("guild/admin")
+				.AddAuthorization(DynamicConfig.Instance.AdminToken)
+				.AddParameter("guildId", GuildId)
+				.OnSuccess(response =>
+				{
+					guild = response.Require<Guild>("guild");
+					cache.Store($"guild-{GuildId}", guild, IntervalMs.OneMinute);
+				})
+				.OnFailure(_ => Log.Warn(Owner.Will, "Unable to fetch guild information for leaderboard rollover; it's possible the guild disbanded.", data: new
+				{
+					GuildId = GuildId,
+					ShardId = ShardID
+				}))
+				.Get();
+		
 		// The request to get guild info failed; do not grant any rewards as they are invalid.
 		if (guild == null)
 		{
@@ -212,7 +215,7 @@ public class Leaderboard : PlatformCollectionDocument
 
 		int removed = originalCount - Scores.Count;
 		
-		if (originalCount > 0)
+		if (removed > 0)
 			Log.Info(Owner.Will, "Guild shard ignored at least one score during rollover; the guild roster likely changed.", data: new
 			{
 				TotalScoreCount = originalCount,

@@ -453,6 +453,16 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		.ToList()
 		.ToArray();
 
+	public Leaderboard[] GetShards(Enrollment[] enrollments) => _collection
+		.Find(
+			Builders<Leaderboard>.Filter.And(
+				Builders<Leaderboard>.Filter.In(leaderboard => leaderboard.Type, enrollments.Select(enrollment => enrollment.LeaderboardType)),
+				Builders<Leaderboard>.Filter.ElemMatch(leaderboard => leaderboard.Scores, 
+					Builders<Entry>.Filter.Eq(entry => entry.AccountID, enrollments.First().AccountID))
+			))
+		.ToList()
+		.ToArray();
+
 	public string[] ListLeaderboardTypes() => _collection
 		.Find(leaderboard => true)
 		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Type))

@@ -52,8 +52,6 @@ public class TrafficRejectionFilter : PlatformFilter, IActionFilter
     
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        Log.Local(Owner.Will, $"{NextLockout} | {Timestamp.Now} | {NextLockout > Timestamp.Now}");
-        
         if (NextLockout > Timestamp.Now && LastRefresh > Timestamp.Now)
             return;
 

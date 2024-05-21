@@ -71,22 +71,29 @@ public class TopController : PlatformController
 	[HttpGet, Route("rankings")]
 	public ActionResult GetRankings()
 	{
-		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		string[] types = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE).Split(',');
 		string guildId = Optional<string>("guildId");
 		
-		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type);
-		Leaderboard[] shards = _leaderboardService.GetShards(enrollment);
-		if (!shards.Any())
-			shards = new[] { _leaderboardService.AddScore(enrollment, score: 0, false) };
+		Enrollment[] enrollments = _enrollmentService.FindMultiple(Token.AccountId, types, guildId);
+		List<Leaderboard> shards = _leaderboardService
+			.GetShards(enrollments)
+			.Where(shard => string.IsNullOrWhiteSpace(shard.GuildId) || enrollments.Select(enrollment => enrollment.GuildId).Contains(shard.GuildId))
+			.ToList();
 
-		if (!string.IsNullOrWhiteSpace(guildId))
-			shards = shards
-				.Where(shard => string.IsNullOrWhiteSpace(shard.GuildId) || shard.GuildId == guildId)
-				.ToArray();
+		foreach (Enrollment enrollment in enrollments)
+		{
+			// Make sure that the base shard definition has a score of 0 for the player.
+			if (!shards.Any(shard => shard.Type == enrollment.LeaderboardType && string.IsNullOrWhiteSpace(shard.GuildId)))
+				shards.Add(_leaderboardService.AddScore(enrollment, score: 0, false));
+			
+			// Make sure that the guild shard definition has a score of 0 for the player, but only if the enrollment has a guildId attached.
+			if (!string.IsNullOrWhiteSpace(enrollment.GuildId) && !shards.Any(shard => shard.Type == enrollment.LeaderboardType && shard.GuildId == enrollment.GuildId))
+				shards.Add(_leaderboardService.AddScore(enrollment, score: 0, true));
+		}
 
 		RumbleJson output = new()
 		{
-			{ "enrollment", enrollment },
+			{ "enrollments", enrollments },
 			{ "leaderboards", shards
 				.Select(shard => shard.GenerateScoreResponse(Token.AccountId))
 				.Where(json => json != null)

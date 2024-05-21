@@ -29,6 +29,44 @@ public class EnrollmentService : MinqService<Enrollment>
 		})
 		.Project(enrollment => enrollment.AccountID);
 
+	public Enrollment[] FindMultiple(string accountId, string[] types, string guildId = null)
+	{
+		Enrollment[] existing = mongo
+			.Where(query => query
+				.EqualTo(enrollment => enrollment.AccountID, accountId)
+				.ContainedIn(enrollment => enrollment.LeaderboardType, types)
+			)
+			.Limit(500)
+			.UpdateAndReturn(update =>
+			{
+				update
+					.SetToCurrentTimestamp(enrollment => enrollment.UpdatedOn)
+					.SetOnInsert(enrollment => enrollment.Tier, 0);
+				
+				if (!string.IsNullOrWhiteSpace(guildId))
+					update.Set(enrollment => enrollment.GuildId, guildId);
+			});
+
+		string[] missing = types
+			.Except(existing.Select(enrollment => enrollment.LeaderboardType))
+			.ToArray();
+
+		if (!missing.Any())
+			return existing;
+
+		Enrollment[] toAdd = missing.Select(type => new Enrollment
+		{
+			AccountID = accountId,
+			LeaderboardType = type,
+			Tier = 0,
+			GuildId = guildId
+		}).ToArray();
+		
+		mongo.Insert(toAdd);
+
+		return existing.Union(toAdd).ToArray();
+	}
+
 	public Enrollment FindOrCreate(string accountId, string leaderboardType, string guildId = null) => mongo
 		.Where(query => query
 			.EqualTo(enrollment => enrollment.AccountID, accountId)
