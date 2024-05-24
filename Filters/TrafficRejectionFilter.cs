@@ -44,7 +44,7 @@ public class TrafficRejectionFilter : PlatformFilter, IActionFilter
             return;
 
         CoveredRoutes = baseRoutes
-            .SelectMany(url => routes.Select(route => Path.Combine(url, route)))
+            .SelectMany(url => routes.Select(route => Path.Combine("/", url, route)))
             .Distinct()
             .ToArray();
     }
@@ -52,6 +52,9 @@ public class TrafficRejectionFilter : PlatformFilter, IActionFilter
     
     public void OnActionExecuting(ActionExecutingContext context)
     {
+        if (!CoveredRoutes.Any(url => url.Contains(context.HttpContext.Request.Path)))
+            return;
+        
         if (NextLockout > Timestamp.Now && LastRefresh > Timestamp.Now)
             return;
 
