@@ -116,21 +116,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         {
             _enrollment.DemoteInactivePlayers(type);
             _enrollment.FlagAsInactive(type);
-            long affected = _leaderboard.DecreaseSeasonCounter(type);
-            _leaderboard.RolloverRemainingKluge(type);
-            
-            Log.Info(Owner.Will, $"Season counter decreased.", data: new
-            {
-                leaderboard = type,
-                affected = affected
-            });
         }
-        
-        _leaderboard.RolloverSeasonsIfNeeded(data
-            .Select(rolloverData => rolloverData.LeaderboardType)
-            .Distinct()
-            .ToArray()
-        );
         
         _archive.DeleteOldArchives(ArchiveRetentionDays);
         Log.Local(Owner.Will, "Rollover complete.", emphasis: Log.LogType.ERROR);
@@ -138,9 +124,6 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
 
     protected override void PrimaryNodeWork()
     {
-#if DEBUG
-        Log.Verbose(Owner.Will, "Primary node active.");
-#endif
         UpdateLocalConfig();
         DateTime now = DateTime.UtcNow;
 		

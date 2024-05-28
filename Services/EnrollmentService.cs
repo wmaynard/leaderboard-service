@@ -97,17 +97,11 @@ public class EnrollmentService : MinqService<Enrollment>
 		.Limit(1)
 		.Update(update => update.Set(db => db.ActiveTier, activeTier));
 
-	// TD-16450: Seasonal rewards were not being sent when and only when a player was only scoring once
-	// per rollover.  There was a collision in PATCH /score where this method would accurately update
-	// the enrollment to be active for the season, but the endpoint had a later enrollment update that
-	// would override the active flag.  However, on subsequent scoring events, the endpoint would exit early
-	// and flag the player as active before the second enrollment update.
 	public void FlagAsActive(Enrollment enrollment, Leaderboard shard) => mongo
 		.Where(query => query.EqualTo(db => db.Id, enrollment.Id))
 		.Limit(1)
 		.Update(update => update
 			.Set(db => db.IsActive, true)
-			.Set(db => db.IsActiveInSeason, shard.SeasonsEnabled)
 			.Set(db => db.CurrentLeaderboardID, shard.Id)
 			.Set(db => db.ActiveTier, enrollment.Status == Enrollment.PromotionStatus.Acknowledged && enrollment.ActiveTier != enrollment.Tier
 				? enrollment.Tier
@@ -119,10 +113,6 @@ public class EnrollmentService : MinqService<Enrollment>
 	public long SetCurrentlyActive(string[] accountIds, bool isActive) => mongo
 		.Where(query => query.ContainedIn(enrollment => enrollment.AccountID, accountIds))
 		.Update(update => update.Set(enrollment => enrollment.IsActive, isActive));
-	
-	public long SetActiveInSeason(string[] accountIds, bool isActive) => mongo
-		.Where(query => query.ContainedIn(enrollment => enrollment.AccountID, accountIds))
-		.Update(update => update.Set(enrollment => enrollment.IsActiveInSeason, isActive));
 
 	public Enrollment[] SetActiveFlag(string[] accountIds, string type, bool active = true) => mongo
 		.Where(query => query
@@ -131,18 +121,12 @@ public class EnrollmentService : MinqService<Enrollment>
 		)
 		.UpdateAndReturn(update => update.Set(enrollment => enrollment.IsActive, active));
 
-	// TODO: MINQ is missing the functionality to do this on its own; it will need to be added.
-	private long UpdateSeasonalMaxTiers() => Require<EnrollmentService_Legacy>().UpdateSeasonalMaxTiers();
-
 	public long AcknowledgeRollover(string accountId, string type) => mongo
 		.Where(query => query
 			.EqualTo(enrollment => enrollment.AccountID, accountId)
 			.EqualTo(enrollment => enrollment.LeaderboardType, type)
 		)
-		.Update(update => update
-			.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Acknowledged)
-			.Set(enrollment => enrollment.SeasonEnded, false)
-		);
+		.Update(update => update.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Acknowledged));
 
 	private long AlterTier(string[] accountIds, string type, int? maxTier = null, int delta = 0)
 	{
@@ -173,22 +157,6 @@ public class EnrollmentService : MinqService<Enrollment>
 			.Update(update => update.Minimum(enrollment => enrollment.Tier, maxTier ?? int.MaxValue));
 		return output;
 	}
-
-	public string[] GetSeasonalRewardCandidates(string type, int tier) => mongo
-		.Where(query => query
-			.EqualTo(enrollment => enrollment.LeaderboardType, type)
-			.EqualTo(enrollment => enrollment.SeasonalMaxTier, tier)
-			.EqualTo(enrollment => enrollment.IsActiveInSeason, true)
-		)
-		.Project(enrollment => enrollment.AccountID);
-
-	public long ResetSeasonalMaxTier(string type) => mongo
-		.Where(query => query.EqualTo(enrollment => enrollment.LeaderboardType, type))
-		.Update(update => update
-			.Set(enrollment => enrollment.SeasonalMaxTier, -1)
-			.Set(enrollment => enrollment.SeasonEnded, true)
-			.Set(enrollment => enrollment.IsActiveInSeason, false)
-		);
 	
 	public long PromotePlayers(string[] accountIds, Leaderboard caller) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: 1);
 	public long DemotePlayers(string[] accountIds, Leaderboard caller, int levels = 1) => AlterTier(accountIds, caller.Type, caller.MaxTier, delta: levels * -1);
@@ -213,16 +181,4 @@ public class EnrollmentService : MinqService<Enrollment>
 				query.ContainedIn(enrollment => enrollment.LeaderboardType, types);
 		})
 		.ToList();
-
-	public long SeasonDemotion(string type, int tier, int newTier) => mongo
-		.Where(query => query
-			.EqualTo(enrollment => enrollment.LeaderboardType, type)
-			.EqualTo(enrollment => enrollment.Tier, tier)
-			.GreaterThan(enrollment => enrollment.Tier, newTier)
-		)
-		.Update(update => update
-			.Set(enrollment => enrollment.Tier, newTier)
-			.Set(enrollment => enrollment.Status, Enrollment.PromotionStatus.Demoted)
-			.Set(enrollment => enrollment.SeasonFinalTier, tier)
-		);
 }

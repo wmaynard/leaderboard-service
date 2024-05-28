@@ -50,8 +50,6 @@ public class AdminController : PlatformController
 		{
 			leaderboard.Validate();
 
-			leaderboard.RolloversRemaining = leaderboard.RolloversInSeason;
-
 			if (_leaderboardService.Count(leaderboard.Type) > 0)
 			{
 				// TODO: If the Max tier changes, delete abandoned tiers or create new tiers.
@@ -261,26 +259,6 @@ public class AdminController : PlatformController
 		return Ok(output);
 	}
 
-	[HttpPatch, Route("season")]
-	public ActionResult UpdateSeason()
-	{
-		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
-		int rolloversRemaining = Optional<int>(Leaderboard.FRIENDLY_KEY_SEASON_COUNTDOWN);
-		int rolloversInSeason = Optional<int>(Leaderboard.FRIENDLY_KEY_SEASON_ROLLOVERS);
-		
-		Log.Info(Owner.Will, "Updated leaderboard season information.", new RumbleJson
-		{
-			{ Leaderboard.FRIENDLY_KEY_TYPE, type },
-			{ Leaderboard.FRIENDLY_KEY_SEASON_ROLLOVERS, rolloversInSeason },
-			{ Leaderboard.FRIENDLY_KEY_SEASON_COUNTDOWN, rolloversRemaining }
-		});
-
-		return Ok(new RumbleJson
-		{
-			{ "modified", _leaderboardService.UpdateSeason(type, rolloversInSeason, rolloversRemaining) }
-		});
-	}
-
 	[HttpGet, Route("enrollments")]
 	public ActionResult GetUserEnrollments() => Ok(new RumbleJson
 	{
@@ -312,9 +290,7 @@ public class AdminController : PlatformController
 
 		Enrollment enrollment = _enrollmentService.FindOrCreate(accountId, type);
 		enrollment.Tier = newTier;
-		enrollment.SeasonalMaxTier = Math.Max(enrollment.Tier, newTier);
 		enrollment.IsActive = score > 0;
-		enrollment.IsActiveInSeason = score > 0;
 		enrollment.Status = Enrollment.PromotionStatus.Acknowledged;
 
 		_enrollmentService.Update(enrollment);
@@ -329,20 +305,15 @@ public class AdminController : PlatformController
 	{
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 		bool? active = Optional<bool?>(Enrollment.FRIENDLY_KEY_IS_ACTIVE);
-		bool? seasonActive = Optional<bool?>(Enrollment.FRIENDLY_KEY_IS_ACTIVE_SEASON);
 		string[] accountIds = Require<string[]>("accountIds");
 
-		if (active == null && seasonActive == null)
-			throw new PlatformException($"You must specify at least one non-null value for: {Enrollment.FRIENDLY_KEY_IS_ACTIVE} or {Enrollment.FRIENDLY_KEY_IS_ACTIVE_SEASON}");
+		if (active == null)
+			throw new PlatformException($"You must specify a non-null value for: {Enrollment.FRIENDLY_KEY_IS_ACTIVE}");
 
-		RumbleJson output = new RumbleJson();
-		if (active != null)
-			output["setAsActive"] = _enrollmentService.SetCurrentlyActive(accountIds, (bool)active);
-
-		if (seasonActive != null)
-			output["setAsActiveInSeason"] = _enrollmentService.SetActiveInSeason(accountIds, (bool)seasonActive);
-
-		return Ok(output);
+		return Ok(new RumbleJson
+		{
+			{ "setAsActive", _enrollmentService.SetCurrentlyActive(accountIds, (bool)active)}
+		});
 	}
 
 	[HttpPost, Route("debugRollover")]
@@ -375,25 +346,6 @@ public class AdminController : PlatformController
 			.ToList();
 
 		return Ok(leaderboard);
-	}
-
-	[HttpGet, Route("rolloversRemaining")]
-	public ActionResult GetLeaderboardDetails()
-	{
-		RumbleJson[] output = _leaderboardService
-			.GetRolloversRemaining()
-			.DistinctBy(leaderboard => leaderboard.Type)
-			.Select(leaderboard => new RumbleJson
-			{
-				{ Leaderboard.FRIENDLY_KEY_TYPE, leaderboard.Type },
-				{ Leaderboard.FRIENDLY_KEY_SEASON_ROLLOVERS, leaderboard.RolloversInSeason },
-				{ Leaderboard.FRIENDLY_KEY_SEASON_COUNTDOWN, leaderboard.RolloversRemaining }
-			})
-			.ToArray();
-		return Ok(new RumbleJson
-		{
-			{ "leaderboards", output }
-		});
 	}
 
 	[HttpPatch, Route("startTime")]
