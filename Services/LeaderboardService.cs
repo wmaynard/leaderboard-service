@@ -42,8 +42,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		{
 			Type = leaderboard.Type,
 			PlayerCount = leaderboard.Scores.Count,
-			Tier = leaderboard.Tier,
-			RolloversRemaining = leaderboard.RolloversRemaining
+			Tier = leaderboard.Tier
 		}))
 		.ToList()
 		.GroupBy(obj => new
@@ -58,8 +57,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			PlayerCounts = group
 				.Select(g => (long)g.PlayerCount)
 				.OrderByDescending(_ => _)
-				.ToArray(),
-			RolloversRemaining = group.First().RolloversRemaining
+				.ToArray()
 		})
 		.OrderBy(stat => stat.LeaderboardId)
 		.ThenBy(stat => stat.Tier)
@@ -79,8 +77,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				session: session,
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
-					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
-					// .Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
@@ -92,8 +88,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				filter: leaderboard => leaderboard.Type == template.Type,
 				update: Builders<Leaderboard>.Update
 					.Set(leaderboard => leaderboard.Description, template.Description)
-					.Set(leaderboard => leaderboard.RolloversInSeason, template.RolloversInSeason)
-					// .Set(leaderboard => leaderboard.RolloversRemaining, template.RolloversRemaining)
 					.Set(leaderboard => leaderboard.RolloverType, template.RolloverType)
 					.Set(leaderboard => leaderboard.TierRules, template.TierRules)
 					.Set(leaderboard => leaderboard.TierCount, template.TierCount)
@@ -609,16 +603,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			filter: Builders<Leaderboard>.Filter.Lte(field: leaderboard => leaderboard.StartTime, Timestamp.Now)
 		) != 0;
 
-	public long DecreaseSeasonCounter(string type) => LeaderboardIsActive(type)
-		? _collection.UpdateMany(
-			filter: Builders<Leaderboard>.Filter.And(
-				Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
-				Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversInSeason, 0)
-			),
-			update: Builders<Leaderboard>.Update.Inc(leaderboard => leaderboard.RolloversRemaining, -1)
-		).ModifiedCount
-		: 0;
-
 	private async Task<Leaderboard> Rollover(Leaderboard leaderboard)
 	{
 #if DEBUG
@@ -696,10 +680,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			}
 
 			_enrollmentService.LinkArchive(leaderboard.Scores.Select(entry => entry.AccountID), leaderboard.Type, archive.Id, leaderboard.Id);
-
-			// TD-16684: Prior to this ticket, promotion was only enabled if not using seasons, or if the season had at least one rollover remaining.
-			// Consequently, players would miss out on the final promotion of the season.  This was built to specification via a Meet call, but
-			// later was decided to be undesirable, as players felt the final week of a season was worthless.
+			
 			if (string.IsNullOrWhiteSpace(leaderboard.GuildId) && leaderboard.MaxTier > 0)
 			{
 				if (promotionPlayers.Length + demotionPlayers.Length > 0)
@@ -737,103 +718,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.Scores, new List<Entry>())
 		);
 
-	public void RolloverSeasonsIfNeeded(string[] types)
-	{
-		if (!types.Any())
-		{
-			Log.Info(Owner.Will, "No need to rollover seasons; no types were specified");
-			return;
-		}
-		
-		try
-		{
-			foreach (string type in types)
-			{
-				long affected = _collection.UpdateMany(
-					filter: Builders<Leaderboard>.Filter.And(
-						Builders<Leaderboard>.Filter.Lte(leaderboard => leaderboard.RolloversRemaining, 0),
-						Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversInSeason, 0),
-						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type)
-					),
-					update: PipelineDefinition<Leaderboard, Leaderboard>.Create($"{{ $set: {{ {Leaderboard.DB_KEY_SEASON_COUNTDOWN}: '${Leaderboard.DB_KEY_SEASON_ROLLOVERS}' }} }}")
-				).ModifiedCount;
-			
-				if (affected == 0) // No leaderboards are ready for season rollover; we don't need to do anything to this type.
-					continue;
-			
-				Log.Info(Owner.Will, "Reset season rollover counter.", data: new
-				{
-					Type = type
-				});
-			
-				Leaderboard board = _collection.Find(leaderboard => leaderboard.Type == type).FirstOrDefault();
-				RumbleJson rewardData = new RumbleJson();
-					
-				for (int tier = 0; tier <= board.MaxTier; tier++)
-				{
-					Reward prize = null;
-					// Grant rewards based on the max season achieved.
-					try
-					{
-						string[] accounts = _enrollmentService.GetSeasonalRewardCandidates(type, tier);
-						prize = board.TierRules[tier].SeasonReward;
-						prize.RankingData = new RumbleJson
-						{
-							{ "rewardType", "season" },
-							{ "leaderboardId", type },
-							{ "leaderboardSeasonalMaxTier", tier },
-							{ "leaderboardSeasonalResetTier", board.TierRules[tier].MaxTierOnSeasonReset }
-						};
-						long granted = _rewardService.Grant(prize, accounts);
-						if (granted > 0 && granted == accounts.Length)
-							Log.Info(Owner.Will, $"Granted season rewards to players.", data: new
-							{
-								AccountIds = accounts,
-								GrantedCount = granted,
-								Count = accounts.Length
-							});
-						else if (granted > 0)
-							Log.Error(Owner.Will, "Granted season rewards to some players but not all", data: new
-							{
-								AccountIds = accounts,
-								GrantedCount = granted,
-								Count = accounts.Length
-							});
-						rewardData[$"tier_{tier}"] = accounts.Length;
-					}
-					catch (Exception e)
-					{
-						Log.Error(Owner.Will, "Could not issue season rewards.", data: new
-						{
-							Prize = prize
-						}, exception: e);
-					}
-
-					// Demote players based on the max season number.
-					try
-					{
-						_enrollmentService.SeasonDemotion(board.Type, tier, Math.Min(tier, board.TierRules[tier].MaxTierOnSeasonReset));
-					}
-					catch (Exception e)
-					{
-						Log.Error(Owner.Default, "Unable to demote players during a season rollover.", exception: e);
-					}
-				}
-
-				rewardData["total"] = rewardData.Sum(pair => (int)pair.Value);
-				Log.Info(Owner.Will, "Season rewards sent.", data: new
-				{
-					Type = type,
-					RewardData = rewardData
-				});
-				_enrollmentService.ResetSeasonalMaxTier(type);
-			}
-		}
-		catch (Exception e)
-		{
-			Log.Error(Owner.Will, "Unable to perform season rollover tasks.", exception: e);
-		}
-	}
 	public List<Entry> CalculateTopScores(Enrollment enrollment) => _collection
 		.Find(filter: CreateFilter(enrollment, allowLocked: true))
 		.Sort(Builders<Leaderboard>.Sort.Descending($"{Leaderboard.DB_KEY_SCORES}.$.{Entry.DB_KEY_SCORE}"))
@@ -841,48 +725,6 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		.Limit(Leaderboard.PAGE_SIZE)
 		.ToList()
 		.FirstOrDefault();
-
-	/// <summary>
-	/// For an unknown reason, the RolloversRemaining field sometimes does not decrement, even though the modified count
-	/// from DecreaseSeasonCounter says it affected all records.  It's possible that there's a write conflict somewhere
-	/// or a transaction is preventing the write.  This method is not a permanent solution, but rather one of necessity
-	/// in the interest of time.
-	/// </summary>
-	public void RolloverRemainingKluge(string type)
-	{
-		int minRolloversRemaining = _collection
-			.Find(leaderboard => leaderboard.Type == type)
-			.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.RolloversRemaining))
-			.ToList()
-			.OrderBy(_ => _)
-			.FirstOrDefault();
-
-		long affected = _collection
-			.UpdateMany(
-				filter: Builders<Leaderboard>.Filter.And(
-					Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
-					Builders<Leaderboard>.Filter.Gt(leaderboard => leaderboard.RolloversRemaining, minRolloversRemaining)
-				),
-				update: Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.RolloversRemaining, minRolloversRemaining)
-			).ModifiedCount;
-		
-		if (affected > 0)
-			Log.Error(Owner.Will, "Rollover counts were out of sync but now fixed.  A Mongo transaction may be misbehaving.");
-	}
-
-	public long UpdateSeason(string type, int season, int remaining) => _collection
-		.UpdateMany(
-			filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
-			update: season switch
-			{
-				> 0 when remaining > 0 => Builders<Leaderboard>.Update
-					.Set(leaderboard => leaderboard.RolloversInSeason, season)
-					.Set(leaderboard => leaderboard.RolloversRemaining, remaining),
-				> 0 => Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.RolloversInSeason, season),
-				0 when remaining > 0 => Builders<Leaderboard>.Update.Set(leaderboard => leaderboard.RolloversRemaining, remaining),
-				_ => throw new PlatformException("Invalid rollover changes provided.")
-			}
-		).ModifiedCount;
 	
 	public Leaderboard FindById(string id) => _collection
 		.Find(Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, id))
@@ -927,22 +769,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 			Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, type),
 			Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.ShardID, null)
 		))
-		// .Project(Builders<Leaderboard>.Projection.Expression(leaderboard => leaderboard.Scores))
 		.FirstOrDefault();
-	// .OrderByDescending(entry => entry.Score)
-	// .Take(limit)
-	// .ToList();
-
-	public Leaderboard[] GetRolloversRemaining() => _collection
-		.Find(leaderboard => leaderboard.RolloversInSeason > 0)
-		.Project(Builders<Leaderboard>.Projection.Expression(leaderboard => new Leaderboard
-		{
-			Type = leaderboard.Type,
-			RolloversRemaining = leaderboard.RolloversRemaining,
-			RolloversInSeason = leaderboard.RolloversInSeason
-		}))
-		.ToList()
-		.ToArray();
 
 	public long UpdateStartTime(string type, long timestamp) => _collection
 		.UpdateMany(

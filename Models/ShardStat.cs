@@ -8,5 +8,4 @@ public class ShardStat : PlatformDataModel
     public int Tier { get; set; }
     public long TotalShards => PlayerCounts.Length;
     public long[] PlayerCounts { get; set; }
-    public int RolloversRemaining { get; set; }
 }

@@ -33,7 +33,7 @@ By default, the service returns both top and nearby ranks.  While some game lead
 | Rollover           | A time that a leaderboard locks down, distributes rewards, archives itself, and resets its scores.                                                                                                                                                                                     |
 | Rules              | A generic term for how a leaderboard governs itself.  Can refer to either reward distribution or rollover type.                                                                                                                                                                        |
 | Score              | An arbitrary numeric value indicating a player's progress.  Like in an arcade machine, scores should be varied enough that ties are rare.                                                                                                                                              |
-| Season             | A period of time, defined as a number of rollovers.  At the end of a season, a supplemental reward is sent to players for reaching a specific tier.  Players are then possibly demoted to a lower tier to encourage climbing the ranks again.                                          |
+| Season             | Only used in Ladder.  As of 5/23, seasons were removed from leaderboards.                                                                                                                                                                                                              |
 | Shard              | A subset of a leaderboard's players.  Shards are useful for driving competition and seeing immediate results.  Sharded leaderboards operate the same as regular ones, but limited in player count.  Shards can also be "Guild Shards", accessible only to members of a specific guild. |
 | Tier               | A subset of a leaderboard type, ideally grouping players of similar skill together.  Higher tiers yield better rewards.                                                                                                                                                                |
 | Winner             | A player who received at least one reward from a leaderboard's rollover.                                                                                                                                                                                                               |
@@ -169,14 +169,12 @@ Response:
         {
             "tier": 1,
             "activeTier": 0,                                 // Indicates the last tier a user was in when DELETE /notification was called.
-            "seasonalMaxTier": -1,                           // Determines the season reward; highest tier a player hit in the season.
             "isActive": false,
             "archives": [
                 "6347060e3343959668563dd4",
                 "6347061b3343959668563de2"
             ],
             "promotionStatus": -1,                           // Acknowledged = -1, Unchanged = 0, Demoted = 1, Promoted = 2
-            "seasonEnded": false,                            // Also cleared by DELETE /notification
             "id": "634705e83343959668563dcb"
         },
       ..

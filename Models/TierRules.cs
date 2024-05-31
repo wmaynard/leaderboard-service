@@ -26,7 +26,6 @@ public class TierRules : PlatformDataModel
 	public const string FRIENDLY_KEY_DEMOTION_PERCENTAGE = "demotionPercentage";
 	public const string FRIENDLY_KEY_PLAYERS_PER_SHARD = "playersPerShard";
 	public const string FRIENDLY_KEY_REWARDS = "rewards";
-	public const string FRIENDLY_KEY_SEASON_REWARDS = "seasonalReward";
 	public const string FRIENDLY_KEY_TIER_RESET = "maxTierOnSeasonEnd";
 		
 	[BsonElement(DB_KEY_TIER), BsonRequired]
@@ -56,10 +55,6 @@ public class TierRules : PlatformDataModel
 	[BsonElement(DB_KEY_REWARDS), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_REWARDS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public Reward[] Rewards { get; set; }
-	
-	[BsonElement(DB_KEY_SEASON_REWARDS), BsonIgnoreIfNull]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_REWARDS), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public Reward SeasonReward { get; set; }
 	
 	[BsonElement(DB_KEY_TIER_RESET)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER_RESET)]

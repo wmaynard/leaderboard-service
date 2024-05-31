@@ -16,25 +16,17 @@ public class Enrollment : PlatformCollectionDocument
 	internal const string DB_KEY_LEADERBOARD_ID = "current";
 	internal const string DB_KEY_LEADERBOARD_TYPE = "type";
 	internal const string DB_KEY_TIER = "tier";
-	internal const string DB_KEY_SEASONAL_TIER = "seasonMax";
 	internal const string DB_KEY_ACTIVE = "active";
-	internal const string DB_KEY_ACTIVE_SEASON = "sActive";
 	internal const string DB_KEY_ACTIVE_TIER = "activeTier";
 	internal const string DB_KEY_PAST_LEADERBOARDS = "past";
 	internal const string DB_KEY_PROMOTION_STATUS = "promotion";
-	internal const string DB_KEY_SEASON_OVER = "seasonEnd";
-	internal const string DB_KEY_SEASON_FINAL_TIER = "seasonEndTier";
 
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_ACTIVE_TIER = "activeTier";
 	public const string FRIENDLY_KEY_LEADERBOARD_ID = "currentShardId";
-	public const string FRIENDLY_KEY_SEASONAL_TIER = "seasonalMaxTier";
 	public const string FRIENDLY_KEY_IS_ACTIVE = "isActive";
-	public const string FRIENDLY_KEY_IS_ACTIVE_SEASON = "isActiveInSeason";
 	public const string FRIENDLY_KEY_PAST_LEADERBOARDS = "archives";
 	public const string FRIENDLY_KEY_PROMOTION_STATUS = "promotionStatus";
-	public const string FRIENDLY_KEY_SEASON_OVER = "seasonEnded";
-	public const string FRIENDLY_KEY_SEASON_FINAL_TIER = "seasonFinalTier";
 	
 	[BsonElement(DB_KEY_ACCOUNT_ID), BsonRequired]
 	[JsonIgnore]
@@ -59,17 +51,9 @@ public class Enrollment : PlatformCollectionDocument
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACTIVE_TIER)]
 	public int ActiveTier { get; set; }
 	
-	[BsonElement(DB_KEY_SEASONAL_TIER)]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASONAL_TIER)]
-	public int SeasonalMaxTier { get; set; }
-	
 	[BsonElement(DB_KEY_ACTIVE)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_IS_ACTIVE)]
 	public bool IsActive { get; set; }
-	
-	[BsonElement(DB_KEY_ACTIVE_SEASON)]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_IS_ACTIVE_SEASON)]
-	public bool IsActiveInSeason { get; set; }
 	
 	[BsonElement(DB_KEY_PAST_LEADERBOARDS)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_PAST_LEADERBOARDS)]
@@ -78,14 +62,6 @@ public class Enrollment : PlatformCollectionDocument
 	[BsonElement(DB_KEY_PROMOTION_STATUS)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_PROMOTION_STATUS)]
 	public PromotionStatus Status { get; set; }
-	
-	[BsonElement(DB_KEY_SEASON_OVER)]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_OVER)]
-	public bool SeasonEnded { get; set; }
-	
-	[BsonElement(DB_KEY_SEASON_FINAL_TIER), BsonIgnoreIfNull]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_FINAL_TIER), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-	public int SeasonFinalTier { get; set; }
 	
 	[BsonElement("updated")]
 	[JsonIgnore]

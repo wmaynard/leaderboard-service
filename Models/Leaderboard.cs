@@ -28,8 +28,6 @@ public class Leaderboard : PlatformCollectionDocument
 	internal const string DB_KEY_RESETTING = "lock";
 	internal const string DB_KEY_ROLLOVER_TYPE = "rtype";
 	internal const string DB_KEY_SCORES = "scores";
-	internal const string DB_KEY_SEASON_COUNTDOWN = "remaining";
-	internal const string DB_KEY_SEASON_ROLLOVERS = "season";
 	internal const string DB_KEY_SHARD_ID = "shard";
 	internal const string DB_KEY_START_TIME = "start";
 	internal const string DB_KEY_TIER = "tier";
@@ -45,8 +43,6 @@ public class Leaderboard : PlatformCollectionDocument
 	public const string FRIENDLY_KEY_ROLLOVER_TYPE_STRING = "rolloverTypeVerbose";
 	public const string FRIENDLY_KEY_START_TIME = "startsOn";
 	public const string FRIENDLY_KEY_SCORES = "scores";
-	public const string FRIENDLY_KEY_SEASON_COUNTDOWN = "rolloversRemaining";
-	public const string FRIENDLY_KEY_SEASON_ROLLOVERS = "rolloversInSeason";
 	public const string FRIENDLY_KEY_SHARD_ID = "shardId";
 	public const string FRIENDLY_KEY_TIER = "tier";
 	public const string FRIENDLY_KEY_TIER_COUNT = "tierCount";
@@ -85,14 +81,6 @@ public class Leaderboard : PlatformCollectionDocument
 	[BsonIgnore]
 	[JsonIgnore]
 	public bool IsFull => Scores.Count >= CurrentTierRules.PlayersPerShard;
-
-	[BsonElement(DB_KEY_SEASON_ROLLOVERS)]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_ROLLOVERS)]
-	public int RolloversInSeason { get; set; }
-	
-	[BsonElement(DB_KEY_SEASON_COUNTDOWN)]
-	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SEASON_COUNTDOWN)]
-	public int RolloversRemaining { get; set; }
 	
 	[BsonElement(DB_KEY_TIER)]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIER)]
@@ -119,10 +107,6 @@ public class Leaderboard : PlatformCollectionDocument
 	[JsonIgnore]
 	public Reward[] CurrentTierRewards => CurrentTierRules.Rewards
 		?? throw new InvalidLeaderboardException(this, $"Leaderboard tier rewards not defined for leaderboard {Type}-{Id}.");
-	
-	[BsonIgnore]
-	[JsonIgnore]
-	public bool SeasonsEnabled => RolloversInSeason > 0;
 	
 	[BsonElement(DB_KEY_SHARD_ID), BsonIgnoreIfNull]
 	[JsonInclude, JsonPropertyName(FRIENDLY_KEY_SHARD_ID), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -256,8 +240,6 @@ public class Leaderboard : PlatformCollectionDocument
 
 		RumbleJson output = new ()
 		{
-			{ FRIENDLY_KEY_SEASON_ROLLOVERS, RolloversInSeason },
-			{ FRIENDLY_KEY_SEASON_COUNTDOWN, RolloversRemaining },
 			{ FRIENDLY_KEY_SHARD_ID, ShardID ?? Id },
 			{ FRIENDLY_KEY_TIER, Tier },
 			{ FRIENDLY_KEY_TYPE, Type },
@@ -291,8 +273,6 @@ public class Leaderboard : PlatformCollectionDocument
 		Test(condition: TierCount > 0, error: $"{FRIENDLY_KEY_TIER_COUNT} must be greater than 0.", ref errors);
 		Test(condition: TierRules.Any(), error: $"{FRIENDLY_KEY_TIER_RULES} must be defined for {Type}.", ref errors);
 		Test(condition: (TierRules?.Length ?? 0) >= TierCount, error: $"Must have at least {FRIENDLY_KEY_TIER_COUNT} tier rules defined.", ref errors);
-		Test(condition: RolloversInSeason != 0, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be non-zero; use -1 if not using Seasons.", ref errors);
-		Test(condition: RolloversInSeason < 0 || RolloversInSeason > TierCount, error: $"{FRIENDLY_KEY_SEASON_ROLLOVERS} must be greater than {FRIENDLY_KEY_TIER_COUNT}.", ref errors);
 		Test(condition: StartTime <= 0, error: $"{FRIENDLY_KEY_START_TIME} must be greater than 0.", ref errors);
 
 		foreach (TierRules rules in TierRules)
@@ -306,12 +286,6 @@ public class Leaderboard : PlatformCollectionDocument
 				Test(
 					condition: rules.PlayersPerShard >= Math.Max(rules.PromotionRank, rules.DemotionRank),
 					error: $"'{Models.TierRules.FRIENDLY_KEY_PLAYERS_PER_SHARD}' must be greater than promotion and demotion rules if it's a non-negative number.", 
-					ref errors
-				);
-			if (RolloversInSeason > 0)
-				Test(
-					condition: rules.SeasonReward != null,
-					error: $"'{Models.TierRules.FRIENDLY_KEY_SEASON_REWARDS}' must be non-null when enabling seasons.",
 					ref errors
 				);
 			

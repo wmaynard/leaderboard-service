@@ -125,28 +125,6 @@ public class RewardSenderService : QueueService<RewardSenderService.RewardData>
                     if (reward.Expiration == default)
                         reward.Expiration = Timestamp.OneMonthFromNow;
 
-                    #region REMOVE_WITH_SEASONS
-                    if (reward.RankingData?.Optional<string>("rewardType") != "season")
-                        return reward;
-                    
-                    try
-                    {
-                        Enrollment enrollment = _enrollments
-                            .Find(reward.AccountId, reward.RankingData.Require<string>("leaderboardId"))
-                            .First();
-                        reward.RankingData["leaderboardCurrentTier"] = enrollment.Tier;
-                        reward.RankingData["leaderboardSeasonFinal"] = enrollment.SeasonFinalTier;
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Warn(Owner.Will, "Unable to attach player-specific tier information to seasonal rewards.", data: new
-                        {
-                            accountId = reward.AccountId
-                        }, exception: e);
-                    }
-
-                    #endregion REMOVE_WITH_SEASONS
-
                     return reward;
                 })
                 .ToArray();
