@@ -40,7 +40,7 @@ public class TopController : PlatformController
 	{
 		int score = Require<int>("score");
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
-		ScoreMode mode = Require<ScoreMode>("mode");
+		ScoreMode mode = Optional<ScoreMode>("mode");
 		mode = (ScoreMode)Math.Min((int) ScoreMode.IndividualAndGuild, Math.Max((int)ScoreMode.IndividualOnly, (int)mode));
 
 		return Ok();
