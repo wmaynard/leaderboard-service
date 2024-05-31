@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -25,11 +26,24 @@ public class TopController : PlatformController
 	private RewardsService _rewardsService;
 #pragma warning restore
 
+	[Flags]
+	public enum ScoreMode
+	{
+		IndividualOnly = 0b0001,
+		GuildOnly = 0b0010,
+		IndividualAndGuild = 0b0011,
+	}
+	
+	
 	[HttpPatch, Route("score"), HealthMonitor(weight: 1)]
 	public ActionResult AddScore()
 	{
 		int score = Require<int>("score");
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		ScoreMode mode = Require<ScoreMode>("mode");
+		mode = (ScoreMode)Math.Min((int) ScoreMode.IndividualAndGuild, Math.Max((int)ScoreMode.IndividualOnly, (int)mode));
+
+		return Ok();
 
 		if (score == 0)
 			return Ok();
