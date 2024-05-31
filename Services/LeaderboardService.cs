@@ -191,7 +191,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 					)
 				)
 				.SortByDescending(leaderboard => leaderboard.GuildId)  // The sort here makes sure that the template shard is last
-				.ThenByDescending(leaderboard => leaderboard.CreatedOn)
+				.ThenBy(leaderboard => leaderboard.CreatedOn)          // If somehow we have more than one guild shard created, use the oldest one
 				.FirstOrDefault();
 
 			// If the Guild ID is null, no guild shard exists for this leaderboard yet; create one.
