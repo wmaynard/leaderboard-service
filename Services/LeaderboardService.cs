@@ -614,7 +614,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 		List<Entry> ranks = leaderboard.CalculateRanks();
 
 		if (!leaderboard.Scores.Any())
-			Log.Warn(Owner.Will, "Leaderboard shard has no valid scores to grant rewards to; if this is a guild shard, the guild likely disbanded.", data: new
+			Log.Verbose(Owner.Will, "Leaderboard shard has no valid scores to grant rewards to; if this is a guild shard, the guild likely disbanded.", data: new
 			{
 				ShardId = leaderboard.ShardID
 			});
