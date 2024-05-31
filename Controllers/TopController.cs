@@ -42,45 +42,47 @@ public class TopController : PlatformController
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
 		ScoreMode mode = Optional<ScoreMode>("mode");
 		mode = (ScoreMode)Math.Min((int) ScoreMode.IndividualAndGuild, Math.Max((int)ScoreMode.IndividualOnly, (int)mode));
-
-		return Ok();
-
+		
 		if (score == 0)
 			return Ok();
-
-		string guildId = Optional<string>("guildId");
-		bool useGuild = !string.IsNullOrWhiteSpace(guildId) && guildId.CanBeMongoId();
 		
-		if (useGuild && !IsInGuild(Token.Authorization, guildId))
-			throw new PlatformException("Attempted to score on guild leaderboard shard but not in specified guild.");
-
-		Enrollment enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type, guildId);
-		Leaderboard leaderboard = _leaderboardService.AddScore(enrollment, score, useGuild);
-
-		if (enrollment.CurrentLeaderboardID != leaderboard.Id)
-			_enrollmentService.FlagAsActive(enrollment, leaderboard);
-
-		return Ok();
-	}
-
-	private bool IsInGuild(string token, string guildId)
-	{
-		bool output = true;
-		_apiService
-			.Request("http://localhost:5101/guild")
-			.AddAuthorization(token)
-			.OnSuccess(response =>
+		string guildId = null;
+		Enrollment enrollment = null;
+		Leaderboard shard = null;
+		HashSet<string> idsUpdated = new();
+		
+		if (mode.HasFlag(ScoreMode.GuildOnly))
+		{
+			_apiService
+				.Request("/guild")
+				.AddAuthorization(Token.Authorization)
+				.OnSuccess(response => guildId = response.Optional<Guild>("guild")?.Id)
+				.OnFailure(_ => {  })
+				.Get();
+			enrollment ??= _enrollmentService.FindOrCreate(Token.AccountId, type, guildId);
+			if (!string.IsNullOrWhiteSpace(guildId))
 			{
-				output = guildId == response.Optional<Guild>("guild")?.Id;
-			})
-			.OnFailure(_ => output = false)
-			.Get();
+				shard = _leaderboardService.AddScore(enrollment, score, useGuild: true);
+				idsUpdated.Add(shard.Id);
+				if (enrollment.CurrentLeaderboardID != shard.Id)
+					_enrollmentService.FlagAsActive(enrollment, shard);
+			}
+		}
+		
+		if (mode.HasFlag(ScoreMode.IndividualOnly))
+		{
+			enrollment = _enrollmentService.FindOrCreate(Token.AccountId, type, guildId);
+			shard = _leaderboardService.AddScore(enrollment, score, useGuild: false);
+			idsUpdated.Add(shard.Id);
+			if (enrollment.CurrentLeaderboardID != shard.Id)
+				_enrollmentService.FlagAsActive(enrollment, shard);
+		}
 
-		return output;
+		return Ok(new RumbleJson
+		{
+			{ "shardsUpdated", idsUpdated.Count }
+		});
 	}
-
-	// TODO: Move to admin controller
-	
 	
 	[HttpGet, Route("rankings")]
 	public ActionResult GetRankings()
