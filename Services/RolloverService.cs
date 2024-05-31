@@ -82,7 +82,7 @@ public class RolloverService : QueueService<RolloverService.RolloverData>
         // _leaderboard.BeginRollover(rolloverType, out string[] ids, out string[] types);
         _leaderboard.BeginRollover(rolloverType, out RumbleJson[] data);
         
-        CreateTasks(data
+        CreateUntrackedTasks(data
             .Select(json => new RolloverData
             {
                 LeaderboardId = json.Require<string>(Leaderboard.DB_KEY_ID),
