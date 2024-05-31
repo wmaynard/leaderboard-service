@@ -177,30 +177,56 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 				options: options
 			);
 
+		// TD-20905 Fix for Guild leaderboards creating separate shards for every guild member rather than adding them to the same shard.
 		if (output == null && useGuild)
 		{
-			Leaderboard template = _collection.Find(
+			Leaderboard guildShard = _collection.Find(
 					Builders<Leaderboard>.Filter.And(
 						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Type, enrollment.LeaderboardType),
-						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier)
+						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
+						Builders<Leaderboard>.Filter.Or(
+							Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.GuildId, enrollment.GuildId),
+							Builders<Leaderboard>.Filter.Exists(leaderboard => leaderboard.GuildId, false)
+						)
 					)
 				)
-				.Limit(1)
-				.First();
-			template.ChangeId();
-			template.Scores = new()
-			{
-				new Entry
-				{
-					AccountID = enrollment.AccountID,
-					Score = 0
-				}
-			};
-			template.GuildId = enrollment.GuildId;
-			template.ShardID = ObjectId.GenerateNewId().ToString();
-			_collection.InsertOne(template);
+				.SortByDescending(leaderboard => leaderboard.GuildId)  // The sort here makes sure that the template shard is last
+				.ThenByDescending(leaderboard => leaderboard.CreatedOn)
+				.FirstOrDefault();
 
-			return AddToExistingScore(enrollment, score, useGuild, session);
+			// If the Guild ID is null, no guild shard exists for this leaderboard yet; create one.
+			if (string.IsNullOrWhiteSpace(guildShard.GuildId))
+			{
+				guildShard.ChangeId();
+				guildShard.Scores = new()
+				{
+					new Entry
+					{
+						AccountID = enrollment.AccountID,
+						Score = 0
+					}
+				};
+				guildShard.GuildId = enrollment.GuildId;
+				guildShard.ShardID = ObjectId.GenerateNewId().ToString();
+				_collection.InsertOne(guildShard);
+
+				return AddToExistingScore(enrollment, score, useGuild, session);
+			}
+			// If the guild shard doesn't have the current player, add them to the set and return the leaderboard.
+			if (guildShard.Scores.All(entry => entry.AccountID != enrollment.AccountID))
+				return _collection.FindOneAndUpdate(
+					filter: Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Id, guildShard.Id),
+					update: Builders<Leaderboard>.Update.AddToSet(leaderboard => leaderboard.Scores, new Entry
+					{
+						AccountID = enrollment.AccountID,
+						LastUpdated = Timestamp.Now,
+						Score = score
+					}),
+					options: new FindOneAndUpdateOptions<Leaderboard>
+					{
+						ReturnDocument = ReturnDocument.After
+					}
+				);
 		}
 
 		return output;
