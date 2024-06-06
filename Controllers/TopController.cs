@@ -110,7 +110,9 @@ public class TopController : PlatformController
 		RumbleJson output = new()
 		{
 			{ "enrollments", enrollments },
-			{ "leaderboards", shards
+			{ "leaderboards", shards   // TODO: Remove the OrderBy / ThenBy here.  This is a kluge to fix a hard-coded index read on the game server to differentiate the public vs guild shard.
+				.OrderBy(shard => shard.Type)
+				.ThenBy(shard => shard.GuildId)
 				.Select(shard => shard.GenerateScoreResponse(Token.AccountId))
 				.Where(json => json != null)
 			}
