@@ -180,7 +180,8 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 						Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.Tier, enrollment.Tier),
 						Builders<Leaderboard>.Filter.Or(
 							Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.GuildId, enrollment.GuildId),
-							Builders<Leaderboard>.Filter.Exists(leaderboard => leaderboard.GuildId, false)
+							Builders<Leaderboard>.Filter.Exists(leaderboard => leaderboard.GuildId, false),
+							Builders<Leaderboard>.Filter.Eq(leaderboard => leaderboard.GuildId, null)
 						)
 					)
 				)
