@@ -75,10 +75,32 @@ public class AdminController : PlatformController
 	}
 
 	[HttpGet, Route("shardStats")]
-	public ActionResult GetShardStats() => Ok(new RumbleJson
+	public ActionResult GetShardStats()
 	{
-		{ "stats", _leaderboardService.ProjectShardStats() }
-	});
+		ShardStat[] stats = _leaderboardService.ProjectShardStats();
+
+		// DM from Ryan on 6/10/24: After getting some feedback last rollover, I think we want to change the calculation
+		// to no longer include scores of 0 in the population stats calculations.
+		// This comment specifically refers to ladder and not leaderboards, but it's not a bad idea to include this
+		// in admin information for Portal's use for leaderboards.
+		foreach (ShardStat stat in stats.Where(stat => stat.PlayerCounts.Any(count => count > 0)))
+		{
+			string key = $"stat_{stat.LeaderboardId}";
+			
+			if (_cacheService.HasValue(key, out long activePlayers))
+				stat.ActivePlayers = activePlayers;
+			else
+			{
+				stat.ActivePlayers = _enrollmentService.CountActivePlayers(stat.LeaderboardId);
+				_cacheService.Store(key, stat.ActivePlayers, expirationMS: IntervalMs.TenMinutes);
+			}
+		}
+		
+		return Ok(new RumbleJson
+		{
+			{ "stats", stats }
+		});
+	}
 
 	[HttpPatch, Route("scores")]
 	public ActionResult SetScoresManually()
@@ -393,8 +415,6 @@ public class AdminController : PlatformController
 		}
 		else
 			output = _ladderService.GetRankings().ToArray();
-
-		
 
 		return Ok(new RumbleJson
 		{

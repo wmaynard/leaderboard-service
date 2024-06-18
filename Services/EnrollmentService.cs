@@ -29,6 +29,13 @@ public class EnrollmentService : MinqService<Enrollment>
 		})
 		.Project(enrollment => enrollment.AccountID);
 
+	public long CountActivePlayers(string leaderboardType) => mongo
+		.Where(query => query
+			.EqualTo(enrollment => enrollment.LeaderboardType, leaderboardType)
+			.EqualTo(enrollment => enrollment.IsActive, true)
+		)
+		.Count();
+
 	public Enrollment[] FindMultiple(string accountId, string[] types, string guildId = null)
 	{
 		Enrollment[] existing = mongo
