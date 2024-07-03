@@ -4,10 +4,12 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Services;
+using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
 using Rumble.Platform.LeaderboardService.Exceptions;
@@ -66,6 +68,21 @@ public class TopController : PlatformController
 				idsUpdated.Add(shard.Id);
 				if (enrollment.CurrentLeaderboardID != shard.Id)
 					_enrollmentService.FlagAsActive(enrollment, shard);
+				
+				if (shard.Scores.Count(entry => entry.AccountID == Token.AccountId) >= 2)
+					Log.Error(Owner.Will, "Shard has more than one entry for an account; something is wrong.", data: new
+					{
+						Shard = shard,
+						IncomingScore = score
+					});
+				
+				if (shard.Scores.Count == 1)
+					Log.Info(Owner.Will, "New guild shard spawned.", data: new
+					{
+						Help = "If this happens multiple times for a single account ID / leaderboard type, there may be a problem in Mongo.",
+						Shard = shard,
+						IncomingSocre = score
+					});
 			}
 		}
 		

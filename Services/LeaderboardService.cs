@@ -433,7 +433,7 @@ public class LeaderboardService : PlatformMongoService<Leaderboard>
 	/// <param name="score">The amount of score to add to a player's record.</param>
 	/// <param name="withRetry">If true, will attempt to demote the player to an appropriate tier before throwing an exception.</param>
 	/// <param name="useGuild">If true, will attempt to return the shard for the guild.  If one is not found, it will be created.</param>
-	/// <returns>A leaderboard if it was successful; otherwise null.</returns
+	/// <returns>A leaderboard if it was successful; otherwise null.</returns>
 	private Leaderboard AddScore(Enrollment enrollment, int score, bool withRetry, bool useGuild = false)
 	{
 		StartTransactionIfRequested(out IClientSessionHandle session);
