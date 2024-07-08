@@ -101,6 +101,9 @@ public class TopController : PlatformController
 				output.Add(shard.Copy());
 		}
 
+		foreach (Leaderboard board in output)
+			board?.CalculateRanks();
+
 		return !returnShards
 		? Ok()
 		: Ok(new RumbleJson
