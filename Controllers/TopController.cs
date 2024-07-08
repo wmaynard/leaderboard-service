@@ -42,6 +42,7 @@ public class TopController : PlatformController
 	{
 		int score = Require<int>("score");
 		string type = Require<string>(Leaderboard.FRIENDLY_KEY_TYPE);
+		bool returnShards = Optional<bool>("returnShards");
 		ScoreMode mode = Optional<ScoreMode>("mode");
 		mode = (ScoreMode)Math.Min((int) ScoreMode.IndividualAndGuild, Math.Max((int)ScoreMode.IndividualOnly, (int)mode));
 		
@@ -52,6 +53,7 @@ public class TopController : PlatformController
 		Enrollment enrollment = null;
 		Leaderboard shard = null;
 		HashSet<string> idsUpdated = new();
+		List<Leaderboard> output = new();
 		
 		if (mode.HasFlag(ScoreMode.GuildOnly))
 		{
@@ -76,13 +78,15 @@ public class TopController : PlatformController
 						IncomingScore = score
 					});
 				
-				if (shard.Scores.Count == 1)
+				if (shard.Scores.Count == 1 && shard.Scores.First().Score == score)
 					Log.Info(Owner.Will, "New guild shard spawned.", data: new
 					{
 						Help = "If this happens multiple times for a single account ID / leaderboard type, there may be a problem in Mongo.",
 						Shard = shard,
 						IncomingSocre = score
 					});
+				if (returnShards)
+					output.Add(shard.Copy());
 			}
 		}
 		
@@ -93,11 +97,15 @@ public class TopController : PlatformController
 			idsUpdated.Add(shard.Id);
 			if (enrollment.CurrentLeaderboardID != shard.Id)
 				_enrollmentService.FlagAsActive(enrollment, shard);
+			if (returnShards)
+				output.Add(shard.Copy());
 		}
 
-		return Ok(new RumbleJson
+		return !returnShards
+		? Ok()
+		: Ok(new RumbleJson
 		{
-			{ "shardsUpdated", idsUpdated.Count }
+			{ "shardsUpdated", output }
 		});
 	}
 	
