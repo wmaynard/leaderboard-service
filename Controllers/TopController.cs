@@ -105,7 +105,7 @@ public class TopController : PlatformController
 		? Ok()
 		: Ok(new RumbleJson
 		{
-			{ "shardsUpdated", output }
+			{ "leaderboards", output }
 		});
 	}
 	
