@@ -1,7 +1,7 @@
 using System;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Data;
+using Rumble.Platform.Common.Utilities.JsonTools;
 
 namespace Rumble.Platform.LeaderboardService.Models;
 

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Utilities;
@@ -16,8 +16,13 @@ public class ArchiveService : MinqService<Leaderboard>
 		archive = leaderboard.Copy();
 		archive.ChangeId();
 		mongo.Insert(archive);
+		
+		// 2024.07.26 Will: Committing profanity to a codebase as a placeholder error during dev...
+		// Whoops!  Now that Rumble is no longer around, though, I'm going to leave it here for posterity
+		// rather than trying to cover it up with a rebase.
+		// And hey!  This log never showed up!  I definitely would have been called out for it if it happened live!
 		if (string.IsNullOrWhiteSpace(archive.Id))
-			Log.Error(Owner.Will, "Shit");
+			Log.Error(Owner.Will, "Shit");  
 	}
 
 	public List<Leaderboard> Lookup(string type, int count = 1) => mongo

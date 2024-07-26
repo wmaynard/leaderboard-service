@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Filters;
 using Rumble.Platform.Common.Services;
